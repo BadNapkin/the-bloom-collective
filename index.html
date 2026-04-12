@@ -1,0 +1,1631 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Bloom Collective</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+--bg:#1a1917;--panel:#28261f;--border:#4a4540;--text:#e8e0d4;--text-dim:#9e9688;
+--bloom:#6b8f5e;--bloom-glow:#8fbf6e;--water:#5e7f8f;--warn:#c4784e;--danger:#a85454;
+--gold:#c4a84e;--heal:#5e8f6b;--font:'Georgia','Times New Roman',serif;
+}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:var(--font)}
+canvas{display:block}
+
+/* ── Screens ── */
+.screen{position:absolute;top:0;left:0;width:100%;height:100%;display:none;z-index:10}
+.screen.active{display:flex}
+
+/* ── Title Screen ── */
+#title-screen{flex-direction:column;align-items:center;justify-content:center;background:var(--bg);text-align:center}
+#title-screen h1{font-size:clamp(2rem,5vw,3.5rem);letter-spacing:0.15em;color:var(--bloom-glow);margin-bottom:0.3em;
+  text-shadow:0 0 40px rgba(107,143,94,0.3)}
+#title-screen .subtitle{font-size:clamp(0.8rem,2vw,1.1rem);color:var(--text-dim);font-style:italic;margin-bottom:2em;max-width:500px;line-height:1.6}
+.btn{background:none;border:1px solid var(--border);color:var(--text);font-family:var(--font);
+  padding:12px 36px;font-size:1rem;cursor:pointer;letter-spacing:0.1em;transition:all 0.3s;border-radius:2px}
+.btn:hover{border-color:var(--bloom);color:var(--bloom-glow);box-shadow:0 0 20px rgba(107,143,94,0.15)}
+.btn-sm{padding:6px 14px;font-size:0.8rem}
+.btn-bloom{border-color:var(--bloom);color:var(--bloom)}
+.btn-warn{border-color:var(--warn);color:var(--warn)}
+.btn-danger{border-color:var(--danger);color:var(--danger)}
+
+/* ── Game Screen ── */
+#game-screen{flex-direction:column;background:var(--bg)}
+#top-bar{display:flex;align-items:center;padding:8px 16px;gap:16px;border-bottom:1px solid var(--border);
+  background:rgba(40,38,31,0.95);flex-wrap:wrap;min-height:48px;z-index:5}
+.res{display:flex;align-items:center;gap:4px;font-size:0.8rem;white-space:nowrap}
+.res-icon{font-size:1rem}
+.res-val{font-weight:bold;min-width:24px;text-align:right}
+.res-change{font-size:0.65rem;margin-left:2px}
+.res-change.pos{color:var(--bloom)}
+.res-change.neg{color:var(--danger)}
+#bloom-display{display:flex;align-items:center;gap:6px;margin-left:auto}
+#bloom-bar-outer{width:100px;height:8px;background:var(--bg);border:1px solid var(--border);border-radius:4px;overflow:hidden}
+#bloom-bar-inner{height:100%;background:linear-gradient(90deg,var(--danger),var(--warn),var(--bloom));transition:width 0.8s}
+#day-display{font-size:0.85rem;color:var(--text-dim)}
+
+#main-area{display:flex;flex:1;overflow:hidden}
+#sanctuary-wrap{flex:1;position:relative;min-width:300px}
+#sanctuary{width:100%;height:100%}
+#panel{width:clamp(280px,35vw,420px);display:flex;flex-direction:column;border-left:1px solid var(--border);background:var(--panel)}
+#panel-tabs{display:flex;border-bottom:1px solid var(--border)}
+.tab{flex:1;padding:10px 8px;font-size:0.75rem;text-align:center;cursor:pointer;
+  color:var(--text-dim);border-bottom:2px solid transparent;transition:all 0.3s;letter-spacing:0.05em}
+.tab.active{color:var(--bloom-glow);border-bottom-color:var(--bloom)}
+.tab:hover{color:var(--text)}
+#panel-content{flex:1;overflow-y:auto;padding:12px;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+#panel-content::-webkit-scrollbar{width:6px}
+#panel-content::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+.panel-section{display:none}
+.panel-section.active{display:block}
+
+/* ── Bottom Bar ── */
+#bottom-bar{display:flex;align-items:center;padding:8px 16px;gap:12px;border-top:1px solid var(--border);
+  background:rgba(40,38,31,0.95)}
+#event-log{flex:1;font-size:0.75rem;color:var(--text-dim);font-style:italic;overflow:hidden;
+  white-space:nowrap;text-overflow:ellipsis}
+
+/* ── Survivor Cards ── */
+.survivor-card{background:rgba(26,25,23,0.6);border:1px solid var(--border);border-radius:4px;
+  padding:10px;margin-bottom:8px;transition:all 0.3s}
+.survivor-card:hover{border-color:var(--bloom)}
+.survivor-card.on-expedition{opacity:0.5;border-style:dashed}
+.sc-header{display:flex;justify-content:between;align-items:center;margin-bottom:6px}
+.sc-name{font-size:0.9rem;font-weight:bold;flex:1}
+.sc-health{font-size:0.7rem;color:var(--heal)}
+.sc-traits{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px}
+.trait-tag{font-size:0.65rem;padding:2px 6px;border-radius:2px;background:rgba(107,143,94,0.15);
+  color:var(--bloom);border:1px solid rgba(107,143,94,0.3)}
+.trait-tag.negative{background:rgba(168,84,84,0.15);color:var(--danger);border-color:rgba(168,84,84,0.3)}
+.sc-bars{display:flex;gap:8px;margin-bottom:6px}
+.mini-bar{flex:1;display:flex;flex-direction:column;gap:2px}
+.mini-bar label{font-size:0.6rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.05em}
+.mini-bar-outer{height:4px;background:var(--bg);border-radius:2px;overflow:hidden}
+.mini-bar-inner{height:100%;border-radius:2px;transition:width 0.5s}
+.bar-health{background:var(--heal)}
+.bar-morale{background:var(--gold)}
+.sc-role{display:flex;gap:4px;flex-wrap:wrap}
+.role-btn{font-size:0.65rem;padding:3px 8px;cursor:pointer;background:none;border:1px solid var(--border);
+  color:var(--text-dim);border-radius:2px;transition:all 0.2s;font-family:var(--font)}
+.role-btn:hover{border-color:var(--text);color:var(--text)}
+.role-btn.active{border-color:var(--bloom);color:var(--bloom);background:rgba(107,143,94,0.1)}
+
+/* ── Building Cards ── */
+.build-card{background:rgba(26,25,23,0.6);border:1px solid var(--border);border-radius:4px;
+  padding:10px;margin-bottom:8px;cursor:pointer;transition:all 0.3s}
+.build-card:hover{border-color:var(--gold)}
+.build-card.built{border-color:var(--bloom);opacity:0.7;cursor:default}
+.bc-name{font-size:0.85rem;font-weight:bold;margin-bottom:4px}
+.bc-desc{font-size:0.7rem;color:var(--text-dim);margin-bottom:6px;line-height:1.4}
+.bc-cost{font-size:0.7rem;color:var(--warn)}
+
+/* ── Landmark Progress ── */
+#landmark-section{margin-top:16px;padding-top:12px;border-top:1px solid var(--border)}
+#landmark-section h3{font-size:0.85rem;margin-bottom:8px;color:var(--gold)}
+#landmark-bar-outer{height:10px;background:var(--bg);border:1px solid var(--border);border-radius:5px;overflow:hidden;margin-bottom:4px}
+#landmark-bar-inner{height:100%;background:linear-gradient(90deg,var(--bloom),var(--gold));transition:width 0.8s;border-radius:5px}
+#landmark-text{font-size:0.7rem;color:var(--text-dim)}
+
+/* ── Expedition Panel ── */
+.exp-card{background:rgba(26,25,23,0.6);border:1px solid var(--border);border-radius:4px;padding:10px;margin-bottom:8px}
+.exp-active{border-color:var(--water);border-style:dashed}
+.exp-name{font-size:0.85rem;font-weight:bold;margin-bottom:4px}
+.exp-desc{font-size:0.7rem;color:var(--text-dim);line-height:1.4;margin-bottom:6px}
+.exp-journal{font-size:0.75rem;color:var(--text);font-style:italic;padding:8px;
+  background:rgba(0,0,0,0.3);border-radius:2px;margin:6px 0;line-height:1.5}
+.exp-survivors{font-size:0.7rem;color:var(--water);margin-bottom:4px}
+.exp-progress{font-size:0.7rem;color:var(--text-dim)}
+#send-exp-section{margin-top:12px;padding-top:12px;border-top:1px solid var(--border)}
+#send-exp-section h3{font-size:0.85rem;margin-bottom:8px;color:var(--water)}
+.exp-dest{background:rgba(26,25,23,0.6);border:1px solid var(--border);border-radius:4px;
+  padding:10px;margin-bottom:8px;cursor:pointer;transition:all 0.3s}
+.exp-dest:hover{border-color:var(--water)}
+.exp-dest.selected{border-color:var(--water);background:rgba(94,127,143,0.1)}
+.exp-dest-name{font-size:0.8rem;font-weight:bold;margin-bottom:2px}
+.exp-dest-info{font-size:0.7rem;color:var(--text-dim);line-height:1.3}
+.exp-survivor-pick{display:inline-block;padding:3px 8px;font-size:0.7rem;margin:2px;cursor:pointer;
+  border:1px solid var(--border);border-radius:2px;transition:all 0.2s;background:none;
+  color:var(--text-dim);font-family:var(--font)}
+.exp-survivor-pick:hover{border-color:var(--text);color:var(--text)}
+.exp-survivor-pick.selected{border-color:var(--water);color:var(--water);background:rgba(94,127,143,0.1)}
+
+/* ── Dilemma Modal ── */
+#dilemma-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);
+  display:none;z-index:100;align-items:center;justify-content:center;padding:20px}
+#dilemma-overlay.active{display:flex}
+#dilemma-box{max-width:560px;width:100%;background:var(--panel);border:1px solid var(--border);
+  border-radius:4px;padding:28px;max-height:90vh;overflow-y:auto}
+#dilemma-title{font-size:1.2rem;margin-bottom:6px;color:var(--gold)}
+#dilemma-day{font-size:0.7rem;color:var(--text-dim);margin-bottom:12px}
+#dilemma-text{font-size:0.85rem;line-height:1.7;color:var(--text);margin-bottom:16px}
+#dilemma-opinions{margin-bottom:16px}
+.opinion{font-size:0.75rem;color:var(--text-dim);margin-bottom:6px;padding-left:12px;
+  border-left:2px solid var(--border);line-height:1.4}
+.opinion .op-name{color:var(--text);font-weight:bold}
+#dilemma-choices{display:flex;flex-direction:column;gap:8px}
+.dilemma-choice{background:none;border:1px solid var(--border);color:var(--text);font-family:var(--font);
+  padding:12px 16px;font-size:0.8rem;cursor:pointer;text-align:left;border-radius:2px;
+  transition:all 0.3s;line-height:1.4}
+.dilemma-choice:hover{border-color:var(--bloom);background:rgba(107,143,94,0.05)}
+.dilemma-choice .choice-effects{display:block;font-size:0.7rem;color:var(--text-dim);margin-top:4px}
+
+/* ── Result Toast ── */
+#result-toast{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(0.9);
+  background:var(--panel);border:1px solid var(--bloom);border-radius:4px;padding:24px;
+  max-width:460px;width:90%;z-index:110;text-align:center;display:none;opacity:0;transition:all 0.4s}
+#result-toast.active{display:block;opacity:1;transform:translate(-50%,-50%) scale(1)}
+#result-toast h3{margin-bottom:8px;color:var(--bloom-glow)}
+#result-toast p{font-size:0.85rem;line-height:1.6;margin-bottom:12px}
+#result-effects{font-size:0.75rem;color:var(--text-dim);margin-bottom:16px}
+
+/* ── Epilogue ── */
+#epilogue-screen{flex-direction:column;align-items:center;justify-content:center;background:var(--bg);
+  text-align:center;padding:40px;overflow-y:auto}
+#epilogue-screen h1{font-size:2rem;color:var(--bloom-glow);margin-bottom:8px}
+#epilogue-screen .ep-subtitle{font-size:1rem;color:var(--text-dim);font-style:italic;margin-bottom:24px}
+#epilogue-content{max-width:560px;text-align:left;font-size:0.85rem;line-height:1.8;margin-bottom:24px}
+#epilogue-content p{margin-bottom:12px}
+#epilogue-content .ep-survivor{padding:8px 12px;border-left:2px solid var(--bloom);margin-bottom:8px}
+#bloom-final{font-size:1.5rem;color:var(--bloom-glow);margin-bottom:16px}
+
+/* ── Responsive ── */
+@media(max-width:768px){
+  #main-area{flex-direction:column}
+  #sanctuary-wrap{height:35vh;min-width:unset}
+  #panel{width:100%;border-left:none;border-top:1px solid var(--border)}
+  #top-bar{padding:6px 10px;gap:8px}
+  .res{font-size:0.7rem}
+}
+
+/* ── Animations ── */
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.6}}
+.fade-in{animation:fadeIn 0.5s ease}
+.pulse{animation:pulse 2s ease infinite}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+</style>
+</head>
+<body>
+
+<!-- ═══ TITLE SCREEN ═══ -->
+<div id="title-screen" class="screen active">
+  <div style="font-size:3rem;margin-bottom:20px">🌿</div>
+  <h1>THE BLOOM COLLECTIVE</h1>
+  <p class="subtitle">The old world fell silent. No war. No warning. Just… stillness.<br><br>
+  In the canopy of an ancient tree, a small community begins again.<br>
+  You are their conscience. Their consensus. Their voice.<br><br>
+  <em>Guide them. Grow. Bloom.</em></p>
+  <button class="btn" onclick="startGame()">Begin</button>
+</div>
+
+<!-- ═══ GAME SCREEN ═══ -->
+<div id="game-screen" class="screen">
+  <div id="top-bar">
+    <span id="day-display">Day 1 · Dawn</span>
+    <div class="res"><span class="res-icon">🌾</span><span class="res-val" id="r-food">20</span><span class="res-change" id="rc-food"></span></div>
+    <div class="res"><span class="res-icon">💧</span><span class="res-val" id="r-water">20</span><span class="res-change" id="rc-water"></span></div>
+    <div class="res"><span class="res-icon">🌿</span><span class="res-val" id="r-compost">5</span><span class="res-change" id="rc-compost"></span></div>
+    <div class="res"><span class="res-icon">💊</span><span class="res-val" id="r-medicine">5</span><span class="res-change" id="rc-medicine"></span></div>
+    <div class="res"><span class="res-icon">⚙️</span><span class="res-val" id="r-scrap">10</span><span class="res-change" id="rc-scrap"></span></div>
+    <div id="bloom-display">
+      <span style="font-size:0.8rem">🌸</span>
+      <div id="bloom-bar-outer"><div id="bloom-bar-inner" style="width:50%"></div></div>
+      <span style="font-size:0.8rem" id="bloom-val">50</span>
+    </div>
+  </div>
+
+  <div id="main-area">
+    <div id="sanctuary-wrap"><canvas id="sanctuary"></canvas></div>
+    <div id="panel">
+      <div id="panel-tabs">
+        <div class="tab active" data-tab="community" onclick="switchTab('community')">Community</div>
+        <div class="tab" data-tab="build" onclick="switchTab('build')">Build</div>
+        <div class="tab" data-tab="expeditions" onclick="switchTab('expeditions')">Expeditions</div>
+        <div class="tab" data-tab="log" onclick="switchTab('log')">Log</div>
+      </div>
+      <div id="panel-content">
+        <div id="tab-community" class="panel-section active"></div>
+        <div id="tab-build" class="panel-section"></div>
+        <div id="tab-expeditions" class="panel-section"></div>
+        <div id="tab-log" class="panel-section"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="bottom-bar">
+    <span id="event-log">The community stirs with the dawn…</span>
+    <button class="btn btn-sm btn-bloom" onclick="endDay()">End Day →</button>
+  </div>
+</div>
+
+<!-- ═══ DILEMMA MODAL ═══ -->
+<div id="dilemma-overlay">
+  <div id="dilemma-box">
+    <div id="dilemma-day"></div>
+    <h2 id="dilemma-title"></h2>
+    <p id="dilemma-text"></p>
+    <div id="dilemma-opinions"></div>
+    <div id="dilemma-choices"></div>
+  </div>
+</div>
+
+<!-- ═══ RESULT TOAST ═══ -->
+<div id="result-toast">
+  <h3 id="result-title"></h3>
+  <p id="result-text"></p>
+  <div id="result-effects"></div>
+  <button class="btn btn-sm" onclick="closeResult()">Continue</button>
+</div>
+
+<!-- ═══ EPILOGUE ═══ -->
+<div id="epilogue-screen" class="screen">
+  <div style="font-size:3rem;margin-bottom:12px">🌸</div>
+  <h1>Epilogue</h1>
+  <p class="ep-subtitle" id="ep-subtitle"></p>
+  <div id="bloom-final"></div>
+  <div id="epilogue-content"></div>
+  <button class="btn" onclick="location.reload()">Begin Again</button>
+</div>
+
+<script>
+// ════════════════════════════════════════════
+// GAME DATA
+// ════════════════════════════════════════════
+
+const NAMES = ['Ada','Bryn','Cael','Dara','Elian','Fern','Gale','Haze','Iris','Joss','Kael','Luma','Moss','Nyx','Orin','Pax','Quinn','Rune','Sol','Tarn'];
+const POSITIVE_TRAITS = ['Pragmatist','Purist','Resourceful','Compassionate','Resilient','Inventive','Diplomatic','Vigilant'];
+const NEGATIVE_TRAITS = ['Skeptic','Reckless','Hoarder','Cynic'];
+const ROLES = [
+  {id:'forager',label:'Forage',icon:'🍃',desc:'Gather food from the wilds'},
+  {id:'gardener',label:'Garden',icon:'🌱',desc:'Tend the living garden'},
+  {id:'crafter',label:'Craft',icon:'🔨',desc:'Build and improve the sanctuary'},
+  {id:'researcher',label:'Research',icon:'📖',desc:'Study blueprints and lore'},
+  {id:'medic',label:'Heal',icon:'💚',desc:'Tend to the sick and weary'},
+  {id:'rest',label:'Rest',icon:'😴',desc:'Recover health and morale'}
+];
+
+const BUILDINGS = [
+  {id:'rain_catcher',name:'Rain Catcher',desc:'Collects clean water passively each day.',cost:{scrap:5,compost:2},effect:{waterPerDay:2},icon:'💧'},
+  {id:'herb_garden',name:'Herb Garden',desc:'Grows medicinal herbs, boosting the medic\'s output.',cost:{compost:5,scrap:2},effect:{medicinePerDay:1,bloomBonus:2},icon:'🌿'},
+  {id:'lookout',name:'Lookout Post',desc:'Spot wanderers and threats earlier. Improves expedition safety.',cost:{scrap:8},effect:{expSafety:15},icon:'🔭'},
+  {id:'compost_bin',name:'Compost Bin',desc:'Converts food waste into rich soil nutrients.',cost:{scrap:3,compost:1},effect:{compostPerDay:2},icon:'♻️'},
+  {id:'workshop',name:'Workshop',desc:'Doubles crafter output for landmark construction.',cost:{scrap:12,compost:3},effect:{craftBonus:2},icon:'⚒️'},
+  {id:'library',name:'Library',desc:'Researchers work faster and unlock blueprints sooner.',cost:{scrap:6,compost:2},effect:{researchBonus:2},icon:'📚'},
+  {id:'sleeping_quarters',name:'Sleeping Quarters',desc:'Survivors resting here recover twice as fast.',cost:{scrap:8,compost:4},effect:{restBonus:2},icon:'🛏️'},
+  {id:'shrine',name:'Shrine of Bloom',desc:'A meditative space. Passive bloom score increase each day.',cost:{compost:8,scrap:4},effect:{bloomPerDay:2},icon:'🕯️'},
+  {id:'nursery',name:'Animal Nursery',desc:'Care for rescued animals. Boosts morale and bloom.',cost:{compost:6,scrap:3},effect:{moralePerDay:3,bloomPerDay:1},icon:'🐾'},
+  {id:'apothecary',name:'Apothecary',desc:'Advanced medicine crafting. Medicine never runs dry.',cost:{scrap:10,compost:6},effect:{medicinePerDay:2},icon:'⚗️'}
+];
+
+const DESTINATIONS = [
+  {id:'echoes',name:'The Echoes',desc:'Abandoned city ruins. Rich in scrap and old-world relics, but dangerous.',risk:35,days:3,rewards:'scrap, medicine, blueprints',icon:'🏚️'},
+  {id:'wildlands',name:'The Wildlands',desc:'Deep forest teeming with life. Food, seeds, and herbal remedies await.',risk:15,days:2,rewards:'food, compost, medicine',icon:'🌲'},
+  {id:'shore',name:'The Shore',desc:'Coastal remnants with trade contacts and water tech.',risk:25,days:3,rewards:'water tech, scrap, trade goods',icon:'🌊'},
+  {id:'ruins',name:'The Old Laboratory',desc:'Pre-Switch-Off research facility. Relic fragments and dangerous secrets.',risk:50,days:4,rewards:'relic fragments, blueprints, risk',icon:'🔬'}
+];
+
+const DILEMMAS = [
+  {
+    id:'contaminated_water',title:'The Tainted Spring',
+    text:'Scout Fern discovered a spring feeding into our water supply — but the water has an unusual chemical tang. It might be runoff from Old World infrastructure. We can purify it slowly using our compost filtration, or use it immediately to ease the shortage.',
+    opinions:[{trait:'Purist',text:'We cannot poison the earth to save ourselves. Filter it properly.'},{trait:'Pragmatist',text:'People are thirsty now. A little risk beats certain dehydration.'}],
+    choices:[
+      {text:'Filter it through compost (slow but safe)',effects:{water:3,compost:-3,bloom:4},trait:'Purist',result:'The filtration takes time, but the water runs clear. The earth thanks you.'},
+      {text:'Use it immediately (fast but risky)',effects:{water:8,bloom:-6,healthAll:-8},trait:'Pragmatist',result:'The water quenches thirst, but several survivors develop stomach cramps. The spring\'s taint lingers.'},
+      {text:'Seal the spring and find another source',effects:{water:-2,bloom:2,morale:-5},trait:'Vigilant',result:'A safer choice, but the community grumbles about the lost resource.'}
+    ]
+  },
+  {
+    id:'wanderer',title:'A Stranger at the Gate',
+    text:'A lone wanderer appears at the base of the great tree, gaunt and weary. They carry a heavy pack and claim to have skills in Old World medicine. But their eyes are guarded, and they refuse to speak of where they came from.',
+    opinions:[{trait:'Compassionate',text:'Everyone deserves a second chance. Let them in.'},{trait:'Skeptic',text:'Something about this one isn\'t right. We don\'t need another mouth to feed.'}],
+    choices:[
+      {text:'Welcome them into the collective',effects:{food:-3,medicine:4,morale:5,bloom:2},trait:'Compassionate',result:'The wanderer proves knowledgeable and kind. They join the community with quiet gratitude.',addSurvivor:true},
+      {text:'Offer supplies and send them on their way',effects:{food:-2,medicine:-1,bloom:1,morale:0},trait:'Diplomatic',result:'You part on good terms. Perhaps they\'ll remember your kindness.'},
+      {text:'Turn them away',effects:{morale:-4,bloom:-2},trait:'Skeptic',result:'The wanderer disappears into the treeline. Some survivors exchange uneasy glances.'}
+    ]
+  },
+  {
+    id:'old_cache',title:'The Buried Cache',
+    text:'While expanding the root system of our tree, diggers unearth a sealed Old World container. Inside: a crate of preserved medical supplies alongside a stack of technical manuals that could advance our research.',
+    opinions:[{trait:'Resourceful',text:'Medicine saves lives today. Take the supplies.'},{trait:'Inventive',text:'Those blueprints could change everything. Knowledge is the true treasure.'}],
+    choices:[
+      {text:'Prioritize the medicine',effects:{medicine:8,morale:3},trait:'Resourceful',result:'The medical supplies are a windfall. Survivors breathe easier.'},
+      {text:'Prioritize the blueprints',effects:{scrap:5,bloom:2,landmark:8},trait:'Inventive',result:'The technical manuals reveal construction techniques that advance your landmark.'},
+      {text:'Take both carefully (high effort)',effects:{medicine:4,scrap:3,morale:-3},trait:'Pragmatist',result:'The extraction takes a full day of hard labor, but you secure both treasures.'}
+    ]
+  },
+  {
+    id:'wildfire',title:'Smoke on the Horizon',
+    text:'A wildfire burns in the distant hills, creeping closer. The wind could shift at any moment. You have perhaps two days before it becomes a real threat — if it comes this way at all.',
+    opinions:[{trait:'Vigilant',text:'We prepare now. Dig firebreaks and wet the perimeter.'},{trait:'Pragmatist',text:'It may never reach us. Don\'t waste resources on a maybe.'}],
+    choices:[
+      {text:'Prepare defenses (firebreaks and water barriers)',effects:{water:-5,compost:-3,bloom:5,morale:3},trait:'Vigilant',result:'The fire shifts direction overnight, but your preparations impressed the community. They feel safe.'},
+      {text:'Controlled burn to starve the fire',effects:{bloom:-8,food:-4,scrap:2},trait:'Pragmatist',result:'The controlled burn works, but the scarred earth takes time to heal. The bloom suffers.'},
+      {text:'Do nothing and hope for rain',effects:{},trait:'Skeptic',result:'Luck is with you — rain comes by evening. But the close call rattles nerves.',rng:{bad:{morale:-10,healthAll:-15,bloom:-5},chance:30}}
+    ]
+  },
+  {
+    id:'sick_child',title:'Fever in the Night',
+    text:'A young child in the community has developed a high fever. Your herbal remedies may not be enough. The Old World medicine cache has stronger drugs, but using them now means they won\'t be available for a future crisis.',
+    opinions:[{trait:'Compassionate',text:'Use everything we have. One child\'s life is worth any cost.'},{trait:'Pragmatist',text:'The herbs may suffice. Save the strong medicine for when many are sick.'}],
+    choices:[
+      {text:'Use Old World medicine immediately',effects:{medicine:-4,morale:8,bloom:3},trait:'Compassionate',result:'The fever breaks by morning. The child smiles. The community weeps with relief.'},
+      {text:'Try herbal remedies first',effects:{medicine:-1,morale:-2},trait:'Purist',result:'The herbs work slowly, but the child recovers after a difficult week.',rng:{bad:{morale:-12,healthAll:-5},chance:25}},
+      {text:'Quarantine and observe',effects:{morale:-5,bloom:1},trait:'Vigilant',result:'Isolation is hard, but it prevents spread. The child recovers, though the loneliness lingers.'}
+    ]
+  },
+  {
+    id:'traders',title:'The Wandering Market',
+    text:'A trading caravan arrives with exotic goods: rare seeds that could revolutionize your garden, advanced tools, and something they call "the Pulsebox" — a small device that hums with faint energy.',
+    opinions:[{trait:'Inventive',text:'That device... it could be a fragment of the old power. We must have it.'},{trait:'Purist',text:'Seeds and soil. That\'s all we need. Old World trinkets are what destroyed us.'}],
+    choices:[
+      {text:'Trade for rare seeds (costs food)',effects:{food:-8,compost:5,bloom:6},trait:'Purist',result:'The seeds are beyond anything you\'ve seen. Your garden will flourish.'},
+      {text:'Trade for the Pulsebox (costs scrap)',effects:{scrap:-10,landmark:12},trait:'Inventive',result:'The device hums in your hands. Its secrets could change everything about the Landmark.'},
+      {text:'Trade for tools (costs compost)',effects:{compost:-6,scrap:8},trait:'Pragmatist',result:'Good, honest tools. The crafters grin with satisfaction.'}
+    ]
+  },
+  {
+    id:'dispute',title:'Voices in Conflict',
+    text:'Two survivors are locked in an escalating argument. One insists the community has become too soft, wasting resources on "bloom nonsense." The other accuses them of being willing to burn the world for short-term gain. Others are taking sides.',
+    opinions:[{trait:'Diplomatic',text:'Both have a point. Call for a community circle.'},{trait:'Resilient',text:'Let them work it out. We\'re stronger than a shouting match.'}],
+    choices:[
+      {text:'Hold a community circle (takes time)',effects:{morale:6,bloom:3},trait:'Diplomatic',result:'The circle lasts hours, but by the end, there are handshakes instead of fists.'},
+      {text:'Side with the bloom advocate',effects:{bloom:5,morale:-3},trait:'Purist',result:'The community recommits to ecological harmony, but the dissenter feels silenced.'},
+      {text:'Side with the pragmatist',effects:{bloom:-4,scrap:3,morale:-2},trait:'Pragmatist',result:'Resources flow more freely, but the garden feels neglected.'},
+      {text:'Let them resolve it themselves',effects:{morale:-6},trait:'Skeptic',result:'The argument festers. Tensions remain high for days.',rng:{bad:{morale:-8},chance:40}}
+    ]
+  },
+  {
+    id:'ancient_seeds',title:'Seeds of the Old Growth',
+    text:'Deep in the root network, you discover seeds that predate the Switch-Off — perhaps centuries old. They pulse with a faint warmth. Planting them could transform the sanctuary, but studying them might reveal secrets of the Great Tree itself.',
+    opinions:[{trait:'Purist',text:'Plant them. Let nature speak.'},{trait:'Inventive',text:'Study them first. Understanding before action.'}],
+    choices:[
+      {text:'Plant them immediately',effects:{bloom:10,food:5,compost:3},trait:'Purist',result:'The seeds sprout overnight in impossible spirals of green. The sanctuary hums with new life.'},
+      {text:'Study them carefully',effects:{bloom:3,landmark:10,scrap:2},trait:'Inventive',result:'The seeds contain encoded genetic information that advances your understanding of the tree\'s architecture.'},
+      {text:'Share them with the traders',effects:{scrap:12,medicine:6,bloom:-3},trait:'Resourceful',result:'The traders are astonished. They pay handsomely, but something precious has left the sanctuary.'}
+    ]
+  },
+  {
+    id:'relic_signal',title:'A Whisper from the Dark',
+    text:'Late at night, a researcher detects a faint, rhythmic signal emanating from deep underground. It\'s not natural. It pulses like a heartbeat. Some say it\'s the Relic of Power calling to those who would listen.',
+    opinions:[{trait:'Inventive',text:'We must investigate. This could explain the Switch-Off.'},{trait:'Purist',text:'Some doors should stay closed. Seal it.'}],
+    choices:[
+      {text:'Investigate the signal',effects:{bloom:-3,landmark:8,morale:4},trait:'Inventive',result:'The investigation yields cryptic data. Something vast sleeps beneath the earth.'},
+      {text:'Seal the source',effects:{bloom:6,morale:-3},trait:'Purist',result:'You bury the signal under stone and soil. Silence returns, but curiosity lingers.'},
+      {text:'Monitor it passively',effects:{bloom:1,morale:1},trait:'Vigilant',result:'You note the patterns but take no action. Knowledge gathers like dust.'}
+    ]
+  },
+  {
+    id:'animal_den',title:'The Den Beneath the Roots',
+    text:'Workers discover a den of foxes living in the root system of the Great Tree. They\'ve been quietly coexisting — but the den is exactly where you planned to expand the sleeping quarters.',
+    opinions:[{trait:'Compassionate',text:'They were here first. Build around them.'},{trait:'Pragmatist',text:'We need the space. Relocate them carefully.'}],
+    choices:[
+      {text:'Build around the den (costs extra)',effects:{scrap:-4,bloom:8,morale:5},trait:'Compassionate',result:'The foxes become beloved companions. Children name them. The sanctuary feels more alive.'},
+      {text:'Relocate them gently',effects:{bloom:-2,morale:-2,compost:2},trait:'Pragmatist',result:'The foxes are moved, but their absence leaves a small, quiet sadness.'},
+      {text:'Use the den as a natural nursery',effects:{bloom:5,morale:3,food:-2},trait:'Purist',result:'You adapt your plans to include the foxes. The Animal Nursery practically builds itself.'}
+    ]
+  },
+  {
+    id:'storm',title:'The Gray Fury',
+    text:'A massive storm descends on the sanctuary. Wind howls through the canopy, threatening to tear away structures. Rain hammers the platforms. You must decide how to weather it.',
+    opinions:[{trait:'Resilient',text:'We\'ve survived worse. Batten down and hold.'},{trait:'Inventive',text:'Route the water into our collectors. Turn disaster into resource.'}],
+    choices:[
+      {text:'Shelter in place and protect the tree',effects:{morale:-3,bloom:3},trait:'Resilient',result:'The storm passes. Some damage, but the Great Tree stands proud. A few leaves lost, nothing more.'},
+      {text:'Harvest the rainwater aggressively',effects:{water:10,scrap:-3,bloom:-2},trait:'Inventive',result:'Your improvised collectors fill to bursting. But the hasty construction scarred the bark.'},
+      {text:'Send scouts to rescue outlying supplies',effects:{scrap:4,food:3,healthAll:-10},trait:'Resourceful',result:'The scouts return battered but bearing armfuls of supplies saved from the flood.'}
+    ]
+  },
+  {
+    id:'bloom_sickness',title:'The Withering',
+    text:'Several patches of the garden are wilting. A fungal infection is spreading through the root network. If unchecked, it could devastate your renewable food supply and crush the bloom.',
+    opinions:[{trait:'Purist',text:'Burn the infected sections. Painful but necessary.'},{trait:'Compassionate',text:'There must be a gentler way. Use compost therapy.'}],
+    choices:[
+      {text:'Burn the infected sections',effects:{food:-5,bloom:-4,compost:-3},trait:'Pragmatist',result:'The fire is contained. The garden mourns, but the infection is gone.'},
+      {text:'Compost therapy (slow, uncertain)',effects:{compost:-6,bloom:2},trait:'Purist',result:'Weeks of careful treatment. The garden recovers slowly, stronger than before.',rng:{bad:{food:-8,bloom:-10},chance:30}},
+      {text:'Quarantine and research',effects:{food:-3,bloom:1,landmark:5},trait:'Inventive',result:'The fungus yields medicinal secrets. The researchers are ecstatic.'}
+    ]
+  },
+  {
+    id:'leaving',title:'A Farewell',
+    text:'One of your survivors approaches you with heavy footsteps. They\'re leaving. "I\'ve found meaning here," they say, "but there\'s something I need to find out there. I hope you understand."',
+    opinions:[{trait:'Diplomatic',text:'Everyone walks their own path. Wish them well.'},{trait:'Resilient',text:'We need every hand. Convince them to stay.'}],
+    choices:[
+      {text:'Wish them well and share supplies',effects:{food:-3,medicine:-2,morale:4,bloom:3},trait:'Compassionate',result:'They leave at dawn with tears and gratitude. The community is smaller but kinder.',removeSurvivor:true},
+      {text:'Ask them to reconsider',effects:{morale:-2},trait:'Diplomatic',result:'After a long conversation, they agree to stay — for now. But their eyes still wander.',rng:{bad:{morale:-5},chance:50}},
+      {text:'Plead with them to stay',effects:{morale:-5},trait:'Skeptic',result:'They stay, but resentment simmers. Freedom denied breeds bitterness.'}
+    ]
+  },
+  {
+    id:'rival',title:'The Iron Collective',
+    text:'A runner arrives, breathless. A rival group — the Iron Collective — has established a camp two days\' march away. They demand tribute: food and scrap, or "consequences." Their scouts have been watching you.',
+    opinions:[{trait:'Pragmatist',text:'Pay them off. We can\'t afford a conflict.'},{trait:'Vigilant',text:'Show weakness now and they\'ll bleed us dry.'}],
+    choices:[
+      {text:'Pay the tribute',effects:{food:-8,scrap:-6,morale:-5},trait:'Pragmatist',result:'The Iron Collective collects their toll. They\'ll be back. But for now, peace.'},
+      {text:'Refuse and prepare defenses',effects:{scrap:-4,morale:5,bloom:-2},trait:'Vigilant',result:'Your show of defiance buys respect — or at least hesitation. They don\'t return... yet.'},
+      {text:'Offer an alliance instead',effects:{food:-4,scrap:-3,morale:3,bloom:2},trait:'Diplomatic',result:'Negotiations are tense, but a fragile accord is struck. Trade, not tribute.'}
+    ]
+  }
+];
+
+const EXP_EVENTS = {
+  echoes:[
+    {text:'Day 1: The city looms like a skeleton against the gray sky. Every footstep echoes.'},
+    {text:'Day 2: Found an intact pharmacy behind a collapsed wall. Scavenging carefully.',choice:{a:'Grab everything quickly',aEffect:{medicine:5,scrap:3,healthAll:-5},b:'Take only essentials',bEffect:{medicine:2,scrap:1,bloom:2}}},
+    {text:'Day 3: Heading back. The Echoes whisper behind us.'}
+  ],
+  wildlands:[
+    {text:'Day 1: The canopy here is thick and alive. Bird calls everywhere.'},
+    {text:'Day 2: Discovered a grove of fruit trees — ancient and heavy with yield.',choice:{a:'Harvest aggressively',aEffect:{food:10,bloom:-3},b:'Take what we need',bEffect:{food:5,bloom:3,compost:2}}},
+  ],
+  shore:[
+    {text:'Day 1: Salt air and the sound of waves. Remnants of a fishing village line the coast.'},
+    {text:'Day 2: Met a coastal trader who offers water purification tech for scrap.',choice:{a:'Trade our scrap',aEffect:{scrap:-5,water:8},b:'Decline and forage',bEffect:{food:3,scrap:2}}},
+    {text:'Day 3: Found old nautical maps. Researchers will love these.'}
+  ],
+  ruins:[
+    {text:'Day 1: The facility is cold. Metal corridors stretch into darkness.'},
+    {text:'Day 2: Security systems still operational — traps everywhere.',choice:{a:'Push deeper',aEffect:{landmark:15,healthAll:-15,scrap:5},b:'Play it safe',bEffect:{scrap:3,landmark:5}}},
+    {text:'Day 3: Something hums behind a sealed door. We need to decide.'},
+    {text:'Day 4: Returning with strange artifacts. They pulse with warmth.'}
+  ]
+};
+
+// ════════════════════════════════════════════
+// GAME STATE
+// ════════════════════════════════════════════
+
+let G = {};
+let canvas, ctx;
+let particles = [];
+let fireflies = [];
+let leafParticles = [];
+let animFrame;
+let pendingDilemma = null;
+let logEntries = [];
+let usedDilemmas = new Set();
+let expSendState = {dest:null,survivors:[]};
+
+function initState() {
+  G = {
+    day: 1,
+    bloom: 50,
+    resources: {food:20,water:20,compost:5,medicine:5,scrap:10},
+    morale: 65,
+    survivors: [],
+    buildings: [],
+    expeditions: [],
+    decisions: [],
+    landmark: {progress:0,required:100},
+    gameOver: false,
+    lastChanges: {}
+  };
+  usedDilemmas.clear();
+  logEntries = [];
+  // Generate starting survivors
+  const startNames = shuffle([...NAMES]).slice(0,4);
+  startNames.forEach(name => {
+    G.survivors.push(createSurvivor(name));
+  });
+}
+
+function createSurvivor(name) {
+  const trait1 = POSITIVE_TRAITS[Math.floor(Math.random()*POSITIVE_TRAITS.length)];
+  let trait2 = POSITIVE_TRAITS[Math.floor(Math.random()*POSITIVE_TRAITS.length)];
+  while(trait2===trait1) trait2 = POSITIVE_TRAITS[Math.floor(Math.random()*POSITIVE_TRAITS.length)];
+  return {
+    name: name || NAMES[Math.floor(Math.random()*NAMES.length)],
+    traits: [trait1, trait2],
+    health: 80 + Math.floor(Math.random()*20),
+    morale: 60 + Math.floor(Math.random()*30),
+    role: null,
+    expedition: null,
+    alive: true
+  };
+}
+
+function shuffle(arr) {
+  for(let i=arr.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]];}
+  return arr;
+}
+
+// ════════════════════════════════════════════
+// AUDIO
+// ════════════════════════════════════════════
+
+let audioCtx;
+function initAudio() {
+  try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) {}
+}
+
+function playTone(freq, dur, type='sine', vol=0.08) {
+  if(!audioCtx) return;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = type;
+  osc.frequency.value = freq;
+  gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  osc.start();
+  osc.stop(audioCtx.currentTime + dur);
+}
+
+function playChime() {
+  const notes = [523,659,784];
+  notes.forEach((n,i) => setTimeout(() => playTone(n, 0.4, 'sine', 0.06), i*120));
+}
+
+function playWarning() {
+  playTone(330, 0.3, 'triangle', 0.08);
+  setTimeout(() => playTone(280, 0.4, 'triangle', 0.06), 150);
+}
+
+function playClick() { playTone(800, 0.05, 'sine', 0.04); }
+function playDay() { playTone(440, 0.6, 'sine', 0.05); setTimeout(() => playTone(554, 0.6, 'sine', 0.04), 200); setTimeout(() => playTone(659, 0.8, 'sine', 0.03), 400); }
+
+// ════════════════════════════════════════════
+// RESOURCE CALCULATIONS
+// ════════════════════════════════════════════
+
+function bloomMultiplier() { return Math.max(0.2, G.bloom / 50); }
+
+function calcDayChanges() {
+  const bm = bloomMultiplier();
+  const changes = {food:0,water:0,compost:0,medicine:0,scrap:0,morale:0,bloom:0,landmark:0};
+  const aliveSurvivors = G.survivors.filter(s=>s.alive && !s.expedition);
+
+  // Consumption
+  const totalPop = G.survivors.filter(s=>s.alive).length;
+  changes.food -= totalPop;
+  changes.water -= Math.ceil(totalPop * 0.5);
+
+  // Role production
+  aliveSurvivors.forEach(s => {
+    switch(s.role) {
+      case 'forager': changes.food += Math.round(3 * bm); break;
+      case 'gardener': changes.food += Math.round(2 * bm); changes.compost += 1; changes.bloom += 1; break;
+      case 'crafter':
+        let craftAmt = 4;
+        if(G.buildings.includes('workshop')) craftAmt *= 2;
+        changes.landmark += craftAmt;
+        break;
+      case 'researcher':
+        let resAmt = 2;
+        if(G.buildings.includes('library')) resAmt *= 2;
+        changes.landmark += resAmt;
+        break;
+      case 'medic':
+        changes.medicine += G.buildings.includes('apothecary') ? 2 : 0;
+        // Healing handled separately
+        break;
+      case 'rest':
+        let restAmt = 15;
+        if(G.buildings.includes('sleeping_quarters')) restAmt *= 2;
+        s.health = Math.min(100, s.health + restAmt);
+        s.morale = Math.min(100, s.morale + 10);
+        break;
+    }
+  });
+
+  // Medic heals others
+  const medics = aliveSurvivors.filter(s=>s.role==='medic');
+  if(medics.length > 0) {
+    aliveSurvivors.forEach(s => {
+      if(s.role !== 'medic' && s.health < 100) {
+        s.health = Math.min(100, s.health + 5 * medics.length);
+      }
+    });
+  }
+
+  // Building bonuses
+  if(G.buildings.includes('rain_catcher')) changes.water += 2;
+  if(G.buildings.includes('herb_garden')) { changes.medicine += 1; changes.bloom += 2; }
+  if(G.buildings.includes('compost_bin')) changes.compost += 2;
+  if(G.buildings.includes('shrine')) changes.bloom += 2;
+  if(G.buildings.includes('nursery')) { changes.morale += 3; changes.bloom += 1; }
+
+  // Natural bloom drift toward 50
+  if(G.bloom > 55) changes.bloom -= 1;
+  if(G.bloom < 45) changes.bloom += 1;
+
+  return changes;
+}
+
+function applyChanges(changes) {
+  G.lastChanges = {...changes};
+  G.resources.food = Math.max(0, G.resources.food + (changes.food||0));
+  G.resources.water = Math.max(0, G.resources.water + (changes.water||0));
+  G.resources.compost = Math.max(0, G.resources.compost + (changes.compost||0));
+  G.resources.medicine = Math.max(0, G.resources.medicine + (changes.medicine||0));
+  G.resources.scrap = Math.max(0, G.resources.scrap + (changes.scrap||0));
+  G.morale = Math.max(0, Math.min(100, G.morale + (changes.morale||0)));
+  G.bloom = Math.max(0, Math.min(100, G.bloom + (changes.bloom||0)));
+  G.landmark.progress = Math.min(G.landmark.required, G.landmark.progress + (changes.landmark||0));
+
+  if(changes.healthAll) {
+    G.survivors.filter(s=>s.alive).forEach(s => {
+      s.health = Math.max(0, Math.min(100, s.health + changes.healthAll));
+    });
+  }
+
+  // Morale decay from low resources
+  if(G.resources.food <= 0) { G.morale -= 8; addLog('⚠️ No food! Morale plummets.'); }
+  if(G.resources.water <= 0) { G.morale -= 5; addLog('⚠️ Water shortage! Survivors suffer.'); }
+
+  // Health decay from starvation
+  if(G.resources.food <= 0) {
+    G.survivors.filter(s=>s.alive).forEach(s => s.health -= 10);
+  }
+
+  // Check survivor deaths
+  G.survivors.filter(s=>s.alive).forEach(s => {
+    if(s.health <= 0) {
+      s.alive = false;
+      addLog(`💀 ${s.name} has perished. The collective mourns.`);
+      G.morale -= 15;
+    }
+  });
+}
+
+function addLog(msg) {
+  logEntries.unshift({text: msg, day: G.day});
+  document.getElementById('event-log').textContent = msg;
+}
+
+// ════════════════════════════════════════════
+// DAY CYCLE
+// ════════════════════════════════════════════
+
+function endDay() {
+  if(G.gameOver) return;
+  playDay();
+
+  // Calculate and apply changes
+  const changes = calcDayChanges();
+  applyChanges(changes);
+
+  // Progress expeditions
+  progressExpeditions();
+
+  // Advance day
+  G.day++;
+
+  // Natural morale recovery
+  if(G.morale < 30) G.morale += 2;
+
+  // Check game end conditions
+  if(G.landmark.progress >= G.landmark.required) {
+    setTimeout(() => showEpilogue(), 500);
+    return;
+  }
+
+  if(G.survivors.filter(s=>s.alive).length === 0) {
+    addLog('The last survivor has fallen. The Bloom fades to silence.');
+    setTimeout(() => showEpilogue(), 500);
+    return;
+  }
+
+  if(G.morale <= 0) {
+    addLog('Hope has abandoned the collective. One by one, they scatter into the wilds.');
+    setTimeout(() => showEpilogue(), 500);
+    return;
+  }
+
+  // Trigger dilemma (60% base chance, guaranteed every 3 days)
+  if(G.day % 3 === 0 || Math.random() < 0.55) {
+    triggerDilemma();
+  }
+
+  updateUI();
+}
+
+// ════════════════════════════════════════════
+// DILEMMA SYSTEM
+// ════════════════════════════════════════════
+
+function triggerDilemma() {
+  const available = DILEMMAS.filter(d => !usedDilemmas.has(d.id));
+  if(available.length === 0) { usedDilemmas.clear(); return; }
+
+  // Weighted: prefer dilemmas matching survivor traits
+  const survivorTraits = new Set(G.survivors.filter(s=>s.alive).flatMap(s=>s.traits));
+  const weighted = available.map(d => {
+    const hasMatch = d.opinions.some(o => survivorTraits.has(o.trait));
+    return {d, w: hasMatch ? 3 : 1};
+  });
+  const totalW = weighted.reduce((a,b) => a+b.w, 0);
+  let r = Math.random() * totalW;
+  let chosen;
+  for(const {d,w} of weighted) { r -= w; if(r <= 0) { chosen = d; break; } }
+  if(!chosen) chosen = available[0];
+
+  usedDilemmas.add(chosen.id);
+  showDilemma(chosen);
+}
+
+function showDilemma(dilemma) {
+  pendingDilemma = dilemma;
+  playWarning();
+
+  document.getElementById('dilemma-day').textContent = `Day ${G.day}`;
+  document.getElementById('dilemma-title').textContent = dilemma.title;
+  document.getElementById('dilemma-text').textContent = dilemma.text;
+
+  // Opinions from matching survivors
+  const opDiv = document.getElementById('dilemma-opinions');
+  opDiv.innerHTML = '';
+  dilemma.opinions.forEach(op => {
+    const matchingSurvivor = G.survivors.find(s => s.alive && s.traits.includes(op.trait));
+    if(matchingSurvivor) {
+      const el = document.createElement('div');
+      el.className = 'opinion fade-in';
+      el.innerHTML = `<span class="op-name">${matchingSurvivor.name}</span> <em>(${op.trait})</em>: "${op.text}"`;
+      opDiv.appendChild(el);
+    }
+  });
+
+  // Choices
+  const choicesDiv = document.getElementById('dilemma-choices');
+  choicesDiv.innerHTML = '';
+  dilemma.choices.forEach((choice, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'dilemma-choice fade-in';
+    btn.style.animationDelay = (i * 0.1) + 's';
+    let effectText = Object.entries(choice.effects).filter(([k,v])=>v!==0).map(([k,v]) => {
+      const icons = {food:'🌾',water:'💧',compost:'🌿',medicine:'💊',scrap:'⚙️',morale:'😊',bloom:'🌸',landmark:'🏛️',healthAll:'❤️'};
+      return `${icons[k]||k} ${v>0?'+':''}${v}`;
+    }).join('  ');
+    btn.innerHTML = `${choice.text}<span class="choice-effects">${effectText}</span>`;
+    btn.onclick = () => resolveDilemma(i);
+    choicesDiv.appendChild(btn);
+  });
+
+  document.getElementById('dilemma-overlay').classList.add('active');
+}
+
+function resolveDilemma(choiceIndex) {
+  playChime();
+  const dilemma = pendingDilemma;
+  const choice = dilemma.choices[choiceIndex];
+
+  document.getElementById('dilemma-overlay').classList.remove('active');
+
+  // Apply effects
+  let effects = {...choice.effects};
+
+  // Handle RNG outcomes
+  if(choice.rng && Math.random()*100 < choice.rng.chance) {
+    Object.entries(choice.rng.bad).forEach(([k,v]) => {
+      effects[k] = (effects[k]||0) + v;
+    });
+    addLog(`⚠️ ${dilemma.title}: A dark turn of fate...`);
+  }
+
+  applyChanges(effects);
+
+  // Trait evolution: matching survivors gain affinity
+  if(choice.trait) {
+    G.survivors.filter(s=>s.alive).forEach(s => {
+      if(!s.traits.includes(choice.trait) && s.traits.length < 4 && Math.random() < 0.2) {
+        s.traits.push(choice.trait);
+        addLog(`✨ ${s.name} has gained the trait: ${choice.trait}`);
+      }
+    });
+  }
+
+  // Special: add survivor
+  if(choice.addSurvivor && G.survivors.filter(s=>s.alive).length < 8) {
+    const availNames = NAMES.filter(n => !G.survivors.some(s=>s.name===n));
+    if(availNames.length > 0) {
+      const newS = createSurvivor(availNames[Math.floor(Math.random()*availNames.length)]);
+      G.survivors.push(newS);
+      addLog(`🌟 ${newS.name} has joined the collective!`);
+    }
+  }
+
+  // Special: remove survivor
+  if(choice.removeSurvivor) {
+    const expendable = G.survivors.filter(s=>s.alive && !s.expedition);
+    if(expendable.length > 1) {
+      const leaving = expendable[Math.floor(Math.random()*expendable.length)];
+      leaving.alive = false;
+      addLog(`👋 ${leaving.name} departs the collective with our blessings.`);
+    }
+  }
+
+  // Record decision
+  G.decisions.push({dilemma: dilemma.id, choice: choiceIndex, day: G.day});
+
+  // Show result
+  showResult(dilemma.title, choice.result, effects);
+}
+
+function showResult(title, text, effects) {
+  document.getElementById('result-title').textContent = title;
+  document.getElementById('result-text').textContent = text;
+
+  const icons = {food:'🌾',water:'💧',compost:'🌿',medicine:'💊',scrap:'⚙️',morale:'😊',bloom:'🌸',landmark:'🏛️',healthAll:'❤️'};
+  const effText = Object.entries(effects).filter(([k,v])=>v!==0).map(([k,v]) =>
+    `<span style="color:${v>0?'var(--bloom)':'var(--danger)'}"> ${icons[k]||k} ${v>0?'+':''}${v}</span>`
+  ).join('  ');
+  document.getElementById('result-effects').innerHTML = effText;
+
+  document.getElementById('result-toast').classList.add('active');
+}
+
+function closeResult() {
+  playClick();
+  document.getElementById('result-toast').classList.remove('active');
+  updateUI();
+}
+
+// ════════════════════════════════════════════
+// EXPEDITION SYSTEM
+// ════════════════════════════════════════════
+
+function sendExpedition(destId, survivorNames) {
+  if(survivorNames.length === 0 || survivorNames.length > 2) return;
+  const dest = DESTINATIONS.find(d=>d.id===destId);
+  if(!dest) return;
+
+  playChime();
+  survivorNames.forEach(name => {
+    const s = G.survivors.find(s=>s.name===name);
+    if(s) s.expedition = destId;
+  });
+
+  const safety = G.buildings.includes('lookout') ? 15 : 0;
+  G.expeditions.push({
+    dest: destId,
+    survivors: survivorNames,
+    daysLeft: dest.days,
+    totalDays: dest.days,
+    currentEvent: 0,
+    safety: safety,
+    journal: [`📍 Day 1: ${survivorNames.join(' and ')} depart${survivorNames.length>1?'':'s'} for ${dest.name}.`],
+    pendingChoice: null
+  });
+
+  addLog(`🗺️ Expedition to ${dest.name} begins! ${survivorNames.join(' & ')} head out.`);
+  expSendState = {dest:null,survivors:[]};
+  updateUI();
+}
+
+function progressExpeditions() {
+  G.expeditions = G.expeditions.filter(exp => {
+    if(exp.pendingChoice) return true; // waiting for player choice
+
+    exp.daysLeft--;
+    const events = EXP_EVENTS[exp.dest];
+    const eventIdx = exp.totalDays - exp.daysLeft - 1;
+
+    if(eventIdx < events.length) {
+      const event = events[eventIdx];
+      exp.journal.push(event.text);
+
+      if(event.choice) {
+        exp.pendingChoice = event.choice;
+        return true;
+      }
+    }
+
+    if(exp.daysLeft <= 0) {
+      // Return with rewards
+      const dest = DESTINATIONS.find(d=>d.id===exp.dest);
+      const risk = Math.max(0, dest.risk - exp.safety);
+      const injured = Math.random()*100 < risk;
+
+      exp.survivors.forEach(name => {
+        const s = G.survivors.find(s=>s.name===name);
+        if(s) {
+          s.expedition = null;
+          if(injured) {
+            s.health = Math.max(10, s.health - 20);
+            addLog(`🤕 ${s.name} returns from ${dest.name} injured but alive.`);
+          } else {
+            s.morale = Math.min(100, s.morale + 10);
+            addLog(`✅ ${s.name} returns safely from ${dest.name}.`);
+          }
+        }
+      });
+
+      // Base expedition rewards
+      const bm = bloomMultiplier();
+      switch(exp.dest) {
+        case 'echoes': applyChanges({scrap:6,medicine:2}); break;
+        case 'wildlands': applyChanges({food:Math.round(6*bm),compost:3,medicine:1}); break;
+        case 'shore': applyChanges({water:5,scrap:3}); break;
+        case 'ruins': applyChanges({scrap:4,landmark:8}); break;
+      }
+
+      return false; // remove expedition
+    }
+    return true;
+  });
+}
+
+function resolveExpChoice(expIndex, choiceKey) {
+  playClick();
+  const exp = G.expeditions[expIndex];
+  if(!exp || !exp.pendingChoice) return;
+
+  const effects = choiceKey === 'a' ? exp.pendingChoice.aEffect : exp.pendingChoice.bEffect;
+  applyChanges(effects);
+
+  const label = choiceKey === 'a' ? exp.pendingChoice.a : exp.pendingChoice.b;
+  exp.journal.push(`→ Decision: ${label}`);
+  exp.pendingChoice = null;
+
+  updateUI();
+}
+
+// ════════════════════════════════════════════
+// CANVAS - TREE SANCTUARY
+// ════════════════════════════════════════════
+
+function initCanvas() {
+  canvas = document.getElementById('sanctuary');
+  ctx = canvas.getContext('2d');
+  resizeCanvas();
+  window.addEventListener('resize', resizeCanvas);
+}
+
+function resizeCanvas() {
+  const wrap = document.getElementById('sanctuary-wrap');
+  canvas.width = wrap.clientWidth;
+  canvas.height = wrap.clientHeight;
+}
+
+function drawSanctuary() {
+  const w = canvas.width, h = canvas.height;
+  const bm = bloomMultiplier();
+
+  // Sky gradient based on bloom
+  const skyGrad = ctx.createLinearGradient(0,0,0,h);
+  const bloomHue = G.bloom / 100;
+  skyGrad.addColorStop(0, `rgba(${20+bloomHue*10},${20+bloomHue*15},${25+bloomHue*5},1)`);
+  skyGrad.addColorStop(0.6, `rgba(${25+bloomHue*15},${30+bloomHue*20},${22+bloomHue*10},1)`);
+  skyGrad.addColorStop(1, `rgba(${18+bloomHue*8},${22+bloomHue*12},${15+bloomHue*8},1)`);
+  ctx.fillStyle = skyGrad;
+  ctx.fillRect(0,0,w,h);
+
+  // Stars (dim based on bloom - high bloom = more vibrant)
+  for(let i=0;i<30;i++){
+    const sx=((i*137.5)%w);
+    const sy=((i*89.3)%h)*0.4;
+    const bright = 0.2 + Math.sin(Date.now()*0.001+i)*0.15;
+    ctx.fillStyle = `rgba(230,225,210,${bright})`;
+    ctx.fillRect(sx,sy,1.5,1.5);
+  }
+
+  // Ground
+  ctx.fillStyle = `rgba(${30+bm*15},${28+bm*20},${20+bm*10},1)`;
+  ctx.beginPath();
+  ctx.moveTo(0, h);
+  ctx.lineTo(0, h*0.85);
+  for(let x=0;x<=w;x+=20){
+    ctx.lineTo(x, h*0.85 + Math.sin(x*0.03)*8 + Math.sin(x*0.01)*15);
+  }
+  ctx.lineTo(w, h);
+  ctx.fill();
+
+  // Ground vegetation
+  if(G.bloom > 30) {
+    for(let i=0;i<15;i++){
+      const gx = (i/15)*w + Math.sin(i*3)*20;
+      const gy = h*0.85 + Math.sin(gx*0.03)*8 + Math.sin(gx*0.01)*15;
+      const gh = 5 + bm*8 + Math.sin(Date.now()*0.002+i)*2;
+      ctx.strokeStyle = `rgba(${80+bm*40},${100+bm*50},${60+bm*30},${0.3+bm*0.3})`;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(gx, gy);
+      ctx.quadraticCurveTo(gx+Math.sin(Date.now()*0.003+i)*3, gy-gh*0.6, gx+Math.sin(Date.now()*0.002+i)*5, gy-gh);
+      ctx.stroke();
+    }
+  }
+
+  // Main tree trunk
+  const treeX = w * 0.42;
+  const treeBase = h * 0.88;
+  const trunkW = w * 0.08;
+
+  // Roots
+  ctx.strokeStyle = `rgba(${80+bm*20},${60+bm*15},${40+bm*10},0.8)`;
+  ctx.lineWidth = 4;
+  for(let i=0;i<5;i++){
+    ctx.beginPath();
+    const rx = treeX + (i-2)*trunkW*0.6;
+    ctx.moveTo(treeX + (i-2)*trunkW*0.2, treeBase);
+    ctx.quadraticCurveTo(rx, treeBase+20, rx+(i-2)*15, treeBase+30+i*5);
+    ctx.stroke();
+  }
+
+  // Trunk with texture
+  const trunkGrad = ctx.createLinearGradient(treeX-trunkW,0,treeX+trunkW,0);
+  trunkGrad.addColorStop(0, `rgba(${55+bm*10},${42+bm*8},${30+bm*5},1)`);
+  trunkGrad.addColorStop(0.3, `rgba(${70+bm*12},${52+bm*10},${35+bm*7},1)`);
+  trunkGrad.addColorStop(0.7, `rgba(${65+bm*11},${48+bm*9},${32+bm*6},1)`);
+  trunkGrad.addColorStop(1, `rgba(${50+bm*8},${38+bm*7},${28+bm*4},1)`);
+
+  ctx.fillStyle = trunkGrad;
+  ctx.beginPath();
+  ctx.moveTo(treeX - trunkW, treeBase);
+  ctx.quadraticCurveTo(treeX - trunkW*1.1, h*0.5, treeX - trunkW*0.5, h*0.15);
+  ctx.lineTo(treeX + trunkW*0.5, h*0.12);
+  ctx.quadraticCurveTo(treeX + trunkW*1.1, h*0.5, treeX + trunkW, treeBase);
+  ctx.fill();
+
+  // Bark texture lines
+  ctx.strokeStyle = `rgba(40,30,20,0.3)`;
+  ctx.lineWidth = 0.8;
+  for(let i=0;i<12;i++){
+    const by = treeBase - (i/12)*(treeBase-h*0.15);
+    const bw = trunkW * (0.5 + 0.5*(by-h*0.15)/(treeBase-h*0.15));
+    ctx.beginPath();
+    ctx.moveTo(treeX-bw*0.8+Math.random()*4, by);
+    ctx.quadraticCurveTo(treeX+Math.random()*4-2, by-15-Math.random()*10, treeX+bw*0.6+Math.random()*4, by-5);
+    ctx.stroke();
+  }
+
+  // Branches
+  const branches = [
+    {x:-0.6,y:0.25,len:0.2,angle:-0.8},{x:0.7,y:0.2,len:0.22,angle:0.6},
+    {x:-0.8,y:0.4,len:0.18,angle:-1},{x:0.6,y:0.38,len:0.15,angle:0.9},
+    {x:-0.5,y:0.55,len:0.16,angle:-0.7},{x:0.8,y:0.52,len:0.2,angle:0.8},
+    {x:-0.3,y:0.15,len:0.12,angle:-0.5},{x:0.4,y:0.13,len:0.14,angle:0.4}
+  ];
+
+  branches.forEach(b => {
+    const bx = treeX + b.x * trunkW;
+    const by = treeBase - (1-b.y) * (treeBase - h*0.12);
+    const endX = bx + Math.cos(b.angle) * w * b.len;
+    const endY = by - Math.abs(Math.sin(b.angle)) * h * b.len * 0.5;
+    const sway = Math.sin(Date.now()*0.001+b.x*5)*2;
+
+    ctx.strokeStyle = `rgba(${60+bm*12},${45+bm*10},${30+bm*6},0.9)`;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(bx, by);
+    ctx.quadraticCurveTo(bx+(endX-bx)*0.5+sway, by+(endY-by)*0.3, endX+sway, endY);
+    ctx.stroke();
+
+    // Leaf clusters on branches
+    if(G.bloom > 15) {
+      const leafCount = Math.floor(3 + bm * 5);
+      for(let i=0;i<leafCount;i++){
+        const t = 0.3 + (i/leafCount)*0.7;
+        const lx = bx + (endX-bx)*t + sway*t + (Math.random()-0.5)*20;
+        const ly = by + (endY-by)*t + (Math.random()-0.5)*15;
+        const lr = 6 + bm*8 + Math.sin(Date.now()*0.002+i+b.x)*2;
+        const alpha = 0.15 + bm*0.3;
+        const g = Math.floor(100 + bm*80 + Math.random()*30);
+        ctx.fillStyle = `rgba(${60+Math.floor(Math.random()*30)},${g},${40+Math.floor(Math.random()*20)},${alpha})`;
+        ctx.beginPath();
+        ctx.ellipse(lx,ly,lr,lr*0.7,Math.random()*Math.PI,0,Math.PI*2);
+        ctx.fill();
+      }
+    }
+  });
+
+  // Canopy
+  const canopyLayers = [
+    {y:0.08,r:0.28,alpha:0.2},{y:0.12,r:0.32,alpha:0.25},
+    {y:0.18,r:0.25,alpha:0.3},{y:0.06,r:0.2,alpha:0.15}
+  ];
+  canopyLayers.forEach(cl => {
+    const cx = treeX + Math.sin(Date.now()*0.0005+cl.y*10)*3;
+    const cy = h * cl.y;
+    const cr = w * cl.r + bm*20;
+    const g = Math.floor(80 + bm*80);
+    ctx.fillStyle = `rgba(${40+Math.floor(bm*30)},${g},${30+Math.floor(bm*20)},${cl.alpha + bm*0.15})`;
+    ctx.beginPath();
+    ctx.ellipse(cx,cy,cr,cr*0.5,0,0,Math.PI*2);
+    ctx.fill();
+  });
+
+  // Platform/building indicators on the tree
+  drawPlatforms(treeX, treeBase, trunkW, h);
+
+  // Survivor dots
+  drawSurvivorDots(treeX, treeBase, trunkW, h);
+
+  // Fireflies
+  updateAndDrawFireflies(w, h, bm);
+
+  // Falling leaves
+  updateAndDrawLeaves(w, h, bm);
+
+  // Bloom glow
+  if(G.bloom > 60) {
+    const glowAlpha = (G.bloom - 60) / 200;
+    const glowGrad = ctx.createRadialGradient(treeX, h*0.4, 0, treeX, h*0.4, w*0.5);
+    glowGrad.addColorStop(0, `rgba(107,143,94,${glowAlpha})`);
+    glowGrad.addColorStop(1, `rgba(107,143,94,0)`);
+    ctx.fillStyle = glowGrad;
+    ctx.fillRect(0,0,w,h);
+  }
+
+  requestAnimationFrame(drawSanctuary);
+}
+
+function drawPlatforms(treeX, treeBase, trunkW, h) {
+  const positions = [
+    {y:0.7,xOff:-1.5},{y:0.55,xOff:1.2},{y:0.4,xOff:-1.8},
+    {y:0.3,xOff:1.5},{y:0.22,xOff:-1},{y:0.6,xOff:1.8},
+    {y:0.48,xOff:-1.2},{y:0.35,xOff:0.8},{y:0.25,xOff:-1.6},{y:0.18,xOff:1.3}
+  ];
+
+  G.buildings.forEach((bId, i) => {
+    if(i >= positions.length) return;
+    const building = BUILDINGS.find(b=>b.id===bId);
+    if(!building) return;
+    const pos = positions[i];
+    const px = treeX + pos.xOff * trunkW;
+    const py = treeBase - (1-pos.y) * (treeBase - h*0.12);
+
+    // Platform
+    ctx.fillStyle = `rgba(90,70,50,0.6)`;
+    ctx.fillRect(px-18, py-2, 36, 4);
+
+    // Building icon
+    ctx.font = '14px serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(building.icon, px, py-8);
+  });
+}
+
+function drawSurvivorDots(treeX, treeBase, trunkW, h) {
+  const alive = G.survivors.filter(s=>s.alive && !s.expedition);
+  alive.forEach((s, i) => {
+    const angle = (i / alive.length) * Math.PI * 0.8 - Math.PI*0.4;
+    const radius = trunkW * (1.5 + i * 0.3);
+    const baseY = treeBase - h*0.3 - i * h*0.06;
+    const sx = treeX + Math.cos(angle + Math.sin(Date.now()*0.001+i)*0.1) * radius;
+    const sy = baseY + Math.sin(Date.now()*0.002+i*2)*3;
+
+    // Glow
+    const glowColor = s.morale > 50 ? 'rgba(107,143,94,0.3)' : 'rgba(168,84,84,0.3)';
+    ctx.fillStyle = glowColor;
+    ctx.beginPath();
+    ctx.arc(sx, sy, 6, 0, Math.PI*2);
+    ctx.fill();
+
+    // Dot
+    const dotColor = s.health > 50 ? '#e8e0d4' : (s.health > 25 ? '#c4784e' : '#a85454');
+    ctx.fillStyle = dotColor;
+    ctx.beginPath();
+    ctx.arc(sx, sy, 3, 0, Math.PI*2);
+    ctx.fill();
+
+    // Name
+    ctx.font = '9px Georgia';
+    ctx.fillStyle = 'rgba(232,224,212,0.5)';
+    ctx.textAlign = 'center';
+    ctx.fillText(s.name, sx, sy+12);
+  });
+}
+
+function updateAndDrawFireflies(w, h, bm) {
+  // Spawn
+  while(fireflies.length < 8 + Math.floor(bm*12)) {
+    fireflies.push({
+      x: Math.random()*w, y: Math.random()*h*0.8,
+      vx: (Math.random()-0.5)*0.3, vy: (Math.random()-0.5)*0.2,
+      phase: Math.random()*Math.PI*2, size: 1+Math.random()*2
+    });
+  }
+
+  fireflies.forEach(f => {
+    f.x += f.vx + Math.sin(Date.now()*0.001+f.phase)*0.2;
+    f.y += f.vy + Math.cos(Date.now()*0.0008+f.phase)*0.15;
+    if(f.x < 0) f.x = w;
+    if(f.x > w) f.x = 0;
+    if(f.y < 0) f.y = h*0.8;
+    if(f.y > h*0.8) f.y = 0;
+
+    const bright = 0.3 + 0.7 * Math.sin(Date.now()*0.003+f.phase)**2;
+    const alpha = bright * (0.3 + bm*0.5);
+
+    ctx.fillStyle = `rgba(200,220,140,${alpha})`;
+    ctx.beginPath();
+    ctx.arc(f.x, f.y, f.size, 0, Math.PI*2);
+    ctx.fill();
+
+    // Glow
+    ctx.fillStyle = `rgba(200,220,140,${alpha*0.3})`;
+    ctx.beginPath();
+    ctx.arc(f.x, f.y, f.size*3, 0, Math.PI*2);
+    ctx.fill();
+  });
+}
+
+function updateAndDrawLeaves(w, h, bm) {
+  // Spawn falling leaves
+  if(Math.random() < 0.02 * bm && leafParticles.length < 20) {
+    leafParticles.push({
+      x: Math.random()*w, y: -10,
+      vx: (Math.random()-0.5)*0.5, vy: 0.3+Math.random()*0.5,
+      rot: Math.random()*Math.PI*2, rotSpeed: (Math.random()-0.5)*0.02,
+      size: 3+Math.random()*4, life: 1
+    });
+  }
+
+  leafParticles.forEach((l, i) => {
+    l.x += l.vx + Math.sin(Date.now()*0.002+i)*0.3;
+    l.y += l.vy;
+    l.rot += l.rotSpeed;
+    l.life -= 0.001;
+
+    if(l.y > h || l.life <= 0) {
+      leafParticles.splice(i, 1);
+      return;
+    }
+
+    ctx.save();
+    ctx.translate(l.x, l.y);
+    ctx.rotate(l.rot);
+    const g = Math.floor(100+bm*60);
+    ctx.fillStyle = `rgba(${70+Math.floor(Math.random()*20)},${g},${40},${l.life*0.6})`;
+    ctx.beginPath();
+    ctx.ellipse(0,0,l.size,l.size*0.4,0,0,Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+  });
+}
+
+// ════════════════════════════════════════════
+// UI MANAGEMENT
+// ════════════════════════════════════════════
+
+function switchTab(tab) {
+  playClick();
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelector(`.tab[data-tab="${tab}"]`).classList.add('active');
+  document.querySelectorAll('.panel-section').forEach(s => s.classList.remove('active'));
+  document.getElementById('tab-'+tab).classList.add('active');
+  updateUI();
+}
+
+function updateUI() {
+  // Resources
+  const resKeys = ['food','water','compost','medicine','scrap'];
+  resKeys.forEach(k => {
+    document.getElementById('r-'+k).textContent = G.resources[k];
+    const change = G.lastChanges[k];
+    const el = document.getElementById('rc-'+k);
+    if(change && change !== 0) {
+      el.textContent = (change>0?'+':'')+change;
+      el.className = 'res-change ' + (change>0?'pos':'neg');
+    } else {
+      el.textContent = '';
+    }
+  });
+
+  // Bloom
+  document.getElementById('bloom-bar-inner').style.width = G.bloom+'%';
+  document.getElementById('bloom-val').textContent = Math.round(G.bloom);
+
+  // Day
+  document.getElementById('day-display').textContent = `Day ${G.day} · ${G.bloom >= 70 ? '🌸 Flourishing' : G.bloom >= 40 ? '🌿 Growing' : G.bloom >= 20 ? '🍂 Struggling' : '💀 Withering'}`;
+
+  // Panels
+  updateCommunityPanel();
+  updateBuildPanel();
+  updateExpeditionPanel();
+  updateLogPanel();
+}
+
+function updateCommunityPanel() {
+  const div = document.getElementById('tab-community');
+  const alive = G.survivors.filter(s=>s.alive);
+
+  // Morale bar at top
+  let html = `<div style="margin-bottom:12px">
+    <div style="display:flex;justify-content:space-between;font-size:0.75rem;margin-bottom:4px">
+      <span>Community Morale</span><span style="color:${G.morale>50?'var(--gold)':'var(--danger)'};">${Math.round(G.morale)}%</span>
+    </div>
+    <div class="mini-bar-outer" style="height:6px"><div class="mini-bar-inner bar-morale" style="width:${G.morale}%"></div></div>
+  </div>
+  <div style="font-size:0.7rem;color:var(--text-dim);margin-bottom:12px">
+    ${alive.length} survivor${alive.length!==1?'s':''} · Bloom multiplier: ×${bloomMultiplier().toFixed(1)}
+  </div>`;
+
+  alive.forEach(s => {
+    const onExp = s.expedition !== null;
+    html += `<div class="survivor-card${onExp?' on-expedition':''}">
+      <div class="sc-header">
+        <span class="sc-name">${s.name}</span>
+        ${onExp ? `<span style="font-size:0.7rem;color:var(--water)">📍 On Expedition</span>` : ''}
+      </div>
+      <div class="sc-traits">
+        ${s.traits.map(t => `<span class="trait-tag${NEGATIVE_TRAITS.includes(t)?' negative':''}">${t}</span>`).join('')}
+      </div>
+      <div class="sc-bars">
+        <div class="mini-bar"><label>Health ${s.health}%</label>
+          <div class="mini-bar-outer"><div class="mini-bar-inner bar-health" style="width:${s.health}%"></div></div>
+        </div>
+        <div class="mini-bar"><label>Morale ${s.morale}%</label>
+          <div class="mini-bar-outer"><div class="mini-bar-inner bar-morale" style="width:${s.morale}%"></div></div>
+        </div>
+      </div>
+      ${!onExp ? `<div class="sc-role">
+        ${ROLES.map(r => `<button class="role-btn${s.role===r.id?' active':''}" onclick="assignRole('${s.name}','${r.id}')" title="${r.desc}">${r.icon} ${r.label}</button>`).join('')}
+      </div>` : ''}
+    </div>`;
+  });
+
+  div.innerHTML = html;
+}
+
+function assignRole(name, roleId) {
+  playClick();
+  const s = G.survivors.find(s=>s.name===name);
+  if(s && s.alive && !s.expedition) {
+    s.role = s.role === roleId ? null : roleId;
+    updateUI();
+  }
+}
+
+function updateBuildPanel() {
+  const div = document.getElementById('tab-build');
+  let html = `<div style="font-size:0.8rem;margin-bottom:12px;color:var(--text-dim)">
+    Expand the sanctuary by building structures on the Great Tree.
+  </div>`;
+
+  BUILDINGS.forEach(b => {
+    const built = G.buildings.includes(b.id);
+    const canAfford = !built && Object.entries(b.cost).every(([k,v]) => G.resources[k] >= v);
+
+    html += `<div class="build-card${built?' built':''}" ${!built && canAfford ? `onclick="buildStructure('${b.id}')"` : ''}>
+      <div class="bc-name">${b.icon} ${b.name} ${built?'✓':''}</div>
+      <div class="bc-desc">${b.desc}</div>
+      ${!built ? `<div class="bc-cost" style="color:${canAfford?'var(--bloom)':'var(--danger)'}">
+        Cost: ${Object.entries(b.cost).map(([k,v]) => {
+          const icons = {scrap:'⚙️',compost:'🌿',food:'🌾',water:'💧'};
+          return `${icons[k]||k} ${v}`;
+        }).join('  ')}
+      </div>` : ''}
+    </div>`;
+  });
+
+  // Landmark
+  html += `<div id="landmark-section">
+    <h3>🏛️ Community Landmark</h3>
+    <div id="landmark-bar-outer"><div id="landmark-bar-inner" style="width:${(G.landmark.progress/G.landmark.required)*100}%"></div></div>
+    <div id="landmark-text">${Math.round(G.landmark.progress)} / ${G.landmark.required} — Assign Crafters and Researchers to contribute</div>
+  </div>`;
+
+  div.innerHTML = html;
+}
+
+function buildStructure(id) {
+  const b = BUILDINGS.find(b=>b.id===id);
+  if(!b || G.buildings.includes(id)) return;
+
+  const canAfford = Object.entries(b.cost).every(([k,v]) => G.resources[k] >= v);
+  if(!canAfford) return;
+
+  playChime();
+  Object.entries(b.cost).forEach(([k,v]) => { G.resources[k] -= v; });
+  G.buildings.push(id);
+  addLog(`🔨 Built: ${b.name}!`);
+  updateUI();
+}
+
+function updateExpeditionPanel() {
+  const div = document.getElementById('tab-expeditions');
+  let html = '';
+
+  // Active expeditions
+  if(G.expeditions.length > 0) {
+    html += `<div style="font-size:0.8rem;margin-bottom:8px;color:var(--water)">Active Expeditions</div>`;
+    G.expeditions.forEach((exp, idx) => {
+      const dest = DESTINATIONS.find(d=>d.id===exp.dest);
+      html += `<div class="exp-card exp-active">
+        <div class="exp-name">${dest.icon} ${dest.name}</div>
+        <div class="exp-survivors">🧑 ${exp.survivors.join(' & ')}</div>
+        <div class="exp-progress">Day ${exp.totalDays - exp.daysLeft} of ${exp.totalDays}</div>
+        <div class="exp-journal">${exp.journal[exp.journal.length-1]}</div>
+        ${exp.pendingChoice ? `
+          <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">
+            <button class="btn btn-sm btn-bloom" onclick="resolveExpChoice(${idx},'a')">${exp.pendingChoice.a}</button>
+            <button class="btn btn-sm btn-warn" onclick="resolveExpChoice(${idx},'b')">${exp.pendingChoice.b}</button>
+          </div>
+        ` : ''}
+      </div>`;
+    });
+  }
+
+  // Send new expedition
+  const availableSurvivors = G.survivors.filter(s=>s.alive && !s.expedition);
+  const canSend = G.expeditions.length < 2 && availableSurvivors.length >= 2;
+
+  html += `<div id="send-exp-section">
+    <h3>🗺️ Send Expedition</h3>
+    ${!canSend ? `<div style="font-size:0.75rem;color:var(--text-dim);margin-bottom:8px">
+      ${G.expeditions.length >= 2 ? 'Maximum expeditions active.' : 'Need at least 2 survivors at home.'}
+    </div>` : `
+    <div style="font-size:0.7rem;color:var(--text-dim);margin-bottom:8px">Choose destination, then 1-2 survivors.</div>
+    ${DESTINATIONS.map(d => `
+      <div class="exp-dest${expSendState.dest===d.id?' selected':''}" onclick="selectExpDest('${d.id}')">
+        <div class="exp-dest-name">${d.icon} ${d.name}</div>
+        <div class="exp-dest-info">${d.desc}<br>Risk: ${d.risk}% · ${d.days} days · Rewards: ${d.rewards}</div>
+      </div>
+    `).join('')}
+    ${expSendState.dest ? `
+      <div style="margin-top:8px;font-size:0.75rem;color:var(--text-dim);margin-bottom:4px">Select 1-2 survivors:</div>
+      <div style="margin-bottom:8px">
+        ${availableSurvivors.map(s => `
+          <button class="exp-survivor-pick${expSendState.survivors.includes(s.name)?' selected':''}"
+            onclick="toggleExpSurvivor('${s.name}')">${s.name}</button>
+        `).join('')}
+      </div>
+      ${expSendState.survivors.length > 0 ? `
+        <button class="btn btn-sm btn-bloom" onclick="sendExpedition('${expSendState.dest}',${JSON.stringify(expSendState.survivors)})">
+          Launch Expedition →
+        </button>
+      ` : ''}
+    ` : ''}
+    `}
+  </div>`;
+
+  div.innerHTML = html;
+}
+
+function selectExpDest(destId) {
+  playClick();
+  expSendState.dest = expSendState.dest === destId ? null : destId;
+  expSendState.survivors = [];
+  updateUI();
+}
+
+function toggleExpSurvivor(name) {
+  playClick();
+  const idx = expSendState.survivors.indexOf(name);
+  if(idx >= 0) {
+    expSendState.survivors.splice(idx, 1);
+  } else if(expSendState.survivors.length < 2) {
+    expSendState.survivors.push(name);
+  }
+  updateUI();
+}
+
+function updateLogPanel() {
+  const div = document.getElementById('tab-log');
+  let html = `<div style="font-size:0.8rem;margin-bottom:8px;color:var(--text-dim)">Event History</div>`;
+  logEntries.slice(0, 40).forEach(entry => {
+    html += `<div style="font-size:0.75rem;padding:4px 0;border-bottom:1px solid rgba(74,69,64,0.3);line-height:1.4">
+      <span style="color:var(--text-dim)">Day ${entry.day}</span> — ${entry.text}
+    </div>`;
+  });
+  if(logEntries.length === 0) {
+    html += `<div style="font-size:0.75rem;color:var(--text-dim);font-style:italic">The story has yet to be written…</div>`;
+  }
+  div.innerHTML = html;
+}
+
+// ════════════════════════════════════════════
+// EPILOGUE
+// ════════════════════════════════════════════
+
+function showEpilogue() {
+  G.gameOver = true;
+  const alive = G.survivors.filter(s=>s.alive);
+  const won = G.landmark.progress >= G.landmark.required;
+  const bloomFinal = G.bloom;
+
+  document.getElementById('game-screen').classList.remove('active');
+  const epi = document.getElementById('epilogue-screen');
+  epi.classList.add('active');
+
+  // Subtitle
+  let subtitle = '';
+  if(won && bloomFinal >= 70) subtitle = 'A New Eden Rises';
+  else if(won && bloomFinal >= 40) subtitle = 'A Fragile Beginning';
+  else if(won) subtitle = 'Survival, at a Cost';
+  else if(alive.length === 0) subtitle = 'The Silence Returns';
+  else subtitle = 'Hope Fades to Memory';
+
+  document.getElementById('ep-subtitle').textContent = subtitle;
+  document.getElementById('bloom-final').textContent = `Final Bloom: ${Math.round(bloomFinal)} · Day ${G.day} · ${alive.length} survivors`;
+
+  let content = '';
+
+  if(won) {
+    if(bloomFinal >= 70) {
+      content += `<p>The Community Landmark rises from the canopy like a second sun — a beacon woven from living wood and earned wisdom. It is not brick and steel. It is breath and root and the accumulated weight of every choice you made.</p>
+      <p>The Great Tree hums with a vitality that was not there before. The Bloom has reached into the aquifer, the soil, the very air. Seeds carried on the wind settle in places no one has tended, and they <em>grow</em>.</p>
+      <p>Word spreads. Other collectives send messengers — not with demands, but with questions. <em>How did you do it?</em></p>`;
+    } else if(bloomFinal >= 40) {
+      content += `<p>The Landmark stands — not as tall or radiant as it might have been, but it stands. A testament to the pragmatic choices that kept belly full and spirits on this side of breaking.</p>
+      <p>The tree still grows. The garden still produces. But there are scars where shortcuts were taken, and some night the community remembers what was sacrificed along the way.</p>
+      <p>It is enough. For now, it is enough.</p>`;
+    } else {
+      content += `<p>The Landmark is completed, but it casts a long shadow. The tree is alive, but weary. The earth around it is depleted, and the Bloom is a whisper where it once sang.</p>
+      <p>You survived. The collective endures. But the price was steep, and the land remembers.</p>
+      <p>Perhaps the next generation will find a gentler way.</p>`;
+    }
+  } else if(alive.length === 0) {
+    content += `<p>The platforms stand empty. The garden, untended, begins its slow return to wild. The Great Tree absorbs the abandoned structures into its bark, year by year, ring by ring.</p>
+    <p>A hundred years from now, a traveler will pause beneath its branches and feel something — a warmth, a sadness, a sense that someone tried very hard here.</p>
+    <p>The Bloom remembers, even when the world forgets.</p>`;
+  } else {
+    content += `<p>The collective dissolves not with a bang but with a quiet, exhausted exhale. One by one, the survivors drift away — not in anger, but in the simple absence of hope.</p>
+    <p>The tree remains. The garden, half-built and half-wild, holds on. Somewhere, the seeds of what you planted still wait in the soil.</p>
+    <p>It wasn't the end. It was an interruption.</p>`;
+  }
+
+  // Individual survivors
+  if(alive.length > 0) {
+    content += `<div style="margin-top:16px"><strong>The Survivors</strong></div>`;
+    alive.forEach(s => {
+      const fates = [];
+      if(s.traits.includes('Purist')) fates.push('became a keeper of seeds, guarding the garden\'s legacy');
+      if(s.traits.includes('Pragmatist')) fates.push('organized the first trade routes to neighboring collectives');
+      if(s.traits.includes('Compassionate')) fates.push('founded a tradition of welcoming wanderers');
+      if(s.traits.includes('Inventive')) fates.push('continued to study the old blueprints, dreaming of what comes next');
+      if(s.traits.includes('Diplomatic')) fates.push('became the voice that settled disputes for years to come');
+      if(s.traits.includes('Resilient')) fates.push('never stopped building, even when others rested');
+      if(s.traits.includes('Vigilant')) fates.push('watched the horizon, ensuring the collective was never caught unprepared again');
+      if(s.traits.includes('Resourceful')) fates.push('found uses for things no one else could see');
+      const fate = fates.length > 0 ? fates[Math.floor(Math.random()*fates.length)] : 'lived quietly, content with the peace they helped build';
+      content += `<div class="ep-survivor"><strong>${s.name}</strong> <em>(${s.traits.join(', ')})</em> — ${fate}.</div>`;
+    });
+  }
+
+  // Decision summary
+  const puristChoices = G.decisions.filter(d => {
+    const dilemma = DILEMMAS.find(di=>di.id===d.dilemma);
+    return dilemma && dilemma.choices[d.choice] && dilemma.choices[d.choice].trait === 'Purist';
+  }).length;
+  const pragmatistChoices = G.decisions.filter(d => {
+    const dilemma = DILEMMAS.find(di=>di.id===d.dilemma);
+    return dilemma && dilemma.choices[d.choice] && dilemma.choices[d.choice].trait === 'Pragmatist';
+  }).length;
+
+  content += `<div style="margin-top:16px;font-size:0.8rem;color:var(--text-dim)">
+    <p>Decisions made: ${G.decisions.length} · Days survived: ${G.day} · Structures built: ${G.buildings.length}</p>
+    <p>Leaned Purist ${puristChoices} time${puristChoices!==1?'s':''} · Leaned Pragmatist ${pragmatistChoices} time${pragmatistChoices!==1?'s':''}</p>
+  </div>`;
+
+  document.getElementById('epilogue-content').innerHTML = content;
+}
+
+// ════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════
+
+function startGame() {
+  playClick();
+  initAudio();
+  initState();
+  initCanvas();
+
+  document.getElementById('title-screen').classList.remove('active');
+  document.getElementById('game-screen').classList.add('active');
+
+  // Initial log
+  addLog('☀️ Dawn breaks over the Great Tree. A new day for the Bloom Collective.');
+
+  setTimeout(() => {
+    resizeCanvas();
+    drawSanctuary();
+    updateUI();
+    // First dilemma on day 2
+  }, 100);
+}
+
+// Touch/click audio unlock
+document.addEventListener('click', () => { if(!audioCtx) initAudio(); }, {once:true});
+document.addEventListener('touchstart', () => { if(!audioCtx) initAudio(); }, {once:true});
+</script>
+</body>
+</html>
