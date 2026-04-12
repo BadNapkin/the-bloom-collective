@@ -153,29 +153,23 @@ canvas{display:block}
 .dilemma-choice:hover{border-color:var(--bloom);background:rgba(107,143,94,0.05)}
 .dilemma-choice .choice-effects{display:block;font-size:0.7rem;color:var(--text-dim);margin-top:4px}
 
-/* ── Zork Text Input ── */
-#zork-input-wrap{margin-top:12px}
-#zork-input{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);
-  font-family:var(--font);font-size:0.9rem;padding:12px 16px;border-radius:2px;
-  outline:none;transition:border-color 0.3s;caret-color:var(--bloom-glow)}
-#zork-input:focus{border-color:var(--bloom)}
-#zork-input::placeholder{color:var(--text-dim);font-style:italic}
-#zork-submit{margin-top:8px;width:100%}
-#zork-feedback{margin-top:10px;padding:10px 14px;border-radius:2px;font-size:0.8rem;
-  line-height:1.5;display:none;animation:fadeIn 0.3s}
-#zork-feedback.visible{display:block}
-#zork-feedback.no-match{border:1px solid var(--warn);color:var(--warn);background:rgba(196,120,78,0.08)}
-#zork-feedback.weak-match{border:1px solid var(--gold);color:var(--gold);background:rgba(196,168,78,0.08)}
-#zork-feedback.good-match{border:1px solid var(--bloom);color:var(--bloom);background:rgba(107,143,94,0.08)}
-#zork-confirm-wrap{display:none;margin-top:8px;gap:8px}
-#zork-confirm-wrap.visible{display:flex}
-#zork-confirm-text{font-size:0.8rem;color:var(--text);line-height:1.5;margin-bottom:8px;
-  font-style:italic;padding:8px 12px;border-left:2px solid var(--bloom);background:rgba(107,143,94,0.05)}
-.zork-hint{font-size:0.7rem;color:var(--text-dim);margin-top:8px;font-style:italic;line-height:1.5}
-.zork-hint strong{color:var(--text);font-weight:normal}
-#zork-prompt-label{font-size:0.75rem;color:var(--text-dim);margin-bottom:6px;letter-spacing:0.05em;text-transform:uppercase}
-.blink-cursor{animation:blink 1s step-end infinite;color:var(--bloom-glow)}
-@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+/* ── Relationship Badge ── */
+.rel-badge{display:inline-block;font-size:0.6rem;padding:1px 5px;border-radius:8px;margin-left:4px}
+.rel-badge.friend{background:rgba(107,143,94,0.2);color:var(--bloom);border:1px solid rgba(107,143,94,0.3)}
+.rel-badge.close{background:rgba(107,143,94,0.35);color:var(--bloom-glow);border:1px solid rgba(107,143,94,0.5)}
+.rel-badge.rival{background:rgba(168,84,84,0.15);color:var(--danger);border:1px solid rgba(168,84,84,0.3)}
+.rel-badge.tense{background:rgba(196,120,78,0.15);color:var(--warn);border:1px solid rgba(196,120,78,0.3)}
+/* ── Survivor-Proposed Choice ── */
+.dilemma-choice .proposer{font-size:0.7rem;color:var(--bloom);margin-bottom:4px;display:block}
+.dilemma-choice .proposer .proposer-trait{color:var(--text-dim);font-style:italic}
+.dilemma-choice:hover .proposer{color:var(--bloom-glow)}
+.dilemma-choice .rel-note{font-size:0.65rem;color:var(--text-dim);margin-top:3px;display:block;font-style:italic}
+/* ── Relationship Panel ── */
+.rel-row{display:flex;align-items:center;gap:6px;padding:3px 0;font-size:0.7rem}
+.rel-bar-outer{width:60px;height:4px;background:var(--bg);border-radius:2px;overflow:hidden;flex-shrink:0}
+.rel-bar-inner{height:100%;border-radius:2px;transition:width 0.5s}
+.rel-summary{font-size:0.65rem;color:var(--text-dim);padding:6px 8px;margin-top:6px;
+  background:rgba(0,0,0,0.15);border-radius:3px;border:1px solid var(--border)}
 
 /* ── Result Toast ── */
 #result-toast{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(0.9);
@@ -264,7 +258,7 @@ canvas{display:block}
       </div>
       <div class="tut-item" style="border-color:var(--warn)">
         <strong style="color:var(--warn)">⚖️ Dilemmas</strong>
-        Moral choices will arise. You won't know the consequences — and <strong>fate is fickle</strong>. Even the "right" choice can backfire. There are no right answers — only trade-offs.
+        Moral choices will arise — but they come from <strong>your survivors</strong>, shaped by their traits. Choosing one person's idea over another builds bonds and creates rivalries. <strong>Fate is fickle</strong> — even the "right" choice can backfire.
       </div>
       <div class="tut-item" style="border-color:var(--harmony)">
         <strong style="color:var(--harmony)">⚖️ The Balance</strong>
@@ -273,6 +267,10 @@ canvas{display:block}
       <div class="tut-item" style="border-color:rgba(180,130,80,0.7)">
         <strong style="color:rgba(200,160,100,0.9)">🐾 Pets</strong>
         Build the <em>Animal Nursery</em> to rescue wild animals. Pets help with expeditions, research, foraging, and morale. Up to 4 companions.
+      </div>
+      <div class="tut-item" style="border-color:var(--bloom-glow)">
+        <strong style="color:var(--bloom-glow)">🤝 Relationships</strong>
+        Survivors form bonds through shared work and expedition partnerships. During dilemmas, <strong>each choice is proposed by a survivor</strong> — siding with someone strengthens your bond but may create friction with others. Friends boost morale; rivals drain it.
       </div>
       <div class="tut-item" style="border-color:var(--text-dim)">
         <strong style="color:var(--text)">🏛️ Goal</strong>
@@ -337,18 +335,6 @@ canvas{display:block}
     <p id="dilemma-text"></p>
     <div id="dilemma-opinions"></div>
     <div id="dilemma-choices"></div>
-    <div id="zork-input-wrap">
-      <div id="zork-prompt-label">What do you do? <span class="blink-cursor">▌</span></div>
-      <input type="text" id="zork-input" placeholder="Type your response..." autocomplete="off" spellcheck="false">
-      <button class="btn btn-bloom" id="zork-submit" onclick="processZorkInput()">Speak</button>
-      <div id="zork-feedback"></div>
-      <div id="zork-confirm-text"></div>
-      <div id="zork-confirm-wrap">
-        <button class="btn btn-bloom btn-sm" onclick="confirmZorkChoice()">Yes, proceed</button>
-        <button class="btn btn-sm" onclick="resetZorkInput()">No, rethink</button>
-      </div>
-      <div class="zork-hint" id="zork-hints"></div>
-    </div>
   </div>
 </div>
 
@@ -625,6 +611,18 @@ function initState() {
   startNames.forEach(name => {
     G.survivors.push(createSurvivor(name));
   });
+  // Seed initial relationships — these people arrived together
+  for(let i=0;i<G.survivors.length;i++) {
+    for(let j=i+1;j<G.survivors.length;j++) {
+      const sA = G.survivors[i], sB = G.survivors[j];
+      // Small random starting bonds: -10 to +20 (biased positive — they chose to be here)
+      const seed = Math.floor(Math.random() * 25) - 5;
+      // Shared traits boost starting relationship
+      const shared = sA.traits.filter(t => sB.traits.includes(t)).length;
+      const startRel = seed + shared * 8;
+      changeRelationship(sA.name, sB.name, startRel);
+    }
+  }
 }
 
 function createSurvivor(name) {
@@ -638,7 +636,8 @@ function createSurvivor(name) {
     morale: 60 + Math.floor(Math.random()*30),
     role: null,
     expedition: null,
-    alive: true
+    alive: true,
+    relationships: {}
   };
 }
 
@@ -770,6 +769,17 @@ function calcDayChanges() {
 
   // Recreation area passive morale
   if(G.buildings.includes('recreation')) changes.morale += 5;
+
+  // Relationship effects on community morale
+  let relMoraleBonus = 0;
+  for(let i=0;i<aliveSurvivors.length;i++) {
+    for(let j=i+1;j<aliveSurvivors.length;j++) {
+      const r = getRelationship(aliveSurvivors[i].name, aliveSurvivors[j].name);
+      if(r >= 50) relMoraleBonus += 1;      // Strong friendships lift everyone
+      else if(r <= -40) relMoraleBonus -= 1; // Bitter rivalries drag morale
+    }
+  }
+  if(relMoraleBonus !== 0) changes.morale += relMoraleBonus;
 
   // Industry penalty: morale bleed and occasional illness at extreme industry
   if(industryPenalty() > 0) {
@@ -926,6 +936,9 @@ function endDay() {
   const changes = calcDayChanges();
   applyChanges(changes);
 
+  // Relationship drift — survivors bond or clash based on roles, traits, proximity
+  dailyRelationshipDrift();
+
   // Progress expeditions
   progressExpeditions();
 
@@ -976,274 +989,107 @@ function endDay() {
 }
 
 // ════════════════════════════════════════════
-// ZORK-STYLE TEXT INPUT SYSTEM
+// RELATIONSHIP SYSTEM
 // ════════════════════════════════════════════
 
-const CHOICE_KEYWORDS = {
-  contaminated_water: [
-    ['filter','purify','clean','compost','slow','safe','careful','patience','natural','properly','filtration'],
-    ['use','drink','immediately','fast','quick','now','risk','risky','just drink','thirsty','desperate'],
-    ['seal','close','block','abandon','find another','leave','ignore','avoid','walk away','new source','different']
-  ],
-  wanderer: [
-    ['welcome','accept','let in','invite','join','trust','open','embrace','shelter','take in','help them'],
-    ['supply','supplies','give','share','send','offer','food for road','provision','help but','kind but'],
-    ['turn away','reject','refuse','deny','no','leave','go away','suspicious','distrust','send away','kick out']
-  ],
-  old_cache: [
-    ['medicine','medical','drugs','health','heal','cure','supplies','pharmacy','treat','pills'],
-    ['blueprint','research','study','knowledge','manual','tech','learn','science','book','read','plans','technical'],
-    ['both','everything','all','take all','grab all','carry both','take it all','greedy','exhausting']
-  ],
-  wildfire: [
-    ['prepare','defend','defense','firebreak','water barrier','dig','wet','protect','prevention','ready','fortify'],
-    ['burn','controlled','fire','set fire','counter fire','fight fire','backburn','controlled burn'],
-    ['nothing','wait','hope','rain','ignore','pray','do nothing','leave it','gamble','chance','sit tight']
-  ],
-  sick_child: [
-    ['medicine','old world','strong','real medicine','use medicine','save child','everything','cure','drugs','antibiotics','immediately'],
-    ['herb','herbal','natural','remedy','tea','plant','gentle','save medicine','try first','conservative','careful'],
-    ['quarantine','isolate','observe','watch','wait','separate','contain','monitor','isolation']
-  ],
-  traders: [
-    ['seed','seeds','plant','garden','grow','rare seed','agriculture','farming','nature'],
-    ['pulsebox','device','technology','tech','power','energy','artifact','machine','gadget','hum'],
-    ['tool','tools','supplies','practical','useful','scrap','equipment','hardware','materials']
-  ],
-  dispute: [
-    ['circle','community','meeting','talk','discuss','mediate','together','listen','gathering','council','negotiate','peace'],
-    ['bloom','ecology','green','nature','harmony','environment','garden','earth','sustainable','eco'],
-    ['pragmatic','practical','survival','industry','resource','production','efficient','realistic','focus','prioritize'],
-    ['stay out','let them','themselves','ignore','not involved','their problem','hands off','leave alone']
-  ],
-  ancient_seeds: [
-    ['plant','grow','sow','earth','soil','garden','immediate','nature','nurture','bury'],
-    ['study','research','examine','analyze','investigate','careful','understand','science','lab','learn','knowledge'],
-    ['sell','trade','profit','money','scrap','merchant','barter','exchange','value','worth']
-  ],
-  relic_signal: [
-    ['investigate','explore','dig','follow','find','uncover','search','excavate','pursue','discover','deeper'],
-    ['seal','close','bury','block','stop','silence','shut','cover','forget','leave alone','dangerous'],
-    ['monitor','watch','observe','listen','passive','patient','wait','record','note','track','careful']
-  ],
-  animal_den: [
-    ['around','coexist','protect','keep','spare','save','together','live with','alongside','share','respect'],
-    ['relocate','move','remove','take space','evict','clear','push out','need space','build here','expand'],
-    ['nursery','natural','adapt','incorporate','use den','convert','integrate','creative','hybrid','repurpose']
-  ],
-  storm: [
-    ['shelter','protect','stay','hunker','hide','safe','tree','guard','defend','hold','batten','weather it'],
-    ['harvest','rain','water','collect','rainwater','catch','gather','bucket','fill','opportunity','resource'],
-    ['scout','rescue','supplies','save','retrieve','brave','venture','go out','expedition','gather supplies']
-  ],
-  bloom_sickness: [
-    ['burn','fire','destroy','cut','remove','amputate','drastic','decisive','immediate','harsh','clear'],
-    ['compost','therapy','heal','gentle','nurture','natural','slow','patience','treat','organic','care'],
-    ['quarantine','research','study','investigate','learn','isolate','contain','science','analyze','examine','understand']
-  ],
-  leaving: [
-    ['wish well','blessing','goodbye','farewell','let go','share','supplies','god speed','good luck','safe travels','understand','free'],
-    ['reconsider','stay','talk','convince','persuade','think again','change mind','wait','please','ask','reason'],
-    ['demand','force','make them','order','refuse','forbid','no choice','must stay','stop them','prevent']
-  ],
-  rival: [
-    ['pay','tribute','give','peace','comply','submit','appease','bribe','food and scrap','surrender','agree'],
-    ['refuse','fight','defend','resist','prepare','fortify','wall','weapon','war','no','stand','defy','brave'],
-    ['alliance','ally','negotiate','friend','partner','trade','diplomacy','together','cooperate','deal','join forces']
-  ]
-};
+// Relationship scores: -100 (bitter rivals) to +100 (inseparable)
+// Stored on each survivor as .relationships = { "OtherName": score }
 
-function normalizeText(text) {
-  return text.toLowerCase().replace(/[^a-z0-9\s']/g,'').replace(/\s+/g,' ').trim();
+function getRelationship(nameA, nameB) {
+  const s = G.survivors.find(s=>s.name===nameA);
+  if(!s || !s.relationships) return 0;
+  return s.relationships[nameB] || 0;
 }
 
-function scoreMatch(input, keywords) {
-  const normalized = normalizeText(input);
-  const words = normalized.split(' ');
-  let score = 0;
-  for(const keyword of keywords) {
-    const kw = keyword.toLowerCase();
-    if(normalized.includes(kw)) {
-      score += kw.split(' ').length * 3;
-    } else if(words.some(w => w.startsWith(kw) || kw.startsWith(w))) {
-      score += 1;
-    } else if(words.some(w => levenshtein(w,kw) <= 1 && kw.length > 3)) {
-      score += 0.5;
-    }
-  }
-  return score;
+function changeRelationship(nameA, nameB, delta) {
+  const sA = G.survivors.find(s=>s.name===nameA);
+  const sB = G.survivors.find(s=>s.name===nameB);
+  if(!sA || !sB) return;
+  if(!sA.relationships) sA.relationships = {};
+  if(!sB.relationships) sB.relationships = {};
+  // Relationships are mutual but can drift asymmetrically
+  sA.relationships[nameB] = Math.max(-100, Math.min(100, (sA.relationships[nameB]||0) + delta));
+  sB.relationships[nameA] = Math.max(-100, Math.min(100, (sB.relationships[nameA]||0) + Math.round(delta * 0.7)));
 }
 
-function levenshtein(a, b) {
-  if(a.length===0) return b.length;
-  if(b.length===0) return a.length;
-  const m=[];
-  for(let i=0;i<=b.length;i++) m[i]=[i];
-  for(let j=0;j<=a.length;j++) m[0][j]=j;
-  for(let i=1;i<=b.length;i++){
-    for(let j=1;j<=a.length;j++){
-      const c=b.charAt(i-1)===a.charAt(j-1)?0:1;
-      m[i][j]=Math.min(m[i-1][j]+1,m[i][j-1]+1,m[i-1][j-1]+c);
-    }
-  }
-  return m[b.length][a.length];
+function relLabel(score) {
+  if(score >= 60) return {text:'Inseparable', css:'close', icon:'💚'};
+  if(score >= 30) return {text:'Friends', css:'friend', icon:'😊'};
+  if(score >= 10) return {text:'Warm', css:'friend', icon:'🤝'};
+  if(score > -10) return {text:'Neutral', css:'', icon:'—'};
+  if(score > -30) return {text:'Tense', css:'tense', icon:'😐'};
+  if(score > -60) return {text:'Rivals', css:'rival', icon:'⚡'};
+  return {text:'Hostile', css:'rival', icon:'🔥'};
 }
 
-function matchInput(dilemmaId, inputText) {
-  const keywordSets = CHOICE_KEYWORDS[dilemmaId];
-  if(!keywordSets) return {bestIndex:-1,confidence:0,scores:[]};
-  const scores = keywordSets.map((kws,i) => ({index:i, score:scoreMatch(inputText,kws)}));
-  scores.sort((a,b) => b.score - a.score);
-  const best = scores[0];
-  const second = scores[1]||{score:0};
-  let confidence = 0;
-  if(best.score > 0) {
-    if(best.score >= 6) confidence = 3;
-    else if(best.score >= 3) confidence = 2;
-    else if(best.score >= 1) confidence = 1;
-    if(second.score > 0 && best.score - second.score < 2) confidence = Math.max(confidence-1,0);
-  }
-  return {bestIndex: best.score > 0 ? best.index : -1, confidence, scores};
+// Bonus/penalty from relationships for cooperation tasks
+function relCoopBonus(nameA, nameB) {
+  const r = getRelationship(nameA, nameB);
+  if(r >= 50) return 0.2;   // +20% on joint tasks
+  if(r >= 20) return 0.1;   // +10%
+  if(r <= -50) return -0.15; // -15%
+  if(r <= -20) return -0.08; // -8%
+  return 0;
 }
 
-const CONFIRM_PHRASES = [
-  'You speak clearly. The community hears:',
-  'Your words carry weight. The collective understands:',
-  'The decision echoes through the sanctuary:',
-  'Your voice rings out:',
-  'The council interprets your will:',
-  'So it shall be:',
-  'Your intent is clear:',
-  'The community nods in understanding:'
-];
-const NO_MATCH_PHRASES = [
-  'The community looks confused. Your words don\'t quite land.',
-  'Murmurs of uncertainty ripple through the group. Try a different approach.',
-  'Your intent is unclear. The survivors exchange puzzled glances.',
-  'The words hang in the air, but no one is sure what you mean.',
-  'A long silence follows. Perhaps rephrase your thoughts?'
-];
-const WEAK_MATCH_PHRASES = [
-  'The community thinks they understand, though some exchange uncertain glances...',
-  'Your words are interpreted, perhaps loosely...',
-  'The meaning is grasped — tentatively...'
-];
-
-let zorkPendingChoice = -1;
-
-function getHints(dilemma) {
-  return dilemma.choices.map(c => {
-    const t = c.text.toLowerCase();
-    if(t.includes('filter')||t.includes('purify')) return 'purify';
-    if(t.includes('controlled burn')) return 'fight fire with fire';
-    if(t.includes('burn')) return 'burn it';
-    if(t.includes('build around')) return 'coexist';
-    if(t.includes('seal')) return 'seal it';
-    if(t.includes('welcome')||t.includes('let in')) return 'welcome';
-    if(t.includes('study')||t.includes('research')) return 'study';
-    if(t.includes('trade')||t.includes('sell')) return 'trade';
-    if(t.includes('plant')) return 'plant';
-    if(t.includes('shelter')) return 'take shelter';
-    if(t.includes('harvest')) return 'harvest';
-    if(t.includes('pay')||t.includes('tribute')) return 'pay tribute';
-    if(t.includes('refuse')||t.includes('defend')) return 'resist';
-    if(t.includes('alliance')) return 'negotiate';
-    if(t.includes('circle')||t.includes('meeting')) return 'mediate';
-    if(t.includes('nothing')||t.includes('hope')) return 'wait it out';
-    if(t.includes('wish')||t.includes('farewell')) return 'let them go';
-    if(t.includes('demand')||t.includes('force')) return 'demand';
-    if(t.includes('quarantine')) return 'quarantine';
-    if(t.includes('compost therapy')) return 'treat gently';
-    if(t.includes('immediately')||t.includes('fast')) return 'act fast';
-    if(t.includes('both')||t.includes('everything')) return 'take everything';
-    if(t.includes('prepare')||t.includes('defense')) return 'prepare';
-    if(t.includes('supply')||t.includes('send')) return 'give provisions';
-    if(t.includes('turn away')||t.includes('reject')) return 'turn away';
-    if(t.includes('relocate')||t.includes('move')) return 'relocate';
-    if(t.includes('nursery')||t.includes('adapt')) return 'adapt';
-    if(t.includes('scout')||t.includes('rescue')) return 'venture out';
-    if(t.includes('investigate')||t.includes('explore')) return 'investigate';
-    if(t.includes('monitor')||t.includes('observe')) return 'observe';
-    if(t.includes('herb')||t.includes('natural')) return 'try herbs';
-    if(t.includes('reconsider')||t.includes('convince')) return 'persuade';
-    if(t.includes('side with')) return 'pick a side';
-    if(t.includes('let them')||t.includes('resolve')) return 'stay out of it';
-    if(t.includes('medicine')||t.includes('medical')) return 'use medicine';
-    if(t.includes('blueprint')||t.includes('knowledge')) return 'seek knowledge';
-    if(t.includes('seed')) return 'get seeds';
-    if(t.includes('pulsebox')||t.includes('device')) return 'get the device';
-    if(t.includes('tool')) return 'get tools';
-    const w = t.split(' ').filter(x=>x.length>3&&!['them','this','that','with','from','into','your'].includes(x));
-    return w[0]||'act';
+// Natural relationship drift each day — people who work together grow closer
+function dailyRelationshipDrift() {
+  const alive = G.survivors.filter(s=>s.alive && !s.expedition);
+  // Survivors with the same role bond slightly
+  alive.forEach(sA => {
+    alive.forEach(sB => {
+      if(sA.name === sB.name) return;
+      // Same role = shared experience
+      if(sA.role && sA.role === sB.role) {
+        changeRelationship(sA.name, sB.name, 2);
+      }
+      // Shared traits = natural affinity (small)
+      const sharedTraits = sA.traits.filter(t => sB.traits.includes(t));
+      if(sharedTraits.length > 0) {
+        changeRelationship(sA.name, sB.name, 1);
+      }
+      // Opposing philosophies create friction
+      const hasHarmony = sA.traits.includes('Purist') || sA.traits.includes('Compassionate');
+      const hasIndustry = sA.traits.includes('Pragmatist') || sA.traits.includes('Resourceful');
+      const otherHarmony = sB.traits.includes('Purist') || sB.traits.includes('Compassionate');
+      const otherIndustry = sB.traits.includes('Pragmatist') || sB.traits.includes('Resourceful');
+      if((hasHarmony && otherIndustry) || (hasIndustry && otherHarmony)) {
+        changeRelationship(sA.name, sB.name, -1);
+      }
+    });
   });
-}
 
-function processZorkInput() {
-  const input = document.getElementById('zork-input').value.trim();
-  if(!input || !pendingDilemma) return;
+  // Expedition partners bond strongly
+  G.expeditions.forEach(exp => {
+    if(exp.survivors.length === 2) {
+      changeRelationship(exp.survivors[0], exp.survivors[1], 4);
+    }
+  });
 
-  const result = matchInput(pendingDilemma.id, input);
-  const fb = document.getElementById('zork-feedback');
-  const confirmText = document.getElementById('zork-confirm-text');
-  const confirmWrap = document.getElementById('zork-confirm-wrap');
-  const hintsDiv = document.getElementById('zork-hints');
-
-  fb.className = 'visible';
-  confirmWrap.className = '';
-  confirmText.textContent = '';
-
-  if(result.bestIndex === -1 || result.confidence === 0) {
-    // No match
-    fb.className = 'visible no-match';
-    fb.textContent = NO_MATCH_PHRASES[Math.floor(Math.random()*NO_MATCH_PHRASES.length)];
-    const hints = getHints(pendingDilemma);
-    hintsDiv.innerHTML = 'Consider: ' + hints.map(h=>'<strong>'+h+'</strong>').join(' · ');
-    hintsDiv.style.display = 'block';
-    zorkPendingChoice = -1;
-  } else {
-    const choiceText = pendingDilemma.choices[result.bestIndex].text;
-    zorkPendingChoice = result.bestIndex;
-    hintsDiv.style.display = 'none';
-
-    if(result.confidence >= 2) {
-      // Good match — show confirmation
-      fb.className = 'visible good-match';
-      const phrase = CONFIRM_PHRASES[Math.floor(Math.random()*CONFIRM_PHRASES.length)];
-      fb.textContent = phrase;
-      confirmText.textContent = '"' + choiceText + '"';
-      confirmText.style.display = 'block';
-      confirmWrap.className = 'visible';
-    } else {
-      // Weak match — show with caveat
-      fb.className = 'visible weak-match';
-      const phrase = WEAK_MATCH_PHRASES[Math.floor(Math.random()*WEAK_MATCH_PHRASES.length)];
-      fb.textContent = phrase;
-      confirmText.textContent = 'Did you mean: "' + choiceText + '"?';
-      confirmText.style.display = 'block';
-      confirmWrap.className = 'visible';
+  // Recreation building helps relationships — everyone bonds
+  if(G.buildings.includes('recreation')) {
+    for(let i=0;i<alive.length;i++) {
+      for(let j=i+1;j<alive.length;j++) {
+        changeRelationship(alive[i].name, alive[j].name, 1);
+      }
     }
   }
 }
 
-function confirmZorkChoice() {
-  if(zorkPendingChoice >= 0 && pendingDilemma) {
-    // Hide zork UI elements
-    document.getElementById('zork-feedback').className = '';
-    document.getElementById('zork-confirm-wrap').className = '';
-    document.getElementById('zork-confirm-text').style.display = 'none';
-    document.getElementById('zork-hints').style.display = 'none';
-    resolveDilemma(zorkPendingChoice);
+// Get the most notable relationship dynamics for narrative flavor
+function getRelationshipDynamics() {
+  const alive = G.survivors.filter(s=>s.alive);
+  const pairs = [];
+  for(let i=0;i<alive.length;i++) {
+    for(let j=i+1;j<alive.length;j++) {
+      const score = getRelationship(alive[i].name, alive[j].name);
+      if(Math.abs(score) >= 15) {
+        pairs.push({a:alive[i], b:alive[j], score});
+      }
+    }
   }
-}
-
-function resetZorkInput() {
-  document.getElementById('zork-input').value = '';
-  document.getElementById('zork-input').focus();
-  document.getElementById('zork-feedback').className = '';
-  document.getElementById('zork-confirm-wrap').className = '';
-  document.getElementById('zork-confirm-text').style.display = 'none';
-  document.getElementById('zork-hints').style.display = 'none';
-  zorkPendingChoice = -1;
+  pairs.sort((x,y) => Math.abs(y.score) - Math.abs(x.score));
+  return pairs.slice(0, 5);
 }
 
 // ════════════════════════════════════════════
@@ -1272,18 +1118,50 @@ function triggerDilemma() {
 
 function showDilemma(dilemma) {
   pendingDilemma = dilemma;
-  zorkPendingChoice = -1;
   playWarning();
 
   document.getElementById('dilemma-day').textContent = `Day ${G.day}`;
   document.getElementById('dilemma-title').textContent = dilemma.title;
   document.getElementById('dilemma-text').textContent = dilemma.text;
 
-  // Opinions from matching survivors — these are the player's hints
+  const alive = G.survivors.filter(s => s.alive && !s.expedition);
+
+  // ── Map each choice to a proposing survivor based on trait match ──
+  // Each choice has a .trait — find a living survivor who has that trait
+  // If no one matches, assign the closest personality fit
+  const choiceProposers = [];
+  const usedSurvivors = new Set();
+
+  dilemma.choices.forEach((choice, idx) => {
+    // Priority 1: survivor with exact trait match
+    let proposer = alive.find(s => s.traits.includes(choice.trait) && !usedSurvivors.has(s.name));
+    // Priority 2: survivor with related trait
+    if(!proposer) {
+      const related = {
+        'Purist':['Compassionate','Vigilant'],'Compassionate':['Purist','Diplomatic'],
+        'Pragmatist':['Resourceful','Inventive'],'Resourceful':['Pragmatist','Resilient'],
+        'Inventive':['Resourceful','Pragmatist'],'Diplomatic':['Compassionate','Resilient'],
+        'Vigilant':['Resilient','Purist'],'Resilient':['Vigilant','Resourceful'],
+        'Skeptic':['Pragmatist','Vigilant'],'Reckless':['Inventive','Resourceful'],
+        'Hoarder':['Pragmatist','Skeptic'],'Cynic':['Skeptic','Pragmatist']
+      };
+      const relatedTraits = related[choice.trait] || [];
+      proposer = alive.find(s => relatedTraits.some(rt => s.traits.includes(rt)) && !usedSurvivors.has(s.name));
+    }
+    // Priority 3: any unused survivor
+    if(!proposer) proposer = alive.find(s => !usedSurvivors.has(s.name));
+    // Priority 4: reuse someone (rare, only if fewer survivors than choices)
+    if(!proposer) proposer = alive[idx % alive.length];
+
+    if(proposer) usedSurvivors.add(proposer.name);
+    choiceProposers.push(proposer);
+  });
+
+  // ── Build opinions section — show the strongest voice from each side ──
   const opDiv = document.getElementById('dilemma-opinions');
   opDiv.innerHTML = '';
   dilemma.opinions.forEach(op => {
-    const matchingSurvivor = G.survivors.find(s => s.alive && s.traits.includes(op.trait));
+    const matchingSurvivor = alive.find(s => s.traits.includes(op.trait));
     if(matchingSurvivor) {
       const el = document.createElement('div');
       el.className = 'opinion fade-in';
@@ -1292,24 +1170,92 @@ function showDilemma(dilemma) {
     }
   });
 
-  // Hide old button choices — Zork mode uses text input
+  // ── Build choice buttons — each proposed BY a survivor ──
   const choicesDiv = document.getElementById('dilemma-choices');
   choicesDiv.innerHTML = '';
-  choicesDiv.style.display = 'none';
+  choicesDiv.style.display = 'flex';
 
-  // Reset Zork input
-  const zorkWrap = document.getElementById('zork-input-wrap');
-  zorkWrap.style.display = 'block';
-  document.getElementById('zork-input').value = '';
-  document.getElementById('zork-feedback').className = '';
-  document.getElementById('zork-confirm-wrap').className = '';
-  document.getElementById('zork-confirm-text').style.display = 'none';
-  document.getElementById('zork-hints').style.display = 'none';
+  dilemma.choices.forEach((choice, idx) => {
+    const proposer = choiceProposers[idx];
+    const btn = document.createElement('button');
+    btn.className = 'dilemma-choice fade-in';
+    btn.style.animationDelay = (idx * 0.1) + 's';
+
+    // Build the button content
+    let html = '';
+    if(proposer) {
+      const hasTrait = proposer.traits.includes(choice.trait);
+      html += `<span class="proposer">💬 <strong>${proposer.name}</strong> suggests <span class="proposer-trait">(${hasTrait ? choice.trait : proposer.traits[0]})</span></span>`;
+    }
+    html += `<span>${choice.text}</span>`;
+
+    // Show relationship note if choosing this would affect a relationship
+    if(proposer && choiceProposers.length > 1) {
+      const otherProposers = choiceProposers.filter((p,i) => p && i !== idx && p.name !== proposer.name);
+      const rivalProposer = otherProposers[0];
+      if(rivalProposer) {
+        const rel = getRelationship(proposer.name, rivalProposer.name);
+        const rl = relLabel(rel);
+        if(Math.abs(rel) >= 10) {
+          html += `<span class="rel-note">${proposer.name} & ${rivalProposer.name}: ${rl.icon} ${rl.text} (${rel > 0 ? '+' : ''}${rel})</span>`;
+        }
+      }
+    }
+
+    btn.innerHTML = html;
+    btn.onclick = () => resolveDilemmaWithRelationships(idx, choiceProposers);
+    choicesDiv.appendChild(btn);
+  });
 
   document.getElementById('dilemma-overlay').classList.add('active');
+}
 
-  // Focus the input after a small delay for the animation
-  setTimeout(() => document.getElementById('zork-input').focus(), 300);
+// Enhanced resolve that also handles relationship changes
+function resolveDilemmaWithRelationships(choiceIndex, choiceProposers) {
+  const dilemma = pendingDilemma;
+  const chosenProposer = choiceProposers[choiceIndex];
+
+  // Relationship effects: agreeing with someone strengthens your bond,
+  // disagreeing (choosing someone else's option) creates tension
+  if(chosenProposer) {
+    const alive = G.survivors.filter(s => s.alive);
+    alive.forEach(s => {
+      if(s.name === chosenProposer.name) return;
+      // The proposer whose idea was chosen gains a small morale boost
+      chosenProposer.morale = Math.min(100, chosenProposer.morale + 3);
+    });
+
+    choiceProposers.forEach((proposer, idx) => {
+      if(!proposer) return;
+      if(idx === choiceIndex) {
+        // Everyone grows closer to the person whose idea was followed
+        alive.forEach(s => {
+          if(s.name !== proposer.name) {
+            changeRelationship(s.name, proposer.name, 5);
+          }
+        });
+        addLog(`🤝 The community rallied behind ${proposer.name}'s suggestion.`);
+      } else {
+        // The person whose idea was rejected feels slighted (mild)
+        proposer.morale = Math.max(5, proposer.morale - 2);
+        // Tension between rejected proposer and chosen proposer
+        if(chosenProposer && proposer.name !== chosenProposer.name) {
+          changeRelationship(proposer.name, chosenProposer.name, -4);
+        }
+        // But if they're already friends, the sting is less
+        if(chosenProposer) {
+          const rel = getRelationship(proposer.name, chosenProposer.name);
+          if(rel >= 30) {
+            // Friends forgive easily
+            changeRelationship(proposer.name, chosenProposer.name, 3);
+          }
+        }
+      }
+    });
+  }
+
+  // Call the original resolve
+  resolveDilemma(choiceIndex);
 }
 
 function resolveDilemma(choiceIndex) {
@@ -1456,6 +1402,17 @@ function sendExpedition(destId, survivorNames) {
   addLog(`⚡ ${survivorNames.join(' & ')} spent energy preparing for the expedition.`);
 
   let safety = G.buildings.includes('lookout') ? 15 : 0;
+  // Relationship bonus: expedition partners who are friends work better together
+  if(survivorNames.length === 2) {
+    const rel = getRelationship(survivorNames[0], survivorNames[1]);
+    if(rel >= 30) {
+      safety += 10;
+      addLog(`💚 ${survivorNames[0]} and ${survivorNames[1]}'s friendship makes them a strong team.`);
+    } else if(rel <= -20) {
+      safety -= 8;
+      addLog(`⚡ Tension between ${survivorNames[0]} and ${survivorNames[1]} could be a problem.`);
+    }
+  }
   // Pet bonuses for expeditions
   const scoutPets = G.pets.filter(p => {
     const pt = PET_TYPES.find(t=>t.id===p.type);
@@ -2849,6 +2806,25 @@ function updateCommunityPanel() {
           return `<button class="role-btn${s.role===r.id?' active':''}" onclick="assignRole('${s.name}','${r.id}')" title="${r.desc}">${r.icon} ${r.label} <span style="opacity:0.5;font-size:0.55rem">${yields[r.id]||''}</span></button>`;
         }).join('')}
       </div>` : ''}
+      ${(() => {
+        const rels = alive.filter(o => o.name !== s.name).map(o => {
+          const score = getRelationship(s.name, o.name);
+          return {name:o.name, score};
+        }).filter(r => Math.abs(r.score) >= 8).sort((a,b) => Math.abs(b.score) - Math.abs(a.score)).slice(0,3);
+        if(rels.length === 0) return '';
+        return '<div style="margin-top:6px;padding-top:6px;border-top:1px solid rgba(74,69,64,0.3)">' +
+          rels.map(r => {
+            const rl = relLabel(r.score);
+            const barColor = r.score >= 0 ? 'var(--bloom)' : 'var(--danger)';
+            const barWidth = Math.min(100, Math.abs(r.score));
+            return '<div class="rel-row">' +
+              '<span style="min-width:40px">' + r.name + '</span>' +
+              '<div class="rel-bar-outer"><div class="rel-bar-inner" style="width:'+barWidth+'%;background:'+barColor+'"></div></div>' +
+              '<span class="rel-badge '+rl.css+'">' + rl.icon + ' ' + rl.text + '</span>' +
+            '</div>';
+          }).join('') +
+        '</div>';
+      })()}
     </div>`;
   });
 
@@ -3198,7 +3174,18 @@ function showEpilogue() {
       if(s.traits.includes('Vigilant')) fates.push('watched the horizon, ensuring the collective was never caught unprepared again');
       if(s.traits.includes('Resourceful')) fates.push('found uses for things no one else could see');
       const fate = fates.length > 0 ? fates[Math.floor(Math.random()*fates.length)] : 'lived quietly, content with the peace they helped build';
-      content += `<div class="ep-survivor"><strong>${s.name}</strong> <em>(${s.traits.join(', ')})</em> — ${fate}.</div>`;
+      // Find strongest relationship
+      let bestRel = null;
+      alive.forEach(o => {
+        if(o.name === s.name) return;
+        const r = getRelationship(s.name, o.name);
+        if(!bestRel || Math.abs(r) > Math.abs(bestRel.score)) bestRel = {name:o.name, score:r};
+      });
+      let relNote = '';
+      if(bestRel && bestRel.score >= 40) relNote = ` Their bond with ${bestRel.name} became the stuff of campfire legend.`;
+      else if(bestRel && bestRel.score >= 20) relNote = ` They remained close with ${bestRel.name} through the years.`;
+      else if(bestRel && bestRel.score <= -30) relNote = ` The rift with ${bestRel.name} never fully healed.`;
+      content += `<div class="ep-survivor"><strong>${s.name}</strong> <em>(${s.traits.join(', ')})</em> — ${fate}.${relNote}</div>`;
     });
   }
 
@@ -3260,19 +3247,13 @@ function closeTutorial() {
 document.addEventListener('click', () => { if(!audioCtx) initAudio(); }, {once:true});
 document.addEventListener('touchstart', () => { if(!audioCtx) initAudio(); }, {once:true});
 
-// Zork input: Enter key to submit
-document.getElementById('zork-input').addEventListener('keydown', function(e) {
-  if(e.key === 'Enter') {
-    e.preventDefault();
-    if(zorkPendingChoice >= 0) {
-      confirmZorkChoice();
-    } else {
-      processZorkInput();
-    }
-  }
-  // Escape to clear
-  if(e.key === 'Escape') {
-    resetZorkInput();
+// Keyboard shortcut: number keys to select dilemma choices
+document.addEventListener('keydown', function(e) {
+  if(!pendingDilemma) return;
+  const num = parseInt(e.key);
+  if(num >= 1 && num <= 4) {
+    const btns = document.querySelectorAll('#dilemma-choices .dilemma-choice');
+    if(btns[num-1]) btns[num-1].click();
   }
 });
 </script>
