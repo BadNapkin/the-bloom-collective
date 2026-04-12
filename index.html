@@ -539,24 +539,76 @@ const DILEMMAS = [
 
 const EXP_EVENTS = {
   echoes:[
-    {text:'Day 1: The city looms like a skeleton against the gray sky. Every footstep echoes.'},
-    {text:'Day 2: Found an intact pharmacy behind a collapsed wall. Scavenging carefully.',choice:{a:'Grab everything quickly',aEffect:{medicine:5,scrap:3,healthAll:-5},b:'Take only essentials',bEffect:{medicine:2,scrap:1,bloom:2}}},
-    {text:'Day 3: Heading back. The Echoes whisper behind us.'}
+    {text:'Day 1: The city looms like a skeleton against the gray sky. Every footstep echoes through hollow towers.'},
+    {text:'Day 2: Found an intact pharmacy behind a collapsed wall. But scratched into the counter: "THEY KNEW. CHECK THE BROADCAST TOWER."',choice:{a:'Grab everything quickly',aEffect:{medicine:5,scrap:3,healthAll:-5},b:'Take only essentials',bEffect:{medicine:2,scrap:1,bloom:2}}},
+    {text:'Day 3: On the way back, we passed the old broadcast tower. Every screen inside was frozen on the same frame — a countdown timer at 00:00:00. Whatever was supposed to happen... happened.'}
   ],
   wildlands:[
-    {text:'Day 1: The canopy here is thick and alive. Bird calls everywhere.'},
-    {text:'Day 2: Discovered a grove of fruit trees — ancient and heavy with yield.',choice:{a:'Harvest aggressively',aEffect:{food:10,bloom:-3},b:'Take what we need',bEffect:{food:5,bloom:3,compost:2}}},
+    {text:'Day 1: The canopy here is impossibly thick. These trees shouldn\'t be this large — it\'s only been a few years since the Switch-Off.'},
+    {text:'Day 2: Discovered a grove of fruit trees — ancient and heavy with yield. But the growth rings don\'t make sense. Decades of growth in just years.',choice:{a:'Harvest aggressively',aEffect:{food:10,bloom:-3},b:'Take what we need',bEffect:{food:5,bloom:3,compost:2}}},
   ],
   shore:[
-    {text:'Day 1: Salt air and the sound of waves. Remnants of a fishing village line the coast.'},
-    {text:'Day 2: Met a coastal trader who offers water purification tech for scrap.',choice:{a:'Trade our scrap',aEffect:{scrap:-5,water:8},b:'Decline and forage',bEffect:{food:3,scrap:2}}},
-    {text:'Day 3: Found old nautical maps. Researchers will love these.'}
+    {text:'Day 1: Salt air and the sound of waves. Remnants of a fishing village line the coast. Someone painted "THE SIGNAL CAME FROM THE DEEP" on the lighthouse wall.'},
+    {text:'Day 2: A coastal trader offers water purification tech for scrap. She whispers: "The Switch-Off wasn\'t a failure. It was an activation."',choice:{a:'Trade our scrap',aEffect:{scrap:-5,water:8},b:'Decline and forage',bEffect:{food:3,scrap:2}}},
+    {text:'Day 3: Found old nautical maps with hand-drawn additions — shipping routes rerouted around a point in the ocean marked only with "DO NOT APPROACH." Our researchers will want to see these.'}
   ],
   ruins:[
-    {text:'Day 1: The facility is cold. Metal corridors stretch into darkness.'},
-    {text:'Day 2: Security systems still operational — traps everywhere.',choice:{a:'Push deeper',aEffect:{landmark:15,healthAll:-15,scrap:5},b:'Play it safe',bEffect:{scrap:3,landmark:5}}},
-    {text:'Day 3: Something hums behind a sealed door. We need to decide.'},
-    {text:'Day 4: Returning with strange artifacts. They pulse with warmth.'}
+    {text:'Day 1: The facility is cold. A faded sign reads "PROJECT MERIDIAN — Clearance Level 7." Metal corridors stretch into darkness.'},
+    {text:'Day 2: Security systems still operational — traps everywhere. But behind the security glass: rows of servers, still humming. Still running. After everything.',choice:{a:'Push deeper',aEffect:{landmark:15,healthAll:-15,scrap:5},b:'Play it safe',bEffect:{scrap:3,landmark:5}}},
+    {text:'Day 3: Found a sealed research log. The last entry reads: "Meridian is not a weapon. It is a seed. When infrastructure falls, the organic phase begins. We are not destroying civilization — we are composting it."'},
+    {text:'Day 4: Returning with strange artifacts. They pulse with warmth. One of them reacted when we walked past the tree — our tree. It hummed the same frequency.'}
+  ]
+};
+
+// Expanded expedition event pools — each visit can yield different mystery clues
+const EXP_EVENTS_ALT = {
+  echoes:[
+    [
+      {text:'Day 1: A different route through the Echoes today. The northern district is eerily untouched — food still on tables, doors left open mid-step.'},
+      {text:'Day 2: Found a government bunker beneath the old town hall. Filing cabinets full of redacted documents. One folder labeled "MERIDIAN CONTINGENCY" was left open.',choice:{a:'Take the documents',aEffect:{scrap:2,landmark:5},b:'Photograph and leave them',bEffect:{landmark:3,bloom:2}}},
+      {text:'Day 3: Graffiti near the city edge: "Day 0 was not the end. It was the planting." Someone else is piecing this together too.'}
+    ],
+    [
+      {text:'Day 1: Rain in the Echoes today. Water pools in the old subway, reflecting emergency lights that somehow still flicker.'},
+      {text:'Day 2: Deep in the subway tunnels — a makeshift camp, recently abandoned. Whoever was here left maps pinned to the wall, all pointing to the same coordinates: the Old Laboratory.',choice:{a:'Search the camp thoroughly',aEffect:{scrap:4,medicine:2,healthAll:-3},b:'Take the maps and go',bEffect:{scrap:1,landmark:3}}},
+      {text:'Day 3: Found a working radio in the camp. Static on every channel except one — a looping tone. The same frequency our tree hums at night.'}
+    ]
+  ],
+  wildlands:[
+    [
+      {text:'Day 1: The animals here show no fear of humans. A deer walked right up to us. Its eyes seemed... knowing.'},
+      {text:'Day 2: Found a clearing where nothing grows — a perfect circle of bare earth. In the center, the soil is warm to the touch. Something is buried here.',choice:{a:'Dig it up',aEffect:{landmark:8,bloom:-5,scrap:3},b:'Mark it and move on',bEffect:{food:4,bloom:3,compost:2}}},
+    ],
+    [
+      {text:'Day 1: The forest is singing. Not birdsong — the trees themselves vibrate. You can feel it through your boots.'},
+      {text:'Day 2: Stumbled on ruins of a pre-Switch research camp. Their notes describe "accelerated biome response" — nature growing faster than any model predicted. As if the earth was waiting for permission.',choice:{a:'Take the research equipment',aEffect:{scrap:5,landmark:4,bloom:-2},b:'Study their notes in place',bEffect:{food:3,bloom:4,compost:3}}},
+    ]
+  ],
+  shore:[
+    [
+      {text:'Day 1: The tide reveals foundations of structures that weren\'t here before the Switch-Off. Coral-like growths, but geometric. Deliberate.'},
+      {text:'Day 2: A fisherman in a patched boat hails us. He\'s been tracking bioluminescent patterns in the water — they form symbols at night. "Messages," he says. "From whatever woke up down there."',choice:{a:'Join him for a night observation',aEffect:{landmark:6,healthAll:-5,water:3},b:'Trade for his maps',bEffect:{scrap:-3,water:5,landmark:3}}},
+      {text:'Day 3: He was right. The lights in the water pulsed in rhythm — the same rhythm as our tree\'s hum. Whatever Meridian was, it\'s everywhere.'}
+    ],
+    [
+      {text:'Day 1: An old cargo ship sits beached on the rocks. Its hold is full of sealed containers marked with the Meridian Project logo.'},
+      {text:'Day 2: Opened one container. Inside: saplings in suspended animation pods, each labeled with coordinates matching settlements across the continent. Our tree\'s coordinates are here.',choice:{a:'Take saplings and tech',aEffect:{scrap:4,food:3,bloom:-3},b:'Leave them — this isn\'t ours to take',bEffect:{bloom:5,water:4}}},
+      {text:'Day 3: The manifest lists our settlement. By name. This shipment was supposed to reach us. Meridian planned for communities like ours.'}
+    ]
+  ],
+  ruins:[
+    [
+      {text:'Day 1: A different wing of the laboratory. This section is labeled "PHASE 2: SYMBIOSIS." The walls are covered in botanical diagrams.'},
+      {text:'Day 2: Found a holographic display still functioning. It shows Earth — but transformed. Cities replaced by massive organic structures. Trees the size of skyscrapers. The timestamp reads 50 years post-activation.',choice:{a:'Download the projections',aEffect:{landmark:12,scrap:4,healthAll:-10},b:'Document what we can see',bEffect:{landmark:6,scrap:2,bloom:3}}},
+      {text:'Day 3: Behind the display, a message from the lead researcher: "We had two choices — let civilization consume the biosphere, or let the biosphere consume civilization. We chose the option with survivors."'},
+      {text:'Day 4: As we leave, every screen in the facility flickers on. One word: "BLOOM." Then silence. The artifacts we carry feel heavier. They know we\'re here.'}
+    ],
+    [
+      {text:'Day 1: The deeper levels of the facility require power. We jury-rig a generator. Lights stutter on, revealing a vast underground greenhouse — still alive, still growing.'},
+      {text:'Day 2: The greenhouse contains species that shouldn\'t exist — hybrid plants that produce clean water, fruit, and building material simultaneously. Engineered for a post-industrial world.',choice:{a:'Harvest specimens aggressively',aEffect:{food:6,scrap:5,bloom:-6,landmark:8},b:'Take careful samples',bEffect:{food:3,compost:4,bloom:4,landmark:5}}},
+      {text:'Day 3: Found the greenhouse caretaker\'s log: "If you\'re reading this, the Meridian activation was successful. The Switch-Off is not a catastrophe — it is a metamorphosis. Your settlements are the cocoons. What emerges depends on what you nurture."'},
+      {text:'Day 4: Sealed in the deepest chamber: a living map. Roots and mycelium forming a network that connects every Meridian settlement. Our tree is a node. We are not alone.'}
+    ]
   ]
 };
 
@@ -602,7 +654,8 @@ function initState() {
     researchBonus: 0,
     researchLevel: 0,
     pets: [],
-    petCooldown: 0
+    petCooldown: 0,
+    expVisits: {echoes:0, wildlands:0, shore:0, ruins:0}
   };
   usedDilemmas.clear();
   logEntries = [];
@@ -1157,18 +1210,9 @@ function showDilemma(dilemma) {
     choiceProposers.push(proposer);
   });
 
-  // ── Build opinions section — show the strongest voice from each side ──
+  // ── Clear opinions section (choices now come directly from survivors) ──
   const opDiv = document.getElementById('dilemma-opinions');
   opDiv.innerHTML = '';
-  dilemma.opinions.forEach(op => {
-    const matchingSurvivor = alive.find(s => s.traits.includes(op.trait));
-    if(matchingSurvivor) {
-      const el = document.createElement('div');
-      el.className = 'opinion fade-in';
-      el.innerHTML = `<span class="op-name">${matchingSurvivor.name}</span> <em>(${op.trait})</em>: "${op.text}"`;
-      opDiv.appendChild(el);
-    }
-  });
 
   // ── Build choice buttons — each proposed BY a survivor ──
   const choicesDiv = document.getElementById('dilemma-choices');
@@ -1188,19 +1232,6 @@ function showDilemma(dilemma) {
       html += `<span class="proposer">💬 <strong>${proposer.name}</strong> suggests <span class="proposer-trait">(${hasTrait ? choice.trait : proposer.traits[0]})</span></span>`;
     }
     html += `<span>${choice.text}</span>`;
-
-    // Show relationship note if choosing this would affect a relationship
-    if(proposer && choiceProposers.length > 1) {
-      const otherProposers = choiceProposers.filter((p,i) => p && i !== idx && p.name !== proposer.name);
-      const rivalProposer = otherProposers[0];
-      if(rivalProposer) {
-        const rel = getRelationship(proposer.name, rivalProposer.name);
-        const rl = relLabel(rel);
-        if(Math.abs(rel) >= 10) {
-          html += `<span class="rel-note">${proposer.name} & ${rivalProposer.name}: ${rl.icon} ${rl.text} (${rel > 0 ? '+' : ''}${rel})</span>`;
-        }
-      }
-    }
 
     btn.innerHTML = html;
     btn.onclick = () => resolveDilemmaWithRelationships(idx, choiceProposers);
@@ -1425,6 +1456,10 @@ function sendExpedition(destId, survivorNames) {
   if(scoutPets.length > 0) {
     addLog(`🐾 ${scoutPets.map(p=>p.name).join(' & ')} help scout the route!`);
   }
+  // Track visit number for alternate event pools
+  const visitNum = G.expVisits[destId] || 0;
+  G.expVisits[destId] = visitNum + 1;
+
   G.expeditions.push({
     dest: destId,
     survivors: survivorNames,
@@ -1432,6 +1467,7 @@ function sendExpedition(destId, survivorNames) {
     totalDays: dest.days,
     currentEvent: 0,
     safety: safety,
+    visitNum: visitNum,
     journal: [`📍 Day 1: ${survivorNames.join(' and ')} depart${survivorNames.length>1?'':'s'} for ${dest.name}.${scoutPets.length>0?' Their animal companions scout ahead.':''}`],
     pendingChoice: null
   });
@@ -1446,7 +1482,13 @@ function progressExpeditions() {
     if(exp.pendingChoice) return true; // waiting for player choice
 
     exp.daysLeft--;
-    const events = EXP_EVENTS[exp.dest];
+    // Use alternate event pools on repeat visits for fresh mystery content
+    let events = EXP_EVENTS[exp.dest];
+    const altPool = EXP_EVENTS_ALT[exp.dest];
+    if(altPool && exp.visitNum > 0) {
+      const altIdx = (exp.visitNum - 1) % altPool.length;
+      events = altPool[altIdx];
+    }
     const eventIdx = exp.totalDays - exp.daysLeft - 1;
 
     if(eventIdx < events.length) {
@@ -1482,12 +1524,24 @@ function progressExpeditions() {
       // Base expedition rewards — industry boosts expedition hauls
       const indMult = 1 + industryStrength() * 0.6; // up to 1.6x at full industry
       const harMult = 1 + harmonyStrength() * 0.3; // harmony gives smaller food bonus
+      let haul = {};
       switch(exp.dest) {
-        case 'echoes': applyChanges({scrap:Math.round(6*indMult),medicine:2}); break;
-        case 'wildlands': applyChanges({food:Math.round(6*harMult),compost:3,medicine:1}); break;
-        case 'shore': applyChanges({water:5,scrap:Math.round(3*indMult)}); break;
-        case 'ruins': applyChanges({scrap:Math.round(4*indMult),landmark:Math.round(8*indMult)}); break;
+        case 'echoes': haul = {scrap:Math.round(6*indMult),medicine:2}; break;
+        case 'wildlands': haul = {food:Math.round(6*harMult),compost:3,medicine:1}; break;
+        case 'shore': haul = {water:5,scrap:Math.round(3*indMult)}; break;
+        case 'ruins': haul = {scrap:Math.round(4*indMult),landmark:Math.round(8*indMult)}; break;
       }
+      applyChanges(haul);
+
+      // Show Mission Haul summary
+      const haulTitle = `📦 Expedition to ${dest.name} — Mission Haul`;
+      let haulText = `${exp.survivors.join(' & ')} ${injured ? 'limped' : 'marched'} back after ${exp.totalDays} days.`;
+      if(exp.journal.length > 0) {
+        // Grab last journal entry as flavor
+        const lastEntry = exp.journal[exp.journal.length - 1];
+        if(lastEntry && !lastEntry.startsWith('→')) haulText += '\n"' + lastEntry.replace(/^Day \d+: /, '') + '"';
+      }
+      showResult(haulTitle, haulText, haul, injured);
 
       return false; // remove expedition
     }
