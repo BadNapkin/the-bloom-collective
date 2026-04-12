@@ -211,16 +211,19 @@ canvas{display:block}
     <p style="color:var(--text-dim);font-style:italic;margin-bottom:24px;font-size:0.85rem">A moment of guidance before the work begins.</p>
     <div style="max-width:480px;width:100%;text-align:left;font-size:0.82rem;line-height:1.8;color:var(--text)">
       <div style="margin-bottom:14px;padding:10px 14px;border-left:2px solid var(--bloom);background:rgba(107,143,94,0.05)">
-        <strong style="color:var(--bloom-glow)">🧑 Community Tab</strong> — Assign survivors to roles. <em>Foragers</em> gather food, <em>Gardeners</em> grow food and compost, <em>Crafters</em> and <em>Researchers</em> build toward the Landmark.
+        <strong style="color:var(--bloom-glow)">🧑 Community Tab</strong> — Assign survivors to roles. <em>Foragers</em> gather food, <em>Gardeners</em> grow food &amp; compost, <em>Crafters</em> build the Landmark, <em>Researchers</em> advance research &amp; discover supplies, <em>Medics</em> accelerate healing. <strong>Working drains health</strong> — balance output with survival.
+      </div>
+      <div style="margin-bottom:14px;padding:10px 14px;border-left:2px solid var(--heal);background:rgba(94,143,107,0.05)">
+        <strong style="color:var(--heal)">😴 Rest &amp; Recovery</strong> — Survivors recover health &amp; morale <em>passively overnight</em>. Build <em>Sleeping Quarters</em> to double recovery. Build a <em>Recreation Area</em> for a daily morale boost. Unassigned survivors rest without fatigue.
       </div>
       <div style="margin-bottom:14px;padding:10px 14px;border-left:2px solid var(--gold);background:rgba(196,168,78,0.05)">
         <strong style="color:var(--gold)">🔨 Build Tab</strong> — Spend resources to construct structures on the Great Tree. Each building provides passive bonuses every day.
       </div>
       <div style="margin-bottom:14px;padding:10px 14px;border-left:2px solid var(--water);background:rgba(94,127,143,0.05)">
-        <strong style="color:var(--water)">🗺️ Expeditions Tab</strong> — Send 1-2 survivors to explore distant locations for resources and story. They'll be away for days.
+        <strong style="color:var(--water)">🗺️ Expeditions Tab</strong> — Send 1-2 survivors to explore distant locations. <strong>Expeditions are exhausting</strong> — departing survivors lose health. They'll be away for days.
       </div>
       <div style="margin-bottom:14px;padding:10px 14px;border-left:2px solid var(--warn);background:rgba(196,120,78,0.05)">
-        <strong style="color:var(--warn)">⚖️ Dilemmas</strong> — Moral choices will arise. You won't know the exact consequences — only the voices of your people. Choose wisely.
+        <strong style="color:var(--warn)">⚖️ Dilemmas</strong> — Moral choices will arise. You won't know the consequences — and <strong>fate is fickle</strong>. Even the "right" choice can backfire. Choose carefully.
       </div>
       <div style="margin-bottom:14px;padding:10px 14px;border-left:2px solid var(--bloom-glow);background:rgba(143,191,110,0.05)">
         <strong style="color:var(--bloom-glow)">🌸 Bloom Score</strong> — Your ecological harmony. High bloom = abundant resources. Low bloom = short-term gain, long-term ruin.
@@ -314,9 +317,8 @@ const ROLES = [
   {id:'forager',label:'Forage',icon:'🍃',desc:'Gather food from the wilds'},
   {id:'gardener',label:'Garden',icon:'🌱',desc:'Tend the living garden'},
   {id:'crafter',label:'Craft',icon:'🔨',desc:'Build and improve the sanctuary'},
-  {id:'researcher',label:'Research',icon:'📖',desc:'Study blueprints and lore'},
-  {id:'medic',label:'Heal',icon:'💚',desc:'Tend to the sick and weary'},
-  {id:'rest',label:'Rest',icon:'😴',desc:'Recover health and morale'}
+  {id:'researcher',label:'Research',icon:'📖',desc:'Study blueprints, discover tech & reduce building costs'},
+  {id:'medic',label:'Heal',icon:'💚',desc:'Accelerate health recovery for the team'}
 ];
 
 const BUILDINGS = [
@@ -326,7 +328,8 @@ const BUILDINGS = [
   {id:'compost_bin',name:'Compost Bin',desc:'Converts food waste into rich soil nutrients.',cost:{scrap:3,compost:1},effect:{compostPerDay:2},icon:'♻️'},
   {id:'workshop',name:'Workshop',desc:'Doubles crafter output for landmark construction.',cost:{scrap:12,compost:3},effect:{craftBonus:2},icon:'⚒️'},
   {id:'library',name:'Library',desc:'Researchers work faster and unlock blueprints sooner.',cost:{scrap:6,compost:2},effect:{researchBonus:2},icon:'📚'},
-  {id:'sleeping_quarters',name:'Sleeping Quarters',desc:'Survivors resting here recover twice as fast.',cost:{scrap:8,compost:4},effect:{restBonus:2},icon:'🛏️'},
+  {id:'sleeping_quarters',name:'Sleeping Quarters',desc:'Doubles passive overnight health & morale recovery.',cost:{scrap:8,compost:4},effect:{nightRecovery:2},icon:'🛏️'},
+  {id:'recreation',name:'Recreation Area',desc:'A space to unwind. Passive morale boost each day.',cost:{scrap:5,compost:4},effect:{moralePerDay:5},icon:'🎲'},
   {id:'shrine',name:'Shrine of Bloom',desc:'A meditative space. Passive bloom score increase each day.',cost:{compost:8,scrap:4},effect:{bloomPerDay:2},icon:'🕯️'},
   {id:'nursery',name:'Animal Nursery',desc:'Care for rescued animals. Boosts morale and bloom.',cost:{compost:6,scrap:3},effect:{moralePerDay:3,bloomPerDay:1},icon:'🐾'},
   {id:'apothecary',name:'Apothecary',desc:'Advanced medicine crafting. Medicine never runs dry.',cost:{scrap:10,compost:6},effect:{medicinePerDay:2},icon:'⚗️'}
@@ -345,9 +348,9 @@ const DILEMMAS = [
     text:'Scout Fern discovered a spring feeding into our water supply — but the water has an unusual chemical tang. It might be runoff from Old World infrastructure. We can purify it slowly using our compost filtration, or use it immediately to ease the shortage.',
     opinions:[{trait:'Purist',text:'We cannot poison the earth to save ourselves. Filter it properly.'},{trait:'Pragmatist',text:'People are thirsty now. A little risk beats certain dehydration.'}],
     choices:[
-      {text:'Filter it through compost (slow but safe)',effects:{water:3,compost:-3,bloom:4},trait:'Purist',result:'The filtration takes time, but the water runs clear. The earth thanks you.'},
-      {text:'Use it immediately (fast but risky)',effects:{water:8,bloom:-6,healthAll:-8},trait:'Pragmatist',result:'The water quenches thirst, but several survivors develop stomach cramps. The spring\'s taint lingers.'},
-      {text:'Seal the spring and find another source',effects:{water:-2,bloom:2,morale:-5},trait:'Vigilant',result:'A safer choice, but the community grumbles about the lost resource.'}
+      {text:'Filter it through compost (slow but safe)',effects:{water:2,compost:-4,bloom:5},trait:'Purist',result:'The filtration takes time, but the water runs clear. The earth thanks you.',badResult:'The filter clogs. Days of work for barely a trickle of clean water.',rng:{chance:25}},
+      {text:'Use it immediately (fast but risky)',effects:{water:12,bloom:-8,healthAll:-5},trait:'Pragmatist',result:'The water quenches thirst and fills every container. Worth the gamble.',badResult:'The taint was worse than expected. Violent illness sweeps the camp.',rng:{bad:{healthAll:-20,morale:-10,bloom:-4},chance:25}},
+      {text:'Seal the spring and find another source',effects:{water:-3,bloom:2,morale:-8},trait:'Vigilant',result:'A safer choice, but the community grumbles about the lost resource.'}
     ]
   },
   {
@@ -355,9 +358,9 @@ const DILEMMAS = [
     text:'A lone wanderer appears at the base of the great tree, gaunt and weary. They carry a heavy pack and claim to have skills in Old World medicine. But their eyes are guarded, and they refuse to speak of where they came from.',
     opinions:[{trait:'Compassionate',text:'Everyone deserves a second chance. Let them in.'},{trait:'Skeptic',text:'Something about this one isn\'t right. We don\'t need another mouth to feed.'}],
     choices:[
-      {text:'Welcome them into the collective',effects:{food:-3,medicine:4,morale:5,bloom:2},trait:'Compassionate',result:'The wanderer proves knowledgeable and kind. They join the community with quiet gratitude.',addSurvivor:true},
-      {text:'Offer supplies and send them on their way',effects:{food:-2,medicine:-1,bloom:1,morale:0},trait:'Diplomatic',result:'You part on good terms. Perhaps they\'ll remember your kindness.'},
-      {text:'Turn them away',effects:{morale:-4,bloom:-2},trait:'Skeptic',result:'The wanderer disappears into the treeline. Some survivors exchange uneasy glances.'}
+      {text:'Welcome them into the collective',effects:{food:-4,medicine:5,morale:6,bloom:2},trait:'Compassionate',result:'The wanderer proves knowledgeable and kind. They join with quiet gratitude.',addSurvivor:true,badResult:'The wanderer steals medicine in the night and vanishes before dawn.',rng:{bad:{medicine:-8,morale:-12},chance:20}},
+      {text:'Offer supplies and send them on their way',effects:{food:-3,medicine:-2,bloom:1,morale:-2},trait:'Diplomatic',result:'You part on good terms. Perhaps they\'ll remember your kindness.'},
+      {text:'Turn them away empty-handed',effects:{morale:-6,bloom:-3},trait:'Skeptic',result:'The wanderer disappears into the treeline. Some survivors exchange uneasy glances. Were you monsters today?'}
     ]
   },
   {
@@ -365,9 +368,9 @@ const DILEMMAS = [
     text:'While expanding the root system of our tree, diggers unearth a sealed Old World container. Inside: a crate of preserved medical supplies alongside a stack of technical manuals that could advance our research.',
     opinions:[{trait:'Resourceful',text:'Medicine saves lives today. Take the supplies.'},{trait:'Inventive',text:'Those blueprints could change everything. Knowledge is the true treasure.'}],
     choices:[
-      {text:'Prioritize the medicine',effects:{medicine:8,morale:3},trait:'Resourceful',result:'The medical supplies are a windfall. Survivors breathe easier.'},
-      {text:'Prioritize the blueprints',effects:{scrap:5,bloom:2,landmark:8},trait:'Inventive',result:'The technical manuals reveal construction techniques that advance your landmark.'},
-      {text:'Take both carefully (high effort)',effects:{medicine:4,scrap:3,morale:-3},trait:'Pragmatist',result:'The extraction takes a full day of hard labor, but you secure both treasures.'}
+      {text:'Prioritize the medicine',effects:{medicine:10,morale:4},trait:'Resourceful',result:'The medical supplies are a windfall. Survivors breathe easier.',rng:{chance:15}},
+      {text:'Prioritize the blueprints',effects:{scrap:6,bloom:3,landmark:12},trait:'Inventive',result:'The technical manuals reveal construction techniques that leap your landmark forward.',rng:{chance:15}},
+      {text:'Take both carefully (exhausting)',effects:{medicine:5,scrap:4,landmark:4,morale:-5,healthAll:-8},trait:'Pragmatist',result:'The extraction takes brutal effort. But you have everything — medicine, blueprints, and aching bones.',badResult:'A cave-in during extraction. Supplies ruined, one survivor badly hurt.',rng:{bad:{healthAll:-20,morale:-10},chance:20}}
     ]
   },
   {
@@ -375,9 +378,9 @@ const DILEMMAS = [
     text:'A wildfire burns in the distant hills, creeping closer. The wind could shift at any moment. You have perhaps two days before it becomes a real threat — if it comes this way at all.',
     opinions:[{trait:'Vigilant',text:'We prepare now. Dig firebreaks and wet the perimeter.'},{trait:'Pragmatist',text:'It may never reach us. Don\'t waste resources on a maybe.'}],
     choices:[
-      {text:'Prepare defenses (firebreaks and water barriers)',effects:{water:-5,compost:-3,bloom:5,morale:3},trait:'Vigilant',result:'The fire shifts direction overnight, but your preparations impressed the community. They feel safe.'},
-      {text:'Controlled burn to starve the fire',effects:{bloom:-8,food:-4,scrap:2},trait:'Pragmatist',result:'The controlled burn works, but the scarred earth takes time to heal. The bloom suffers.'},
-      {text:'Do nothing and hope for rain',effects:{},trait:'Skeptic',result:'Luck is with you — rain comes by evening. But the close call rattles nerves.',rng:{bad:{morale:-10,healthAll:-15,bloom:-5},chance:30}}
+      {text:'Prepare defenses (firebreaks and water barriers)',effects:{water:-6,compost:-4,bloom:6,morale:4},trait:'Vigilant',result:'The fire shifts direction. Your preparations impressed the community — they feel safe.',rng:{chance:15}},
+      {text:'Controlled burn to create a firebreak',effects:{bloom:-10,food:-5,scrap:4},trait:'Pragmatist',result:'The controlled burn works and you salvage metal from the scorched zone. But the earth will remember.',badResult:'The controlled burn spirals out of control. Half the garden is ash.',rng:{bad:{food:-10,bloom:-8,morale:-8},chance:25}},
+      {text:'Do nothing and hope for rain',effects:{},trait:'Skeptic',result:'Luck is with you — rain comes by evening. But the close call rattles nerves.',rng:{bad:{morale:-15,healthAll:-20,bloom:-8,food:-6},chance:35}}
     ]
   },
   {
@@ -385,9 +388,9 @@ const DILEMMAS = [
     text:'A young child in the community has developed a high fever. Your herbal remedies may not be enough. The Old World medicine cache has stronger drugs, but using them now means they won\'t be available for a future crisis.',
     opinions:[{trait:'Compassionate',text:'Use everything we have. One child\'s life is worth any cost.'},{trait:'Pragmatist',text:'The herbs may suffice. Save the strong medicine for when many are sick.'}],
     choices:[
-      {text:'Use Old World medicine immediately',effects:{medicine:-4,morale:8,bloom:3},trait:'Compassionate',result:'The fever breaks by morning. The child smiles. The community weeps with relief.'},
-      {text:'Try herbal remedies first',effects:{medicine:-1,morale:-2},trait:'Purist',result:'The herbs work slowly, but the child recovers after a difficult week.',rng:{bad:{morale:-12,healthAll:-5},chance:25}},
-      {text:'Quarantine and observe',effects:{morale:-5,bloom:1},trait:'Vigilant',result:'Isolation is hard, but it prevents spread. The child recovers, though the loneliness lingers.'}
+      {text:'Use Old World medicine immediately',effects:{medicine:-5,morale:10,bloom:3},trait:'Compassionate',result:'The fever breaks by morning. The child smiles. The community weeps with relief.',rng:{chance:10}},
+      {text:'Try herbal remedies first (save medicine)',effects:{medicine:0,morale:-3},trait:'Pragmatist',result:'The herbs work slowly, but the child recovers. The strong medicine stays in reserve for darker days.',badResult:'The herbs fail. The child\'s condition worsens terribly before you relent and use the real medicine.',rng:{bad:{medicine:-3,morale:-15,healthAll:-8},chance:30}},
+      {text:'Quarantine and observe',effects:{morale:-8,bloom:1},trait:'Vigilant',result:'Isolation is hard, but it prevents spread. The child recovers, though the loneliness leaves marks.',rng:{bad:{morale:-12,healthAll:-5},chance:20}}
     ]
   },
   {
@@ -395,9 +398,9 @@ const DILEMMAS = [
     text:'A trading caravan arrives with exotic goods: rare seeds that could revolutionize your garden, advanced tools, and something they call "the Pulsebox" — a small device that hums with faint energy.',
     opinions:[{trait:'Inventive',text:'That device... it could be a fragment of the old power. We must have it.'},{trait:'Purist',text:'Seeds and soil. That\'s all we need. Old World trinkets are what destroyed us.'}],
     choices:[
-      {text:'Trade for rare seeds (costs food)',effects:{food:-8,compost:5,bloom:6},trait:'Purist',result:'The seeds are beyond anything you\'ve seen. Your garden will flourish.'},
-      {text:'Trade for the Pulsebox (costs scrap)',effects:{scrap:-10,landmark:12},trait:'Inventive',result:'The device hums in your hands. Its secrets could change everything about the Landmark.'},
-      {text:'Trade for tools (costs compost)',effects:{compost:-6,scrap:8},trait:'Pragmatist',result:'Good, honest tools. The crafters grin with satisfaction.'}
+      {text:'Trade for rare seeds (costs food)',effects:{food:-10,compost:6,bloom:8},trait:'Purist',result:'The seeds are beyond anything you\'ve seen. Your garden will flourish.',rng:{chance:15}},
+      {text:'Trade for the Pulsebox (costs scrap)',effects:{scrap:-10,landmark:18},trait:'Inventive',result:'The device hums in your hands. Its secrets could change everything about the Landmark.',badResult:'The Pulsebox overloads and releases a pulse that sickens nearby survivors.',rng:{bad:{healthAll:-15,morale:-8},chance:15}},
+      {text:'Trade for tools and supplies (costs compost)',effects:{compost:-5,scrap:10,medicine:3},trait:'Pragmatist',result:'Good, honest tools and a bonus crate of medical supplies. The crafters and medics are thrilled.'}
     ]
   },
   {
@@ -405,10 +408,10 @@ const DILEMMAS = [
     text:'Two survivors are locked in an escalating argument. One insists the community has become too soft, wasting resources on "bloom nonsense." The other accuses them of being willing to burn the world for short-term gain. Others are taking sides.',
     opinions:[{trait:'Diplomatic',text:'Both have a point. Call for a community circle.'},{trait:'Resilient',text:'Let them work it out. We\'re stronger than a shouting match.'}],
     choices:[
-      {text:'Hold a community circle (takes time)',effects:{morale:6,bloom:3},trait:'Diplomatic',result:'The circle lasts hours, but by the end, there are handshakes instead of fists.'},
-      {text:'Side with the bloom advocate',effects:{bloom:5,morale:-3},trait:'Purist',result:'The community recommits to ecological harmony, but the dissenter feels silenced.'},
-      {text:'Side with the pragmatist',effects:{bloom:-4,scrap:3,morale:-2},trait:'Pragmatist',result:'Resources flow more freely, but the garden feels neglected.'},
-      {text:'Let them resolve it themselves',effects:{morale:-6},trait:'Skeptic',result:'The argument festers. Tensions remain high for days.',rng:{bad:{morale:-8},chance:40}}
+      {text:'Hold a community circle (takes time)',effects:{morale:7,bloom:3},trait:'Diplomatic',result:'The circle lasts hours, but by the end, there are handshakes instead of fists.',rng:{chance:15}},
+      {text:'Side with the bloom advocate',effects:{bloom:6,morale:-5},trait:'Purist',result:'The community recommits to ecological harmony, but the dissenter and allies feel silenced. Trust fractures.',badResult:'The silenced faction sabotages a garden plot in protest.',rng:{bad:{bloom:-6,food:-5,morale:-10},chance:20}},
+      {text:'Side with the pragmatist — focus on survival',effects:{bloom:-6,scrap:5,food:3,morale:2},trait:'Pragmatist',result:'Resources flow more freely. The pragmatists rally and morale lifts, but the garden is neglected.',badResult:'Without ecological care, a blight takes hold in the neglected garden.',rng:{bad:{bloom:-10,food:-6},chance:20}},
+      {text:'Let them resolve it themselves',effects:{morale:-8},trait:'Skeptic',result:'The argument festers. Tensions remain high for days.',rng:{bad:{morale:-12,healthAll:-5},chance:40}}
     ]
   },
   {
@@ -416,9 +419,9 @@ const DILEMMAS = [
     text:'Deep in the root network, you discover seeds that predate the Switch-Off — perhaps centuries old. They pulse with a faint warmth. Planting them could transform the sanctuary, but studying them might reveal secrets of the Great Tree itself.',
     opinions:[{trait:'Purist',text:'Plant them. Let nature speak.'},{trait:'Inventive',text:'Study them first. Understanding before action.'}],
     choices:[
-      {text:'Plant them immediately',effects:{bloom:10,food:5,compost:3},trait:'Purist',result:'The seeds sprout overnight in impossible spirals of green. The sanctuary hums with new life.'},
-      {text:'Study them carefully',effects:{bloom:3,landmark:10,scrap:2},trait:'Inventive',result:'The seeds contain encoded genetic information that advances your understanding of the tree\'s architecture.'},
-      {text:'Share them with the traders',effects:{scrap:12,medicine:6,bloom:-3},trait:'Resourceful',result:'The traders are astonished. They pay handsomely, but something precious has left the sanctuary.'}
+      {text:'Plant them immediately',effects:{bloom:12,food:6,compost:4},trait:'Purist',result:'The seeds sprout overnight in impossible spirals of green. The sanctuary hums with new life.',badResult:'The ancient seeds are invasive — they choke existing plants before you can intervene.',rng:{bad:{food:-8,bloom:-5,compost:-4},chance:15}},
+      {text:'Study them carefully',effects:{bloom:3,landmark:14,scrap:3},trait:'Inventive',result:'The seeds contain encoded genetic information that revolutionizes your understanding of the tree.',rng:{chance:10}},
+      {text:'Sell them to the next traders',effects:{scrap:15,medicine:8,bloom:-5},trait:'Pragmatist',result:'The traders can\'t believe their luck. They pay a fortune. But something precious has left the sanctuary forever.'}
     ]
   },
   {
@@ -426,9 +429,9 @@ const DILEMMAS = [
     text:'Late at night, a researcher detects a faint, rhythmic signal emanating from deep underground. It\'s not natural. It pulses like a heartbeat. Some say it\'s the Relic of Power calling to those who would listen.',
     opinions:[{trait:'Inventive',text:'We must investigate. This could explain the Switch-Off.'},{trait:'Purist',text:'Some doors should stay closed. Seal it.'}],
     choices:[
-      {text:'Investigate the signal',effects:{bloom:-3,landmark:8,morale:4},trait:'Inventive',result:'The investigation yields cryptic data. Something vast sleeps beneath the earth.'},
-      {text:'Seal the source',effects:{bloom:6,morale:-3},trait:'Purist',result:'You bury the signal under stone and soil. Silence returns, but curiosity lingers.'},
-      {text:'Monitor it passively',effects:{bloom:1,morale:1},trait:'Vigilant',result:'You note the patterns but take no action. Knowledge gathers like dust.'}
+      {text:'Investigate the signal',effects:{bloom:-5,landmark:12,morale:5},trait:'Inventive',result:'The investigation yields incredible data. Something vast sleeps beneath the earth.',badResult:'The excavation triggers a tremor. Structures crack and survivors are hurt.',rng:{bad:{healthAll:-15,scrap:-5,morale:-8},chance:20}},
+      {text:'Seal the source',effects:{bloom:8,morale:-5},trait:'Purist',result:'You bury the signal under stone and soil. Silence returns, but curiosity and resentment linger.'},
+      {text:'Monitor it passively',effects:{bloom:1,morale:1,landmark:3},trait:'Vigilant',result:'You note the patterns but take no action. Knowledge gathers like dust — slow but safe.'}
     ]
   },
   {
@@ -436,9 +439,9 @@ const DILEMMAS = [
     text:'Workers discover a den of foxes living in the root system of the Great Tree. They\'ve been quietly coexisting — but the den is exactly where you planned to expand the sleeping quarters.',
     opinions:[{trait:'Compassionate',text:'They were here first. Build around them.'},{trait:'Pragmatist',text:'We need the space. Relocate them carefully.'}],
     choices:[
-      {text:'Build around the den (costs extra)',effects:{scrap:-4,bloom:8,morale:5},trait:'Compassionate',result:'The foxes become beloved companions. Children name them. The sanctuary feels more alive.'},
-      {text:'Relocate them gently',effects:{bloom:-2,morale:-2,compost:2},trait:'Pragmatist',result:'The foxes are moved, but their absence leaves a small, quiet sadness.'},
-      {text:'Use the den as a natural nursery',effects:{bloom:5,morale:3,food:-2},trait:'Purist',result:'You adapt your plans to include the foxes. The Animal Nursery practically builds itself.'}
+      {text:'Build around the den (costs extra)',effects:{scrap:-6,bloom:10,morale:6},trait:'Compassionate',result:'The foxes become beloved companions. Children name them. The sanctuary feels more alive.',rng:{chance:10}},
+      {text:'Relocate them and take the space',effects:{bloom:-4,morale:-3,scrap:3},trait:'Pragmatist',result:'The foxes are driven out. Workers find useful materials in the den, but a quiet sadness settles.',badResult:'A mother fox bites a worker during relocation. The wound festers badly.',rng:{bad:{healthAll:-12,morale:-8},chance:25}},
+      {text:'Use the den as a natural nursery',effects:{bloom:6,morale:4,food:-3},trait:'Purist',result:'You adapt your plans to include the foxes. The Animal Nursery practically builds itself.'}
     ]
   },
   {
@@ -446,9 +449,9 @@ const DILEMMAS = [
     text:'A massive storm descends on the sanctuary. Wind howls through the canopy, threatening to tear away structures. Rain hammers the platforms. You must decide how to weather it.',
     opinions:[{trait:'Resilient',text:'We\'ve survived worse. Batten down and hold.'},{trait:'Inventive',text:'Route the water into our collectors. Turn disaster into resource.'}],
     choices:[
-      {text:'Shelter in place and protect the tree',effects:{morale:-3,bloom:3},trait:'Resilient',result:'The storm passes. Some damage, but the Great Tree stands proud. A few leaves lost, nothing more.'},
-      {text:'Harvest the rainwater aggressively',effects:{water:10,scrap:-3,bloom:-2},trait:'Inventive',result:'Your improvised collectors fill to bursting. But the hasty construction scarred the bark.'},
-      {text:'Send scouts to rescue outlying supplies',effects:{scrap:4,food:3,healthAll:-10},trait:'Resourceful',result:'The scouts return battered but bearing armfuls of supplies saved from the flood.'}
+      {text:'Shelter in place and protect the tree',effects:{morale:-4,bloom:4},trait:'Resilient',result:'The storm passes. Some damage, but the Great Tree stands proud.',badResult:'A branch crashes through the sleeping area. Several survivors are injured.',rng:{bad:{healthAll:-15,morale:-8},chance:20}},
+      {text:'Harvest the rainwater aggressively',effects:{water:14,scrap:-4,bloom:-4},trait:'Pragmatist',result:'Your improvised collectors fill to bursting with clean water. A massive haul.',badResult:'The hasty collectors collapse in the wind, scattering materials and injuring workers.',rng:{bad:{healthAll:-12,scrap:-6,water:-3},chance:25}},
+      {text:'Send scouts to rescue outlying supplies',effects:{scrap:6,food:5,healthAll:-12},trait:'Resourceful',result:'The scouts return battered but bearing armfuls of supplies saved from the flood.'}
     ]
   },
   {
@@ -456,9 +459,9 @@ const DILEMMAS = [
     text:'Several patches of the garden are wilting. A fungal infection is spreading through the root network. If unchecked, it could devastate your renewable food supply and crush the bloom.',
     opinions:[{trait:'Purist',text:'Burn the infected sections. Painful but necessary.'},{trait:'Compassionate',text:'There must be a gentler way. Use compost therapy.'}],
     choices:[
-      {text:'Burn the infected sections',effects:{food:-5,bloom:-4,compost:-3},trait:'Pragmatist',result:'The fire is contained. The garden mourns, but the infection is gone.'},
-      {text:'Compost therapy (slow, uncertain)',effects:{compost:-6,bloom:2},trait:'Purist',result:'Weeks of careful treatment. The garden recovers slowly, stronger than before.',rng:{bad:{food:-8,bloom:-10},chance:30}},
-      {text:'Quarantine and research',effects:{food:-3,bloom:1,landmark:5},trait:'Inventive',result:'The fungus yields medicinal secrets. The researchers are ecstatic.'}
+      {text:'Burn the infected sections immediately',effects:{food:-6,bloom:-6,compost:-4},trait:'Pragmatist',result:'The fire is contained. The garden mourns, but the infection is dead. Decisiveness saved us.',badResult:'The fire spreads further than planned. The garden is devastated.',rng:{bad:{food:-10,bloom:-10,morale:-8},chance:20}},
+      {text:'Compost therapy (slow, uncertain)',effects:{compost:-8,bloom:4},trait:'Purist',result:'Weeks of careful treatment. The garden recovers slowly, stronger and more resilient than before.',badResult:'The therapy fails. The fungus spreads unchecked and the harvest is ruined.',rng:{bad:{food:-12,bloom:-15,morale:-6},chance:30}},
+      {text:'Quarantine and research the fungus',effects:{food:-4,bloom:2,landmark:8,medicine:3},trait:'Inventive',result:'The fungus yields medicinal secrets and advances research. The researchers are ecstatic.'}
     ]
   },
   {
@@ -466,9 +469,9 @@ const DILEMMAS = [
     text:'One of your survivors approaches you with heavy footsteps. They\'re leaving. "I\'ve found meaning here," they say, "but there\'s something I need to find out there. I hope you understand."',
     opinions:[{trait:'Diplomatic',text:'Everyone walks their own path. Wish them well.'},{trait:'Resilient',text:'We need every hand. Convince them to stay.'}],
     choices:[
-      {text:'Wish them well and share supplies',effects:{food:-3,medicine:-2,morale:4,bloom:3},trait:'Compassionate',result:'They leave at dawn with tears and gratitude. The community is smaller but kinder.',removeSurvivor:true},
-      {text:'Ask them to reconsider',effects:{morale:-2},trait:'Diplomatic',result:'After a long conversation, they agree to stay — for now. But their eyes still wander.',rng:{bad:{morale:-5},chance:50}},
-      {text:'Plead with them to stay',effects:{morale:-5},trait:'Skeptic',result:'They stay, but resentment simmers. Freedom denied breeds bitterness.'}
+      {text:'Wish them well and share supplies',effects:{food:-4,medicine:-3,morale:5,bloom:4},trait:'Compassionate',result:'They leave at dawn with tears and gratitude. The community is smaller but kinder.',removeSurvivor:true},
+      {text:'Ask them to reconsider',effects:{morale:-3},trait:'Diplomatic',result:'After a long conversation, they agree to stay — for now. But their eyes still wander the horizon.',rng:{bad:{morale:-8},chance:50}},
+      {text:'Demand they stay — we need the labour',effects:{morale:-10,bloom:-2},trait:'Skeptic',result:'They stay, but resentment poisons the air. Others watch you differently now. Freedom denied breeds bitterness.',badResult:'They leave anyway in the night, taking supplies with them.',rng:{bad:{food:-6,scrap:-4,medicine:-3,morale:-8},chance:35}}
     ]
   },
   {
@@ -476,9 +479,9 @@ const DILEMMAS = [
     text:'A runner arrives, breathless. A rival group — the Iron Collective — has established a camp two days\' march away. They demand tribute: food and scrap, or "consequences." Their scouts have been watching you.',
     opinions:[{trait:'Pragmatist',text:'Pay them off. We can\'t afford a conflict.'},{trait:'Vigilant',text:'Show weakness now and they\'ll bleed us dry.'}],
     choices:[
-      {text:'Pay the tribute',effects:{food:-8,scrap:-6,morale:-5},trait:'Pragmatist',result:'The Iron Collective collects their toll. They\'ll be back. But for now, peace.'},
-      {text:'Refuse and prepare defenses',effects:{scrap:-4,morale:5,bloom:-2},trait:'Vigilant',result:'Your show of defiance buys respect — or at least hesitation. They don\'t return... yet.'},
-      {text:'Offer an alliance instead',effects:{food:-4,scrap:-3,morale:3,bloom:2},trait:'Diplomatic',result:'Negotiations are tense, but a fragile accord is struck. Trade, not tribute.'}
+      {text:'Pay the tribute to buy peace',effects:{food:-10,scrap:-8,morale:-6},trait:'Pragmatist',result:'The Iron Collective collects their toll and leaves. Peace, for now — but they know you\'ll pay.',badResult:'They take the tribute and demand more. Emboldened by your weakness, they raid your stores.',rng:{bad:{food:-8,scrap:-6,morale:-10},chance:25}},
+      {text:'Refuse and prepare defenses',effects:{scrap:-5,morale:6,bloom:-3},trait:'Vigilant',result:'Your show of defiance buys respect — or at least hesitation. They don\'t return... yet.',badResult:'They attack at dawn. The defenses hold, but barely. Several survivors are badly hurt.',rng:{bad:{healthAll:-18,morale:-5},chance:20}},
+      {text:'Offer an alliance instead',effects:{food:-5,scrap:-4,morale:4,bloom:3},trait:'Diplomatic',result:'Negotiations are tense, but a fragile accord is struck. Trade, not tribute.',rng:{chance:15}}
     ]
   }
 ];
@@ -616,8 +619,10 @@ function calcDayChanges() {
   changes.food -= totalPop;
   changes.water -= Math.ceil(totalPop * 0.5);
 
-  // Role production
+  // Role production — working costs energy (health)
+  const workFatigue = 5; // all active roles drain some health
   aliveSurvivors.forEach(s => {
+    if(s.role && s.role !== 'medic') s.health = Math.max(5, s.health - workFatigue);
     switch(s.role) {
       case 'forager': changes.food += Math.round(3 * bm); break;
       case 'gardener': changes.food += Math.round(2 * bm); changes.compost += 1; changes.bloom += 1; break;
@@ -627,31 +632,49 @@ function calcDayChanges() {
         changes.landmark += craftAmt;
         break;
       case 'researcher':
-        let resAmt = 2;
+        let resAmt = 3;
         if(G.buildings.includes('library')) resAmt *= 2;
         changes.landmark += resAmt;
+        // Research discoveries: reduce future building costs, occasional scrap/medicine
+        if(Math.random() < 0.2) { changes.scrap += 2; }
+        if(Math.random() < 0.15) { changes.medicine += 1; }
+        // Research tech bonus: each researcher adds small bloom from knowledge
+        changes.bloom += 0.5;
         break;
       case 'medic':
         changes.medicine += G.buildings.includes('apothecary') ? 2 : 0;
-        // Healing handled separately
         break;
-      case 'rest':
-        let restAmt = 15;
-        if(G.buildings.includes('sleeping_quarters')) restAmt *= 2;
-        s.health = Math.min(100, s.health + restAmt);
-        s.morale = Math.min(100, s.morale + 10);
-        break;
+      default: break; // unassigned survivors just rest passively
     }
   });
 
-  // Medic heals others
+  // Passive overnight recovery — everyone heals a bit each night
+  const nightBonus = G.buildings.includes('sleeping_quarters') ? 2 : 1;
+  aliveSurvivors.forEach(s => {
+    s.health = Math.min(100, s.health + 5 * nightBonus);
+    s.morale = Math.min(100, s.morale + 3 * nightBonus);
+  });
+
+  // Recreation area passive morale
+  if(G.buildings.includes('recreation')) changes.morale += 5;
+
+  // Medic accelerates recovery for others
   const medics = aliveSurvivors.filter(s=>s.role==='medic');
   if(medics.length > 0) {
     aliveSurvivors.forEach(s => {
       if(s.role !== 'medic' && s.health < 100) {
-        s.health = Math.min(100, s.health + 5 * medics.length);
+        s.health = Math.min(100, s.health + 8 * medics.length);
+      }
+      if(s.morale < 100) {
+        s.morale = Math.min(100, s.morale + 3 * medics.length);
       }
     });
+  }
+
+  // Research tech discoveries (global bonuses tracked in state)
+  const researchers = aliveSurvivors.filter(s=>s.role==='researcher');
+  if(researchers.length > 0 && Math.random() < 0.1 * researchers.length) {
+    G.researchBonus = (G.researchBonus||0) + 1;
   }
 
   // Building bonuses
@@ -823,15 +846,44 @@ function resolveDilemma(choiceIndex) {
 
   document.getElementById('dilemma-overlay').classList.remove('active');
 
-  // Apply effects
+  // Apply base effects
   let effects = {...choice.effects};
+  let outcomeText = choice.result;
+  let wasUnlucky = false;
 
-  // Handle RNG outcomes
-  if(choice.rng && Math.random()*100 < choice.rng.chance) {
-    Object.entries(choice.rng.bad).forEach(([k,v]) => {
-      effects[k] = (effects[k]||0) + v;
+  // ── UNIVERSAL LUCK SYSTEM ──
+  // Every choice has a chance to backfire or go better than expected
+  const roll = Math.random() * 100;
+  const badLuckChance = choice.rng ? choice.rng.chance : 20; // default 20% bad luck
+  const goodLuckChance = 15; // 15% bonus luck
+
+  if(roll < badLuckChance) {
+    // BAD LUCK — things go wrong
+    wasUnlucky = true;
+    if(choice.rng && choice.rng.bad) {
+      Object.entries(choice.rng.bad).forEach(([k,v]) => {
+        effects[k] = (effects[k]||0) + v;
+      });
+    } else {
+      // Generic bad luck: amplify negative effects, halve positive ones
+      Object.keys(effects).forEach(k => {
+        if(effects[k] < 0) effects[k] = Math.floor(effects[k] * 1.8);
+        if(effects[k] > 0) effects[k] = Math.floor(effects[k] * 0.4);
+      });
+      effects.morale = (effects.morale||0) - 8;
+    }
+    outcomeText = (choice.badResult || choice.result) + ' But fate had other plans — things went worse than expected.';
+    addLog(`⚠️ ${dilemma.title}: Misfortune strikes...`);
+    playWarning();
+  } else if(roll > (100 - goodLuckChance)) {
+    // GOOD LUCK — things go better than hoped
+    Object.keys(effects).forEach(k => {
+      if(effects[k] > 0) effects[k] = Math.floor(effects[k] * 1.5);
+      if(effects[k] < 0) effects[k] = Math.floor(effects[k] * 0.5);
     });
-    addLog(`⚠️ ${dilemma.title}: A dark turn of fate...`);
+    effects.morale = (effects.morale||0) + 5;
+    outcomeText = choice.result + ' Fortune smiled — the outcome exceeded all expectations.';
+    addLog(`🍀 ${dilemma.title}: A stroke of luck!`);
   }
 
   applyChanges(effects);
@@ -870,20 +922,37 @@ function resolveDilemma(choiceIndex) {
   G.decisions.push({dilemma: dilemma.id, choice: choiceIndex, day: G.day});
 
   // Show result
-  showResult(dilemma.title, choice.result, effects);
+  showResult(dilemma.title, outcomeText, effects, wasUnlucky);
 }
 
-function showResult(title, text, effects) {
-  document.getElementById('result-title').textContent = title;
-  document.getElementById('result-text').textContent = text;
+function showResult(title, text, effects, wasUnlucky) {
+  const toast = document.getElementById('result-toast');
+  const titleEl = document.getElementById('result-title');
+  const textEl = document.getElementById('result-text');
+
+  titleEl.textContent = title;
+  textEl.textContent = text;
+
+  // Style based on luck outcome
+  if(wasUnlucky) {
+    toast.style.borderColor = 'var(--danger)';
+    titleEl.style.color = 'var(--danger)';
+    textEl.style.color = '#c49a8a';
+  } else {
+    toast.style.borderColor = '';
+    titleEl.style.color = '';
+    textEl.style.color = '';
+  }
 
   const icons = {food:'🌾',water:'💧',compost:'🌿',medicine:'💊',scrap:'⚙️',morale:'😊',bloom:'🌸',landmark:'🏛️',healthAll:'❤️'};
-  const effText = Object.entries(effects).filter(([k,v])=>v!==0).map(([k,v]) =>
+  let effText = '';
+  if(wasUnlucky) effText += '<div style="color:var(--danger);font-weight:bold;margin-bottom:6px">⚠️ Misfortune struck!</div>';
+  effText += Object.entries(effects).filter(([k,v])=>v!==0).map(([k,v]) =>
     `<span style="color:${v>0?'var(--bloom)':'var(--danger)'}"> ${icons[k]||k} ${v>0?'+':''}${v}</span>`
   ).join('  ');
   document.getElementById('result-effects').innerHTML = effText;
 
-  document.getElementById('result-toast').classList.add('active');
+  toast.classList.add('active');
 }
 
 function closeResult() {
@@ -904,8 +973,14 @@ function sendExpedition(destId, survivorNames) {
   playChime();
   survivorNames.forEach(name => {
     const s = G.survivors.find(s=>s.name===name);
-    if(s) s.expedition = destId;
+    if(s) {
+      s.expedition = destId;
+      // Expeditions are exhausting — departure health cost
+      s.health = Math.max(10, s.health - 15);
+      s.morale = Math.max(5, s.morale - 5);
+    }
   });
+  addLog(`⚡ ${survivorNames.join(' & ')} spent energy preparing for the expedition.`);
 
   const safety = G.buildings.includes('lookout') ? 15 : 0;
   G.expeditions.push({
@@ -1013,22 +1088,56 @@ function drawSanctuary() {
   const w = canvas.width, h = canvas.height;
   const bm = bloomMultiplier();
 
-  // Sky gradient based on bloom
+  // Sky — bright blue at high bloom, grey/foggy at low bloom
   const skyGrad = ctx.createLinearGradient(0,0,0,h);
-  const bloomHue = G.bloom / 100;
-  skyGrad.addColorStop(0, `rgba(${20+bloomHue*10},${20+bloomHue*15},${25+bloomHue*5},1)`);
-  skyGrad.addColorStop(0.6, `rgba(${25+bloomHue*15},${30+bloomHue*20},${22+bloomHue*10},1)`);
-  skyGrad.addColorStop(1, `rgba(${18+bloomHue*8},${22+bloomHue*12},${15+bloomHue*8},1)`);
+  const bl = G.bloom / 100; // 0 to 1
+  // High bloom: warm blue sky. Low bloom: dark grey fog
+  const skyR = Math.floor(40 + (1-bl)*50 - bl*10); // grey when low, dark when high
+  const skyG = Math.floor(50 + bl*80);  // green-blue tint when high
+  const skyB = Math.floor(60 + bl*120); // blue sky when high, grey when low
+  skyGrad.addColorStop(0, `rgba(${Math.max(20,skyR-20)},${Math.max(25,skyG+10)},${Math.min(220,skyB+30)},1)`);
+  skyGrad.addColorStop(0.5, `rgba(${skyR},${skyG},${skyB},1)`);
+  skyGrad.addColorStop(1, `rgba(${Math.floor(18+bl*20)},${Math.floor(25+bl*25)},${Math.floor(15+bl*15)},1)`);
   ctx.fillStyle = skyGrad;
   ctx.fillRect(0,0,w,h);
 
-  // Stars (dim based on bloom - high bloom = more vibrant)
-  for(let i=0;i<30;i++){
-    const sx=((i*137.5)%w);
-    const sy=((i*89.3)%h)*0.4;
-    const bright = 0.2 + Math.sin(Date.now()*0.001+i)*0.15;
-    ctx.fillStyle = `rgba(230,225,210,${bright})`;
-    ctx.fillRect(sx,sy,1.5,1.5);
+  // Fog overlay at low bloom
+  if(G.bloom < 40) {
+    const fogAlpha = (40 - G.bloom) / 80;
+    ctx.fillStyle = `rgba(120,115,105,${fogAlpha})`;
+    ctx.fillRect(0,0,w,h*0.7);
+    // Fog wisps
+    for(let i=0;i<5;i++){
+      const fy = h*0.15 + i*h*0.12;
+      const fx = Math.sin(Date.now()*0.0003+i*2)*w*0.1;
+      ctx.fillStyle = `rgba(140,135,125,${fogAlpha*0.4})`;
+      ctx.beginPath();
+      ctx.ellipse(w*0.5+fx, fy, w*0.4, 15+i*5, 0, 0, Math.PI*2);
+      ctx.fill();
+    }
+  }
+
+  // Stars — only visible when bloom is moderate-low (night/twilight feel)
+  if(G.bloom < 60) {
+    const starAlpha = (60 - G.bloom) / 60;
+    for(let i=0;i<30;i++){
+      const sx=((i*137.5)%w);
+      const sy=((i*89.3)%h)*0.4;
+      const bright = (0.15 + Math.sin(Date.now()*0.001+i)*0.1) * starAlpha;
+      ctx.fillStyle = `rgba(230,225,210,${bright})`;
+      ctx.fillRect(sx,sy,1.5,1.5);
+    }
+  }
+
+  // Sun/light source at very high bloom
+  if(G.bloom > 65) {
+    const sunAlpha = (G.bloom - 65) / 100;
+    const sunGrad = ctx.createRadialGradient(w*0.75, h*0.08, 0, w*0.75, h*0.08, w*0.15);
+    sunGrad.addColorStop(0, `rgba(255,240,200,${sunAlpha*0.5})`);
+    sunGrad.addColorStop(0.5, `rgba(255,220,150,${sunAlpha*0.2})`);
+    sunGrad.addColorStop(1, `rgba(255,200,100,0)`);
+    ctx.fillStyle = sunGrad;
+    ctx.fillRect(0,0,w,h);
   }
 
   // Ground
@@ -1129,19 +1238,20 @@ function drawSanctuary() {
     ctx.quadraticCurveTo(bx+(endX-bx)*0.5+sway, by+(endY-by)*0.3, endX+sway, endY);
     ctx.stroke();
 
-    // Leaf clusters on branches — density scales with bloom
-    if(G.bloom > 10) {
-      const leafCount = Math.floor(1 + bm * 6);
+    // Leaf clusters — MORE leaves and BIGGER at high bloom, sparse and brown at low
+    {
+      const bloomN = G.bloom / 100; // 0 to 1
+      const leafCount = Math.max(1, Math.floor(bloomN * 10));
       for(let i=0;i<leafCount;i++){
-        const t = 0.3 + (i/leafCount)*0.7;
-        const lx = bx + (endX-bx)*t + sway*t + (Math.random()-0.5)*20;
-        const ly = by + (endY-by)*t + (Math.random()-0.5)*15;
-        const lr = 4 + bm*8 + Math.sin(Date.now()*0.002+i+b.x)*2;
-        const alpha = 0.1 + bm*0.35;
-        // Low bloom: brown/yellow leaves. High bloom: lush green
-        const rC = G.bloom < 35 ? 130+Math.floor(Math.random()*40) : 60+Math.floor(Math.random()*30);
-        const gC = G.bloom < 35 ? 90+Math.floor(Math.random()*30) : Math.floor(100+bm*80+Math.random()*30);
-        const bC = G.bloom < 35 ? 30 : 40+Math.floor(Math.random()*20);
+        const t = 0.2 + (i/leafCount)*0.7;
+        const lx = bx + (endX-bx)*t + sway*t + (Math.random()-0.5)*18;
+        const ly = by + (endY-by)*t + (Math.random()-0.5)*12;
+        const lr = 3 + bloomN*12 + Math.sin(Date.now()*0.002+i+b.x)*2;
+        const alpha = 0.1 + bloomN*0.4;
+        // Color: brown/yellow at low, rich green at high
+        const rC = Math.floor(130 - bloomN*70 + Math.random()*20);
+        const gC = Math.floor(70 + bloomN*120 + Math.random()*20);
+        const bC = Math.floor(25 + bloomN*20);
         ctx.fillStyle = `rgba(${rC},${gC},${bC},${alpha})`;
         ctx.beginPath();
         ctx.ellipse(lx,ly,lr,lr*0.7,Math.random()*Math.PI,0,Math.PI*2);
@@ -1181,21 +1291,23 @@ function drawSanctuary() {
     }
   });
 
-  // Canopy — size and color react to bloom
+  // Canopy — directly scales with bloom: BIG and lush at high, thin and brown at low
   const canopyLayers = [
     {y:0.08,r:0.28,alpha:0.2},{y:0.12,r:0.32,alpha:0.25},
     {y:0.18,r:0.25,alpha:0.3},{y:0.06,r:0.2,alpha:0.15}
   ];
-  const canopyScale = G.bloom < 30 ? 0.5 + (G.bloom/30)*0.5 : 1;
+  const bloomN = G.bloom / 100;
+  const canopyScale = 0.3 + bloomN * 0.9; // 0.3 at bloom=0, 1.2 at bloom=100
   canopyLayers.forEach(cl => {
     const cx = treeX + Math.sin(Date.now()*0.0005+cl.y*10)*3;
     const cy = h * cl.y;
-    const cr = (w * cl.r + bm*20) * canopyScale;
-    // Low bloom: sparse brown-green. High bloom: rich emerald
-    const rC = G.bloom < 35 ? 70+Math.floor(bm*20) : 40+Math.floor(bm*30);
-    const gC = G.bloom < 35 ? 60+Math.floor(bm*40) : Math.floor(80+bm*80);
-    const bC = G.bloom < 35 ? 25 : 30+Math.floor(bm*20);
-    ctx.fillStyle = `rgba(${rC},${gC},${bC},${cl.alpha + bm*0.15})`;
+    const cr = (w * cl.r) * canopyScale;
+    // Color shifts: brown-grey at low, rich emerald at high
+    const rC = Math.floor(90 - bloomN*50);
+    const gC = Math.floor(50 + bloomN*130);
+    const bC = Math.floor(25 + bloomN*25);
+    const alpha = cl.alpha * (0.4 + bloomN*0.8);
+    ctx.fillStyle = `rgba(${rC},${gC},${bC},${alpha})`;
     ctx.beginPath();
     ctx.ellipse(cx,cy,cr,cr*0.5,0,0,Math.PI*2);
     ctx.fill();
@@ -1233,13 +1345,30 @@ function drawSanctuary() {
     }
   }
 
-  // Ground flowers at high bloom
-  if(G.bloom > 50) {
-    const groundFlowers = Math.floor((G.bloom - 50) / 6);
+  // Ground flowers AND bushes at high bloom — much more at higher bloom
+  if(G.bloom > 40) {
+    const groundFlowers = Math.floor((G.bloom - 40) / 4);
     for(let i=0;i<groundFlowers;i++){
-      const gx = (i/groundFlowers)*w*0.8 + w*0.1 + Math.sin(i*5.1)*30;
+      const gx = (i/groundFlowers)*w*0.85 + w*0.08 + Math.sin(i*5.1)*25;
       const gy = h*0.85 + Math.sin(gx*0.03)*8 + Math.sin(gx*0.01)*15 - 3;
-      drawFlower(gx, gy, 2.5+Math.random()*2, i*13+99);
+      drawFlower(gx, gy, 2+Math.random()*3, i*13+99);
+    }
+    // Bushes (small leafy mounds)
+    const bushCount = Math.floor((G.bloom - 40) / 8);
+    for(let i=0;i<bushCount;i++){
+      const bx = w*0.08 + (i/(bushCount||1))*w*0.84 + Math.sin(i*7.3)*30;
+      const by = h*0.85 + Math.sin(bx*0.03)*8 + Math.sin(bx*0.01)*15;
+      const bSize = 8 + (G.bloom/100)*12 + Math.sin(Date.now()*0.001+i)*2;
+      const gVal = Math.floor(80 + (G.bloom/100)*100);
+      ctx.fillStyle = `rgba(${50+Math.floor(Math.random()*20)},${gVal},${35},${0.3+(G.bloom/100)*0.3})`;
+      ctx.beginPath();
+      ctx.ellipse(bx, by-bSize*0.4, bSize, bSize*0.6, 0, 0, Math.PI*2);
+      ctx.fill();
+      // Bush highlight
+      ctx.fillStyle = `rgba(${60},${gVal+20},${40},${0.15+(G.bloom/100)*0.15})`;
+      ctx.beginPath();
+      ctx.ellipse(bx-2, by-bSize*0.5, bSize*0.6, bSize*0.35, -0.2, 0, Math.PI*2);
+      ctx.fill();
     }
   }
 
@@ -1619,7 +1748,7 @@ function updateCommunityPanel() {
       </div>
       ${!onExp ? `<div class="sc-role">
         ${ROLES.map(r => {
-          const yields = {forager:'→ 🌾',gardener:'→ 🌾🌿🌸',crafter:'→ 🏛️',researcher:'→ 🏛️📖',medic:'→ ❤️',rest:'→ 😴💚'};
+          const yields = {forager:'→ 🌾',gardener:'→ 🌾🌿🌸',crafter:'→ 🏛️',researcher:'→ 🏛️📖⚙️',medic:'→ ❤️😊'};
           return `<button class="role-btn${s.role===r.id?' active':''}" onclick="assignRole('${s.name}','${r.id}')" title="${r.desc}">${r.icon} ${r.label} <span style="opacity:0.5;font-size:0.55rem">${yields[r.id]||''}</span></button>`;
         }).join('')}
       </div>` : ''}
