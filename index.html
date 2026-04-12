@@ -1664,15 +1664,26 @@ function drawSanctuary() {
   const treeBase = h * 0.88;
   const trunkW = w * 0.08;
 
-  // Roots
+  // Roots — thicker, more spread, with secondary roots
   ctx.strokeStyle = `rgba(${80+bm*20},${60+bm*15},${40+bm*10},0.8)`;
-  ctx.lineWidth = 4;
-  for(let i=0;i<5;i++){
+  ctx.lineWidth = 5;
+  for(let i=0;i<7;i++){
     ctx.beginPath();
-    const rx = treeX + (i-2)*trunkW*0.6;
-    ctx.moveTo(treeX + (i-2)*trunkW*0.2, treeBase);
-    ctx.quadraticCurveTo(rx, treeBase+20, rx+(i-2)*15, treeBase+30+i*5);
+    const rx = treeX + (i-3)*trunkW*0.55;
+    ctx.moveTo(treeX + (i-3)*trunkW*0.18, treeBase);
+    ctx.quadraticCurveTo(rx, treeBase+18, rx+(i-3)*18, treeBase+35+i*4);
     ctx.stroke();
+    // Secondary root fork
+    if(i % 2 === 0) {
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      const midX = (treeX + (i-3)*trunkW*0.18 + rx) * 0.5;
+      const midY = treeBase + 12;
+      ctx.moveTo(midX, midY);
+      ctx.quadraticCurveTo(midX + (i-3)*8, midY+12, midX + (i-3)*14, midY+20);
+      ctx.stroke();
+      ctx.lineWidth = 5;
+    }
   }
 
   // Trunk with texture
@@ -1690,24 +1701,59 @@ function drawSanctuary() {
   ctx.quadraticCurveTo(treeX + trunkW*1.1, h*0.5, treeX + trunkW, treeBase);
   ctx.fill();
 
-  // Bark texture lines
-  ctx.strokeStyle = `rgba(40,30,20,0.3)`;
-  ctx.lineWidth = 0.8;
-  for(let i=0;i<12;i++){
-    const by = treeBase - (i/12)*(treeBase-h*0.15);
+  // Bark texture lines — dense, organic pattern
+  ctx.strokeStyle = `rgba(40,30,20,0.25)`;
+  ctx.lineWidth = 0.7;
+  for(let i=0;i<24;i++){
+    const by = treeBase - (i/24)*(treeBase-h*0.15);
     const bw = trunkW * (0.5 + 0.5*(by-h*0.15)/(treeBase-h*0.15));
     ctx.beginPath();
-    ctx.moveTo(treeX-bw*0.8+Math.random()*4, by);
-    ctx.quadraticCurveTo(treeX+Math.random()*4-2, by-15-Math.random()*10, treeX+bw*0.6+Math.random()*4, by-5);
+    const startX = treeX - bw*0.8 + Math.sin(i*3.7)*4;
+    ctx.moveTo(startX, by);
+    ctx.quadraticCurveTo(treeX + Math.sin(i*2.3)*4, by - 12 - Math.sin(i*1.9)*8, treeX + bw*0.6 + Math.sin(i*4.1)*4, by - 4);
     ctx.stroke();
   }
+  // Vertical grain lines
+  ctx.strokeStyle = `rgba(35,25,15,0.15)`;
+  ctx.lineWidth = 0.5;
+  for(let i=0;i<8;i++){
+    const vx = treeX + (i-3.5)*trunkW*0.2;
+    const startY = treeBase - Math.sin(i*2.1)*20;
+    const endY = h*0.15 + Math.sin(i*1.7)*30;
+    ctx.beginPath();
+    ctx.moveTo(vx, startY);
+    ctx.bezierCurveTo(vx + Math.sin(i*3)*3, startY*0.7 + endY*0.3, vx - Math.sin(i*2)*3, startY*0.3 + endY*0.7, vx + Math.sin(i*4)*2, endY);
+    ctx.stroke();
+  }
+  // Knots / burls (dark oval patches)
+  const knotSeeds = [0.25, 0.45, 0.65, 0.82];
+  knotSeeds.forEach((ks, ki) => {
+    const ky = treeBase - ks * (treeBase - h*0.15);
+    const kx = treeX + Math.sin(ki*5.3+1.7) * trunkW * 0.35;
+    const kSize = 3 + Math.sin(ki*3.1)*1.5;
+    // Knot dark center
+    ctx.fillStyle = `rgba(30,22,14,0.35)`;
+    ctx.beginPath();
+    ctx.ellipse(kx, ky, kSize*1.4, kSize, Math.sin(ki*2)*0.5, 0, Math.PI*2);
+    ctx.fill();
+    // Knot ring
+    ctx.strokeStyle = `rgba(40,30,18,0.25)`;
+    ctx.lineWidth = 0.6;
+    ctx.beginPath();
+    ctx.ellipse(kx, ky, kSize*2, kSize*1.3, Math.sin(ki*2)*0.5, 0, Math.PI*2);
+    ctx.stroke();
+  });
 
-  // Branches
+  // Branches — expanded set with sub-branches
   const branches = [
     {x:-0.6,y:0.25,len:0.2,angle:-0.8},{x:0.7,y:0.2,len:0.22,angle:0.6},
     {x:-0.8,y:0.4,len:0.18,angle:-1},{x:0.6,y:0.38,len:0.15,angle:0.9},
     {x:-0.5,y:0.55,len:0.16,angle:-0.7},{x:0.8,y:0.52,len:0.2,angle:0.8},
-    {x:-0.3,y:0.15,len:0.12,angle:-0.5},{x:0.4,y:0.13,len:0.14,angle:0.4}
+    {x:-0.3,y:0.15,len:0.12,angle:-0.5},{x:0.4,y:0.13,len:0.14,angle:0.4},
+    // Additional branches for fuller tree
+    {x:-0.9,y:0.3,len:0.15,angle:-1.1},{x:0.9,y:0.28,len:0.16,angle:1.0},
+    {x:-0.4,y:0.45,len:0.12,angle:-0.6},{x:0.5,y:0.48,len:0.13,angle:0.7},
+    {x:-0.7,y:0.6,len:0.1,angle:-0.9},{x:0.7,y:0.62,len:0.11,angle:0.85}
   ];
 
   branches.forEach(b => {
@@ -1717,12 +1763,32 @@ function drawSanctuary() {
     const endY = by - Math.abs(Math.sin(b.angle)) * h * b.len * 0.5;
     const sway = Math.sin(Date.now()*0.001+b.x*5)*2;
 
+    // Branch thickness tapers based on length
+    const branchThick = 2 + b.len * 8;
     ctx.strokeStyle = `rgba(${60+bm*12},${45+bm*10},${30+bm*6},0.9)`;
-    ctx.lineWidth = 3;
+    ctx.lineWidth = branchThick;
     ctx.beginPath();
     ctx.moveTo(bx, by);
     ctx.quadraticCurveTo(bx+(endX-bx)*0.5+sway, by+(endY-by)*0.3, endX+sway, endY);
     ctx.stroke();
+
+    // Sub-branches (small forks off main branch)
+    const subCount = b.len > 0.15 ? 2 : 1;
+    for(let sb=0;sb<subCount;sb++){
+      const st = 0.4 + sb*0.3;
+      const sbx = bx + (endX-bx)*st + sway*st;
+      const sby = by + (endY-by)*st;
+      const subAngle = b.angle + (sb===0 ? 0.5 : -0.4);
+      const subLen = b.len * 0.35;
+      const subEndX = sbx + Math.cos(subAngle) * w * subLen;
+      const subEndY = sby - Math.abs(Math.sin(subAngle)) * h * subLen * 0.4;
+      ctx.strokeStyle = `rgba(${55+bm*10},${42+bm*8},${28+bm*5},0.7)`;
+      ctx.lineWidth = branchThick * 0.4;
+      ctx.beginPath();
+      ctx.moveTo(sbx, sby);
+      ctx.quadraticCurveTo(sbx+(subEndX-sbx)*0.5+sway*0.5, sby+(subEndY-sby)*0.4, subEndX+sway*0.5, subEndY);
+      ctx.stroke();
+    }
 
     // Leaf clusters — MORE leaves and BIGGER at high bloom, sparse and brown at low
     {
@@ -1966,15 +2032,19 @@ function drawPlatforms(treeX, treeBase, trunkW, h) {
 function drawBuildingSprite(id, x, y) {
   ctx.save();
   ctx.translate(x, y);
-  const s = 1; // scale
+  const s = 1.8; // scale — larger to match survivor proportions
   // Wooden platform base for all buildings
   ctx.fillStyle = 'rgba(100,75,50,0.7)';
-  ctx.fillRect(-16*s, -2*s, 32*s, 4*s);
+  ctx.fillRect(-18*s, -2*s, 36*s, 5*s);
+  // Plank lines on platform
+  ctx.strokeStyle = 'rgba(70,52,35,0.4)';
+  ctx.lineWidth = 0.5;
+  for(let p=-14;p<=14;p+=7){ ctx.beginPath(); ctx.moveTo(p*s,-2*s); ctx.lineTo(p*s,3*s); ctx.stroke(); }
   // Support beams
   ctx.strokeStyle = 'rgba(80,60,40,0.6)';
-  ctx.lineWidth = 1.5;
-  ctx.beginPath(); ctx.moveTo(-12*s,2*s); ctx.lineTo(-8*s,10*s); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(12*s,2*s); ctx.lineTo(8*s,10*s); ctx.stroke();
+  ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(-14*s,3*s); ctx.lineTo(-9*s,14*s); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(14*s,3*s); ctx.lineTo(9*s,14*s); ctx.stroke();
 
   switch(id) {
     case 'rain_catcher': // barrel with funnel top
@@ -2175,14 +2245,44 @@ function drawBuildingSprite(id, x, y) {
 
 function drawSurvivorDots(treeX, treeBase, trunkW, h) {
   const alive = G.survivors.filter(s=>s.alive && !s.expedition);
-  alive.forEach((s, i) => {
-    const angle = (i / alive.length) * Math.PI * 0.8 - Math.PI*0.4;
-    const radius = trunkW * (1.5 + i * 0.3);
-    const baseY = treeBase - h*0.3 - i * h*0.06;
-    const sx = treeX + Math.cos(angle + Math.sin(Date.now()*0.001+i)*0.1) * radius;
-    const sy = baseY + Math.sin(Date.now()*0.002+i*2)*2;
 
-    drawSurvivorModel(sx, sy, s, i);
+  // Pre-calculate branch endpoint positions for survivors to stand on
+  const branchDefs = [
+    {x:-0.6,y:0.25,len:0.2,angle:-0.8},{x:0.7,y:0.2,len:0.22,angle:0.6},
+    {x:-0.8,y:0.4,len:0.18,angle:-1},{x:0.6,y:0.38,len:0.15,angle:0.9},
+    {x:-0.5,y:0.55,len:0.16,angle:-0.7},{x:0.8,y:0.52,len:0.2,angle:0.8},
+    {x:-0.3,y:0.15,len:0.12,angle:-0.5},{x:0.4,y:0.13,len:0.14,angle:0.4}
+  ];
+
+  // Calculate standing positions: first survivors on branches, rest on ground
+  const positions = [];
+  const w = canvas.width;
+
+  // Branch positions — stand at ~60-80% along each branch
+  branchDefs.forEach((b, bi) => {
+    const bx = treeX + b.x * trunkW;
+    const by = treeBase - (1-b.y) * (treeBase - h*0.12);
+    const endX = bx + Math.cos(b.angle) * w * b.len;
+    const endY = by - Math.abs(Math.sin(b.angle)) * h * b.len * 0.5;
+    const sway = Math.sin(Date.now()*0.001+b.x*5)*2;
+    const t = 0.55 + (bi % 3) * 0.12; // vary position along branch
+    const sx = bx + (endX - bx) * t + sway * t;
+    const sy = by + (endY - by) * t;
+    positions.push({x: sx, y: sy - 12, type: 'branch'}); // -12 so feet sit ON the branch
+  });
+
+  // Ground positions — near tree base, spread along ground line
+  for(let i = 0; i < 6; i++) {
+    const spread = (i - 2.5) * trunkW * 0.9;
+    const gx = treeX + spread;
+    const gy = treeBase - 12; // stand on ground (feet at ground level)
+    positions.push({x: gx, y: gy, type: 'ground'});
+  }
+
+  alive.forEach((s, i) => {
+    const pos = positions[i % positions.length];
+    const idleBob = Math.sin(Date.now()*0.002+i*2)*0.8; // subtle idle bob, not floating
+    drawSurvivorModel(pos.x, pos.y + idleBob, s, i);
   });
 }
 
