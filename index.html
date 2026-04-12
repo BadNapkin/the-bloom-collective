@@ -228,8 +228,11 @@ canvas{display:block}
       <div style="margin-bottom:14px;padding:10px 14px;border-left:2px solid var(--bloom-glow);background:rgba(143,191,110,0.05)">
         <strong style="color:var(--bloom-glow)">🌸 Bloom Score</strong> — Your ecological harmony. High bloom = abundant resources. Low bloom = short-term gain, long-term ruin.
       </div>
+      <div style="margin-bottom:14px;padding:10px 14px;border-left:2px solid rgba(180,130,80,0.7);background:rgba(180,130,80,0.05)">
+        <strong style="color:rgba(200,160,100,0.9)">🐾 Pets</strong> — Build the <em>Animal Nursery</em> to rescue wild animals. Pets help with expeditions (scouts reduce risk), research (owls boost insight), foraging, and morale. Up to 4 pets.
+      </div>
       <div style="padding:10px 14px;border-left:2px solid var(--text-dim);background:rgba(158,150,136,0.05)">
-        <strong style="color:var(--text)">🏛️ Goal</strong> — Complete the <em>Community Landmark</em> by assigning Crafters & Researchers. Press <strong>End Day →</strong> to advance.
+        <strong style="color:var(--text)">🏛️ Goal</strong> — Complete the <em>Community Landmark</em> <strong>AND</strong> achieve the <em>Research Breakthrough</em> before <strong>Day 60</strong>. Assign Crafters for construction and Researchers for insights. Press <strong>End Day →</strong> to advance. Middle-ground endings await if you don't fully succeed.
       </div>
     </div>
     <button class="btn" style="margin-top:28px" onclick="closeTutorial()">I'm Ready</button>
@@ -331,7 +334,7 @@ const BUILDINGS = [
   {id:'sleeping_quarters',name:'Sleeping Quarters',desc:'Doubles passive overnight health & morale recovery.',cost:{scrap:8,compost:4},effect:{nightRecovery:2},icon:'🛏️'},
   {id:'recreation',name:'Recreation Area',desc:'A space to unwind. Passive morale boost each day.',cost:{scrap:5,compost:4},effect:{moralePerDay:5},icon:'🎲'},
   {id:'shrine',name:'Shrine of Bloom',desc:'A meditative space. Passive bloom score increase each day.',cost:{compost:8,scrap:4},effect:{bloomPerDay:2},icon:'🕯️'},
-  {id:'nursery',name:'Animal Nursery',desc:'Care for rescued animals. Boosts morale and bloom.',cost:{compost:6,scrap:3},effect:{moralePerDay:3,bloomPerDay:1},icon:'🐾'},
+  {id:'nursery',name:'Animal Nursery',desc:'Rescue animals as pets. Pets help expeditions and research. +morale +bloom.',cost:{compost:6,scrap:3},effect:{moralePerDay:3,bloomPerDay:1},icon:'🐾'},
   {id:'apothecary',name:'Apothecary',desc:'Advanced medicine crafting. Medicine never runs dry.',cost:{scrap:10,compost:6},effect:{medicinePerDay:2},icon:'⚗️'}
 ];
 
@@ -509,6 +512,17 @@ const EXP_EVENTS = {
   ]
 };
 
+const PET_TYPES = [
+  {id:'fox',name:'Fox',icon:'🦊',trait:'scout',desc:'Scouts ahead on expeditions, reducing risk.',effect:{expSafety:10}},
+  {id:'owl',name:'Owl',icon:'🦉',trait:'researcher',desc:'Helps researchers find patterns in old data.',effect:{researchBonus:2}},
+  {id:'cat',name:'Cat',icon:'🐱',trait:'morale',desc:'Calming presence. Boosts community morale.',effect:{moralePerDay:3}},
+  {id:'dog',name:'Dog',icon:'🐕',trait:'guard',desc:'Guards camp and boosts expedition safety.',effect:{expSafety:12}},
+  {id:'rabbit',name:'Rabbit',icon:'🐇',trait:'garden',desc:'Helps gardeners with soil aeration.',effect:{bloomPerDay:1,compostPerDay:1}},
+  {id:'crow',name:'Crow',icon:'🐦‍⬛',trait:'scavenger',desc:'Finds trinkets and scrap in the canopy.',effect:{scrapPerDay:1}},
+  {id:'deer',name:'Deer',icon:'🦌',trait:'forager',desc:'Leads foragers to better food sources.',effect:{foodPerDay:2}},
+  {id:'hawk',name:'Hawk',icon:'🦅',trait:'lookout',desc:'Spots threats and opportunities from above.',effect:{expSafety:8,researchBonus:1}}
+];
+
 // ════════════════════════════════════════════
 // GAME STATE
 // ════════════════════════════════════════════
@@ -534,9 +548,13 @@ function initState() {
     buildings: [],
     expeditions: [],
     decisions: [],
-    landmark: {progress:0,required:100},
+    landmark: {progress:0,required:250},
     gameOver: false,
-    lastChanges: {}
+    lastChanges: {},
+    researchBonus: 0,
+    researchLevel: 0,
+    pets: [],
+    petCooldown: 0
   };
   usedDilemmas.clear();
   logEntries = [];
@@ -684,6 +702,39 @@ function calcDayChanges() {
   if(G.buildings.includes('shrine')) changes.bloom += 2;
   if(G.buildings.includes('nursery')) { changes.morale += 3; changes.bloom += 1; }
 
+  // Pet effects
+  G.pets.forEach(pet => {
+    const pt = PET_TYPES.find(p=>p.id===pet.type);
+    if(!pt) return;
+    if(pt.effect.moralePerDay) changes.morale += pt.effect.moralePerDay;
+    if(pt.effect.bloomPerDay) changes.bloom += pt.effect.bloomPerDay;
+    if(pt.effect.compostPerDay) changes.compost += pt.effect.compostPerDay;
+    if(pt.effect.scrapPerDay) changes.scrap += pt.effect.scrapPerDay;
+    if(pt.effect.foodPerDay) changes.food += pt.effect.foodPerDay;
+    if(pt.effect.researchBonus) changes.landmark += pt.effect.researchBonus;
+  });
+
+  // Nursery: chance to rescue a new pet every 5 days (max 4 pets)
+  if(G.buildings.includes('nursery') && G.pets.length < 4 && G.petCooldown <= 0) {
+    if(Math.random() < 0.3) {
+      const available = PET_TYPES.filter(pt => !G.pets.some(p=>p.type===pt.id));
+      if(available.length > 0) {
+        const newPet = available[Math.floor(Math.random()*available.length)];
+        const petName = ['Luna','Ash','Ember','Twig','Pebble','Moss','Fable','Dusk'][Math.floor(Math.random()*8)];
+        G.pets.push({type:newPet.id, name:petName});
+        addLog(`🐾 A wild ${newPet.name} ${newPet.icon} has been rescued! Named "${petName}". ${newPet.desc}`);
+        G.petCooldown = 5;
+      }
+    }
+  }
+  if(G.petCooldown > 0) G.petCooldown--;
+
+  // Track research level (cumulative research milestones)
+  const researchThisDay = changes.landmark;
+  if(researchThisDay > 0) {
+    G.researchLevel = (G.researchLevel||0) + Math.max(0, researchThisDay * 0.15);
+  }
+
   // Natural bloom drift toward 50
   if(G.bloom > 55) changes.bloom -= 1;
   if(G.bloom < 45) changes.bloom += 1;
@@ -754,7 +805,21 @@ function endDay() {
   if(G.morale < 30) G.morale += 2;
 
   // Check game end conditions
-  if(G.landmark.progress >= G.landmark.required) {
+  // Win: Landmark complete AND research level >= 25 (need real research investment)
+  const landmarkDone = G.landmark.progress >= G.landmark.required;
+  const researchReady = (G.researchLevel||0) >= 25;
+  if(landmarkDone && researchReady) {
+    addLog('🏛️ The Landmark is complete and the research breakthrough is achieved!');
+    setTimeout(() => showEpilogue(), 500);
+    return;
+  }
+  // Landmark done but not enough research — keep going, hint at needing research
+  if(landmarkDone && !researchReady) {
+    if(G.day % 3 === 0) addLog('🏛️ The Landmark stands, but the researchers say the final breakthrough eludes them. Assign more researchers!');
+  }
+  // Day limit: game ends on day 60 no matter what (middle-ground endings)
+  if(G.day >= 60) {
+    addLog('The seasons turn. Time has run its course for this chapter of the collective.');
     setTimeout(() => showEpilogue(), 500);
     return;
   }
@@ -982,7 +1047,19 @@ function sendExpedition(destId, survivorNames) {
   });
   addLog(`⚡ ${survivorNames.join(' & ')} spent energy preparing for the expedition.`);
 
-  const safety = G.buildings.includes('lookout') ? 15 : 0;
+  let safety = G.buildings.includes('lookout') ? 15 : 0;
+  // Pet bonuses for expeditions
+  const scoutPets = G.pets.filter(p => {
+    const pt = PET_TYPES.find(t=>t.id===p.type);
+    return pt && pt.effect.expSafety;
+  });
+  scoutPets.forEach(p => {
+    const pt = PET_TYPES.find(t=>t.id===p.type);
+    safety += pt.effect.expSafety;
+  });
+  if(scoutPets.length > 0) {
+    addLog(`🐾 ${scoutPets.map(p=>p.name).join(' & ')} help scout the route!`);
+  }
   G.expeditions.push({
     dest: destId,
     survivors: survivorNames,
@@ -990,7 +1067,7 @@ function sendExpedition(destId, survivorNames) {
     totalDays: dest.days,
     currentEvent: 0,
     safety: safety,
-    journal: [`📍 Day 1: ${survivorNames.join(' and ')} depart${survivorNames.length>1?'':'s'} for ${dest.name}.`],
+    journal: [`📍 Day 1: ${survivorNames.join(' and ')} depart${survivorNames.length>1?'':'s'} for ${dest.name}.${scoutPets.length>0?' Their animal companions scout ahead.':''}`],
     pendingChoice: null
   });
 
@@ -1470,15 +1547,218 @@ function drawPlatforms(treeX, treeBase, trunkW, h) {
     const px = treeX + pos.xOff * trunkW;
     const py = treeBase - (1-pos.y) * (treeBase - h*0.12);
 
-    // Platform
-    ctx.fillStyle = `rgba(90,70,50,0.6)`;
-    ctx.fillRect(px-18, py-2, 36, 4);
-
-    // Building icon
-    ctx.font = '14px serif';
-    ctx.textAlign = 'center';
-    ctx.fillText(building.icon, px, py-8);
+    drawBuildingSprite(bId, px, py);
   });
+}
+
+function drawBuildingSprite(id, x, y) {
+  ctx.save();
+  ctx.translate(x, y);
+  const s = 1; // scale
+  // Wooden platform base for all buildings
+  ctx.fillStyle = 'rgba(100,75,50,0.7)';
+  ctx.fillRect(-16*s, -2*s, 32*s, 4*s);
+  // Support beams
+  ctx.strokeStyle = 'rgba(80,60,40,0.6)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(-12*s,2*s); ctx.lineTo(-8*s,10*s); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(12*s,2*s); ctx.lineTo(8*s,10*s); ctx.stroke();
+
+  switch(id) {
+    case 'rain_catcher': // barrel with funnel top
+      ctx.fillStyle = 'rgba(80,100,120,0.7)';
+      ctx.fillRect(-6*s, -14*s, 12*s, 12*s); // barrel
+      ctx.strokeStyle = 'rgba(60,80,100,0.8)';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(-6*s, -14*s, 12*s, 12*s);
+      // bands
+      ctx.beginPath(); ctx.moveTo(-6*s,-10*s); ctx.lineTo(6*s,-10*s); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(-6*s,-6*s); ctx.lineTo(6*s,-6*s); ctx.stroke();
+      // funnel
+      ctx.beginPath(); ctx.moveTo(-10*s,-16*s); ctx.lineTo(-4*s,-14*s); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(10*s,-16*s); ctx.lineTo(4*s,-14*s); ctx.stroke();
+      // water droplet
+      ctx.fillStyle = 'rgba(100,160,200,0.6)';
+      ctx.beginPath(); ctx.arc(0,-8*s,2*s,0,Math.PI*2); ctx.fill();
+      break;
+
+    case 'herb_garden': // planter box with green sprouts
+      ctx.fillStyle = 'rgba(90,70,45,0.7)';
+      ctx.fillRect(-10*s, -6*s, 20*s, 4*s); // box
+      ctx.fillStyle = 'rgba(60,50,30,0.6)';
+      ctx.fillRect(-9*s, -5*s, 18*s, 2*s); // soil
+      // sprouts
+      ctx.strokeStyle = 'rgba(80,140,60,0.8)';
+      ctx.lineWidth = 1.5;
+      for(let i=-6;i<=6;i+=4) {
+        ctx.beginPath(); ctx.moveTo(i*s,-6*s); ctx.lineTo(i*s,-11*s); ctx.stroke();
+        ctx.fillStyle = 'rgba(90,160,70,0.6)';
+        ctx.beginPath(); ctx.ellipse(i*s,-12*s,3*s,2*s,0,0,Math.PI*2); ctx.fill();
+      }
+      break;
+
+    case 'lookout': // tall post with small platform at top
+      ctx.strokeStyle = 'rgba(100,80,55,0.8)';
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(0,-2*s); ctx.lineTo(0,-22*s); ctx.stroke();
+      // cross beams
+      ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(-6*s,-10*s); ctx.lineTo(6*s,-10*s); ctx.stroke();
+      // top platform
+      ctx.fillStyle = 'rgba(100,80,55,0.7)';
+      ctx.fillRect(-8*s,-24*s,16*s,3*s);
+      // railing
+      ctx.strokeStyle = 'rgba(90,70,50,0.6)';
+      ctx.beginPath(); ctx.moveTo(-8*s,-24*s); ctx.lineTo(-8*s,-28*s); ctx.lineTo(8*s,-28*s); ctx.lineTo(8*s,-24*s); ctx.stroke();
+      break;
+
+    case 'compost_bin': // open bin with swirl
+      ctx.fillStyle = 'rgba(70,80,45,0.7)';
+      ctx.fillRect(-8*s, -10*s, 16*s, 8*s);
+      ctx.strokeStyle = 'rgba(90,100,55,0.8)';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(-8*s, -10*s, 16*s, 8*s);
+      // organic matter
+      ctx.fillStyle = 'rgba(110,90,50,0.5)';
+      ctx.beginPath(); ctx.arc(0,-7*s,4*s,0,Math.PI*2); ctx.fill();
+      // steam wisps
+      ctx.strokeStyle = 'rgba(150,140,120,0.3)';
+      ctx.lineWidth = 0.8;
+      const sw = Math.sin(Date.now()*0.003)*2;
+      ctx.beginPath(); ctx.moveTo(-2*s+sw,-10*s); ctx.quadraticCurveTo(sw,-14*s,2*s+sw,-16*s); ctx.stroke();
+      break;
+
+    case 'workshop': // anvil-like shape with hammer
+      ctx.fillStyle = 'rgba(110,95,70,0.7)';
+      ctx.fillRect(-8*s, -8*s, 16*s, 6*s); // bench
+      // anvil
+      ctx.fillStyle = 'rgba(80,80,85,0.8)';
+      ctx.beginPath(); ctx.moveTo(-4*s,-8*s); ctx.lineTo(-6*s,-12*s); ctx.lineTo(6*s,-12*s); ctx.lineTo(4*s,-8*s); ctx.closePath(); ctx.fill();
+      // hammer
+      ctx.strokeStyle = 'rgba(120,100,70,0.8)';
+      ctx.lineWidth = 1.5;
+      const ha = Math.sin(Date.now()*0.004)*0.3;
+      ctx.save(); ctx.translate(8*s,-10*s); ctx.rotate(-0.5+ha);
+      ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(0,-8*s); ctx.stroke();
+      ctx.fillStyle = 'rgba(90,90,95,0.8)';
+      ctx.fillRect(-2*s,-10*s,4*s,3*s);
+      ctx.restore();
+      break;
+
+    case 'library': // bookshelf shape
+      ctx.fillStyle = 'rgba(90,70,50,0.7)';
+      ctx.fillRect(-10*s, -16*s, 20*s, 14*s); // shelf frame
+      // shelves
+      ctx.fillStyle = 'rgba(70,55,40,0.8)';
+      ctx.fillRect(-9*s,-10*s,18*s,1.5*s);
+      // books (colorful rectangles)
+      const bookColors = ['rgba(140,60,60,0.7)','rgba(60,100,140,0.7)','rgba(100,130,60,0.7)','rgba(140,120,60,0.7)','rgba(90,60,120,0.7)'];
+      for(let r=0;r<2;r++) {
+        for(let b=0;b<4;b++) {
+          ctx.fillStyle = bookColors[(r*4+b)%bookColors.length];
+          ctx.fillRect((-8+b*4.5)*s, (-15+r*6)*s, 3.5*s, 4.5*s);
+        }
+      }
+      break;
+
+    case 'sleeping_quarters': // small hut with leaf roof
+      // walls
+      ctx.fillStyle = 'rgba(110,90,65,0.7)';
+      ctx.fillRect(-9*s, -10*s, 18*s, 8*s);
+      // door
+      ctx.fillStyle = 'rgba(70,55,40,0.8)';
+      ctx.fillRect(-2*s,-8*s,4*s,6*s);
+      // leaf roof
+      ctx.fillStyle = 'rgba(70,120,50,0.6)';
+      ctx.beginPath(); ctx.moveTo(-14*s,-10*s); ctx.lineTo(0,-18*s); ctx.lineTo(14*s,-10*s); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = 'rgba(55,100,40,0.7)';
+      ctx.lineWidth = 0.8;
+      ctx.stroke();
+      break;
+
+    case 'recreation': // campfire/gathering area
+      // log seats
+      ctx.fillStyle = 'rgba(100,75,50,0.7)';
+      ctx.fillRect(-12*s,-6*s,8*s,3*s);
+      ctx.fillRect(4*s,-6*s,8*s,3*s);
+      // fire pit
+      ctx.fillStyle = 'rgba(60,50,40,0.8)';
+      ctx.beginPath(); ctx.arc(0,-5*s,4*s,0,Math.PI*2); ctx.fill();
+      // flames
+      const flicker = Math.sin(Date.now()*0.008)*2;
+      ctx.fillStyle = 'rgba(220,140,40,0.7)';
+      ctx.beginPath(); ctx.moveTo(-2*s,-5*s); ctx.quadraticCurveTo(0+flicker,-14*s,2*s,-5*s); ctx.fill();
+      ctx.fillStyle = 'rgba(240,180,60,0.5)';
+      ctx.beginPath(); ctx.moveTo(-1*s,-5*s); ctx.quadraticCurveTo(flicker*0.5,-11*s,1*s,-5*s); ctx.fill();
+      break;
+
+    case 'shrine': // candle/altar
+      // stone base
+      ctx.fillStyle = 'rgba(100,95,90,0.7)';
+      ctx.fillRect(-7*s, -6*s, 14*s, 4*s);
+      // pillar
+      ctx.fillStyle = 'rgba(120,115,105,0.7)';
+      ctx.fillRect(-3*s,-14*s,6*s,8*s);
+      // candle flame
+      const ff = Math.sin(Date.now()*0.006)*1.5;
+      ctx.fillStyle = 'rgba(230,200,80,0.7)';
+      ctx.beginPath(); ctx.moveTo(-1.5*s,-14*s); ctx.quadraticCurveTo(ff,-20*s,1.5*s,-14*s); ctx.fill();
+      // glow
+      ctx.fillStyle = 'rgba(230,200,80,0.15)';
+      ctx.beginPath(); ctx.arc(0,-16*s,6*s,0,Math.PI*2); ctx.fill();
+      break;
+
+    case 'nursery': // small pen with animal shapes
+      // fence
+      ctx.strokeStyle = 'rgba(110,90,60,0.7)';
+      ctx.lineWidth = 1.2;
+      ctx.strokeRect(-10*s,-10*s,20*s,8*s);
+      // fence posts
+      for(let p=-10;p<=10;p+=5) {
+        ctx.beginPath(); ctx.moveTo(p*s,-10*s); ctx.lineTo(p*s,-12*s); ctx.stroke();
+      }
+      // small animal (fox/cat shape)
+      ctx.fillStyle = 'rgba(180,130,80,0.7)';
+      ctx.beginPath(); ctx.ellipse(-3*s,-5*s,4*s,2.5*s,0,0,Math.PI*2); ctx.fill(); // body
+      ctx.beginPath(); ctx.arc(-7*s,-6*s,2*s,0,Math.PI*2); ctx.fill(); // head
+      // ears
+      ctx.beginPath(); ctx.moveTo(-8*s,-7.5*s); ctx.lineTo(-9*s,-10*s); ctx.lineTo(-7*s,-8*s); ctx.fill();
+      // tail
+      ctx.strokeStyle = 'rgba(180,130,80,0.7)';
+      ctx.lineWidth = 1.5;
+      const tw = Math.sin(Date.now()*0.005)*3;
+      ctx.beginPath(); ctx.moveTo(1*s,-5*s); ctx.quadraticCurveTo(5*s,-8*s+tw,4*s,-3*s); ctx.stroke();
+      break;
+
+    case 'apothecary': // flask/bottles setup
+      // table
+      ctx.fillStyle = 'rgba(100,80,55,0.7)';
+      ctx.fillRect(-10*s,-6*s,20*s,4*s);
+      // flask (triangle shape)
+      ctx.fillStyle = 'rgba(100,180,130,0.4)';
+      ctx.beginPath(); ctx.moveTo(-2*s,-6*s); ctx.lineTo(-5*s,-6*s); ctx.lineTo(-3.5*s,-14*s); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = 'rgba(120,200,150,0.6)';
+      ctx.lineWidth = 0.8;
+      ctx.stroke();
+      // bottles
+      ctx.fillStyle = 'rgba(130,100,170,0.4)';
+      ctx.fillRect(2*s,-12*s,3*s,6*s);
+      ctx.fillStyle = 'rgba(170,120,100,0.4)';
+      ctx.fillRect(6*s,-10*s,3*s,4*s);
+      // bubbles
+      ctx.fillStyle = 'rgba(150,220,180,0.4)';
+      const bub = Math.sin(Date.now()*0.004)*2;
+      ctx.beginPath(); ctx.arc(-3.5*s,-12*s+bub,1.5*s,0,Math.PI*2); ctx.fill();
+      break;
+
+    default:
+      // Fallback: just show icon
+      ctx.font = '14px serif';
+      ctx.textAlign = 'center';
+      const building = BUILDINGS.find(b=>b.id===id);
+      if(building) ctx.fillText(building.icon, 0, -8);
+  }
+  ctx.restore();
 }
 
 function drawSurvivorDots(treeX, treeBase, trunkW, h) {
@@ -1723,10 +2003,29 @@ function updateCommunityPanel() {
     const v = forecast[k]||0;
     return `<span style="color:${v>0?'var(--bloom)':v<0?'var(--danger)':'var(--text-dim)'}">${fIcons[k]} ${v>0?'+':''}${v}</span>`;
   }).join('  ');
+  const resLvl = G.researchLevel||0;
+  const resGrade = resLvl>=30?'Visionary':resLvl>=25?'Scholar':resLvl>=12?'Apprentice':resLvl>=5?'Student':'Novice';
   html += `<div style="font-size:0.7rem;padding:8px;margin-bottom:12px;background:rgba(0,0,0,0.2);border-radius:3px;border:1px solid var(--border)">
     <span style="color:var(--text-dim)">📊 Next Day Forecast:</span><br>
     <div style="margin-top:4px;display:flex;gap:8px;flex-wrap:wrap">${fEntries}</div>
+    <div style="margin-top:6px;display:flex;gap:12px;flex-wrap:wrap">
+      <span style="color:var(--water)">📖 Research: ${resGrade} (${Math.round(resLvl)}/25)</span>
+      <span style="color:var(--text-dim)">📅 Day ${G.day}/60</span>
+    </div>
   </div>`;
+
+  // Pets section
+  if(G.pets.length > 0) {
+    html += `<div style="font-size:0.75rem;padding:8px;margin-bottom:12px;background:rgba(180,130,80,0.08);border-radius:3px;border:1px solid rgba(180,130,80,0.25)">
+      <span style="color:rgba(180,140,80,0.9)">🐾 Companions:</span>
+      <div style="margin-top:4px;display:flex;gap:6px;flex-wrap:wrap">
+        ${G.pets.map(p => {
+          const pt = PET_TYPES.find(t=>t.id===p.type);
+          return `<span title="${pt?pt.desc:''}" style="padding:2px 6px;background:rgba(180,130,80,0.12);border-radius:2px;cursor:help">${pt?pt.icon:'🐾'} ${p.name}</span>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }
 
   alive.forEach(s => {
     const onExp = s.expedition !== null;
@@ -1789,11 +2088,23 @@ function updateBuildPanel() {
     </div>`;
   });
 
-  // Landmark
+  // Landmark & Research
+  const rLvl = G.researchLevel||0;
+  const rPct = Math.min(100, (rLvl/25)*100);
+  const landmarkComplete = G.landmark.progress >= G.landmark.required;
+  const researchComplete = rLvl >= 25;
   html += `<div id="landmark-section">
     <h3>🏛️ Community Landmark</h3>
     <div id="landmark-bar-outer"><div id="landmark-bar-inner" style="width:${(G.landmark.progress/G.landmark.required)*100}%"></div></div>
-    <div id="landmark-text">${Math.round(G.landmark.progress)} / ${G.landmark.required} — Assign Crafters and Researchers to contribute</div>
+    <div id="landmark-text">${Math.round(G.landmark.progress)} / ${G.landmark.required} ${landmarkComplete?'✓ Complete':'— Assign Crafters & Researchers'}</div>
+    <div style="margin-top:8px">
+      <div style="font-size:0.75rem;color:var(--water);margin-bottom:4px">📖 Research Breakthrough</div>
+      <div id="landmark-bar-outer"><div id="landmark-bar-inner" style="width:${rPct}%;background:linear-gradient(90deg,var(--water),rgba(100,180,220,0.8))"></div></div>
+      <div style="font-size:0.7rem;color:var(--text-dim);margin-top:2px">${Math.round(rLvl)} / 25 ${researchComplete?'✓ Breakthrough!':'— Researchers generate insights over time'}</div>
+    </div>
+    <div style="font-size:0.65rem;color:var(--text-dim);margin-top:6px;font-style:italic">
+      Victory requires both: Landmark complete + Research breakthrough. Day limit: 60.
+    </div>
   </div>`;
 
   div.innerHTML = html;
@@ -1918,51 +2229,147 @@ function updateLogPanel() {
 function showEpilogue() {
   G.gameOver = true;
   const alive = G.survivors.filter(s=>s.alive);
-  const won = G.landmark.progress >= G.landmark.required;
+  const landmarkDone = G.landmark.progress >= G.landmark.required;
+  const researchReady = (G.researchLevel||0) >= 25;
+  const fullWin = landmarkDone && researchReady;
   const bloomFinal = G.bloom;
+  const resLvl = G.researchLevel||0;
+  const petCount = G.pets.length;
 
   document.getElementById('game-screen').classList.remove('active');
   const epi = document.getElementById('epilogue-screen');
   epi.classList.add('active');
 
-  // Subtitle
-  let subtitle = '';
-  if(won && bloomFinal >= 70) subtitle = 'A New Eden Rises';
-  else if(won && bloomFinal >= 40) subtitle = 'A Fragile Beginning';
-  else if(won) subtitle = 'Survival, at a Cost';
-  else if(alive.length === 0) subtitle = 'The Silence Returns';
-  else subtitle = 'Hope Fades to Memory';
+  // ── Determine ending tier ──
+  // Tier 1: Full Victory (landmark + research + high bloom)
+  // Tier 2: Bittersweet Victory (landmark + research + mid bloom)
+  // Tier 3: Pyrrhic Victory (landmark + research + low bloom)
+  // Tier 4: Unfinished Beacon (landmark done, research short)
+  // Tier 5: The Scholar's Regret (research done, landmark short)
+  // Tier 6: Endurance (time ran out, decent bloom, survivors alive)
+  // Tier 7: Fade (time ran out, low bloom or few survivors)
+  // Tier 8: Total collapse (all dead)
+  // Tier 9: Despair (morale zero)
+
+  let tier, subtitle;
+  if(alive.length === 0) {
+    tier = 8;
+    subtitle = 'The Silence Returns';
+  } else if(G.morale <= 0) {
+    tier = 9;
+    subtitle = 'Hope Fades to Memory';
+  } else if(fullWin && bloomFinal >= 70) {
+    tier = 1;
+    subtitle = 'A New Eden Rises';
+  } else if(fullWin && bloomFinal >= 40) {
+    tier = 2;
+    subtitle = 'A Fragile Beginning';
+  } else if(fullWin) {
+    tier = 3;
+    subtitle = 'Survival, at a Cost';
+  } else if(landmarkDone && !researchReady) {
+    tier = 4;
+    subtitle = 'The Unfinished Beacon';
+  } else if(!landmarkDone && resLvl >= 20) {
+    tier = 5;
+    subtitle = 'The Scholar\'s Lament';
+  } else if(bloomFinal >= 45 && alive.length >= 3) {
+    tier = 6;
+    subtitle = 'Endurance';
+  } else {
+    tier = 7;
+    subtitle = 'A Fading Light';
+  }
 
   document.getElementById('ep-subtitle').textContent = subtitle;
-  document.getElementById('bloom-final').textContent = `Final Bloom: ${Math.round(bloomFinal)} · Day ${G.day} · ${alive.length} survivors`;
+
+  // Research grade
+  let researchGrade = 'Novice';
+  if(resLvl >= 30) researchGrade = 'Visionary';
+  else if(resLvl >= 20) researchGrade = 'Scholar';
+  else if(resLvl >= 12) researchGrade = 'Apprentice';
+  else if(resLvl >= 5) researchGrade = 'Student';
+
+  document.getElementById('bloom-final').textContent = `Final Bloom: ${Math.round(bloomFinal)} · Day ${G.day} · ${alive.length} survivors · Research: ${researchGrade} (${Math.round(resLvl)})${petCount>0?' · 🐾 '+petCount+' pets':''}`;
 
   let content = '';
 
-  if(won) {
-    if(bloomFinal >= 70) {
+  switch(tier) {
+    case 1: // Full Victory - High Bloom
       content += `<p>The Community Landmark rises from the canopy like a second sun — a beacon woven from living wood and earned wisdom. It is not brick and steel. It is breath and root and the accumulated weight of every choice you made.</p>
+      <p>The researchers' final breakthrough unlocks the secret of the Great Tree's network — a mycorrhizal web that connects every living thing within miles. The knowledge spreads like spores on the wind.</p>
       <p>The Great Tree hums with a vitality that was not there before. The Bloom has reached into the aquifer, the soil, the very air. Seeds carried on the wind settle in places no one has tended, and they <em>grow</em>.</p>
       <p>Word spreads. Other collectives send messengers — not with demands, but with questions. <em>How did you do it?</em></p>`;
-    } else if(bloomFinal >= 40) {
-      content += `<p>The Landmark stands — not as tall or radiant as it might have been, but it stands. A testament to the pragmatic choices that kept belly full and spirits on this side of breaking.</p>
-      <p>The tree still grows. The garden still produces. But there are scars where shortcuts were taken, and some night the community remembers what was sacrificed along the way.</p>
-      <p>It is enough. For now, it is enough.</p>`;
-    } else {
-      content += `<p>The Landmark is completed, but it casts a long shadow. The tree is alive, but weary. The earth around it is depleted, and the Bloom is a whisper where it once sang.</p>
-      <p>You survived. The collective endures. But the price was steep, and the land remembers.</p>
-      <p>Perhaps the next generation will find a gentler way.</p>`;
-    }
-  } else if(alive.length === 0) {
-    content += `<p>The platforms stand empty. The garden, untended, begins its slow return to wild. The Great Tree absorbs the abandoned structures into its bark, year by year, ring by ring.</p>
-    <p>A hundred years from now, a traveler will pause beneath its branches and feel something — a warmth, a sadness, a sense that someone tried very hard here.</p>
-    <p>The Bloom remembers, even when the world forgets.</p>`;
-  } else {
-    content += `<p>The collective dissolves not with a bang but with a quiet, exhausted exhale. One by one, the survivors drift away — not in anger, but in the simple absence of hope.</p>
-    <p>The tree remains. The garden, half-built and half-wild, holds on. Somewhere, the seeds of what you planted still wait in the soil.</p>
-    <p>It wasn't the end. It was an interruption.</p>`;
+      if(petCount > 0) content += `<p>The animals of the nursery — ${G.pets.map(p=>p.name+' the '+PET_TYPES.find(t=>t.id===p.type).name).join(', ')} — roam freely through the canopy, beloved by all.</p>`;
+      break;
+    case 2: // Full Victory - Mid Bloom
+      content += `<p>The Landmark stands — not as tall or radiant as it might have been, but it stands. The researchers' breakthrough came at the eleventh hour, and the knowledge it unlocked gives the collective a fighting chance at a real future.</p>
+      <p>The tree still grows. The garden still produces. But there are scars where shortcuts were taken, and some nights the community remembers what was sacrificed along the way.</p>
+      <p>It is enough. For now, it is enough. And with the research complete, <em>enough</em> might become <em>abundant</em> in time.</p>`;
+      break;
+    case 3: // Full Victory - Low Bloom
+      content += `<p>The Landmark is completed and the research breakthrough achieved, but both cast long shadows. The tree is alive, but weary. The earth around it is depleted, and the Bloom is a whisper where it once sang.</p>
+      <p>The knowledge your researchers unlocked is powerful — perhaps powerful enough to heal what was broken. But healing takes time, and trust, and a gentler hand than the one that built this monument.</p>
+      <p>Perhaps the next generation will use the knowledge more wisely.</p>`;
+      break;
+    case 4: // Landmark done, research incomplete
+      content += `<p>The Community Landmark rises above the canopy — an impressive feat of collective willpower. But the researchers shake their heads. "We needed more time," they say. "More minds on the problem."</p>
+      <p>The beacon stands, but it is <em>inert</em>. Without the research breakthrough, it is stone and wood and good intentions — a monument to what might have been, not a bridge to what comes next.</p>
+      <p>Trade caravans see it from miles away and come to marvel. But when they ask "What does it do?", the collective can only answer: "It reminds us we tried."</p>
+      <p>The knowledge gap haunts the community. The Landmark stands as both triumph and warning — great works require not just labour, but understanding.</p>`;
+      break;
+    case 5: // Research high, landmark incomplete
+      content += `<p>The researchers achieved something remarkable — breakthroughs that will echo through generations. They decoded fragments of the old world's agricultural science, mapped the Great Tree's root network, and developed techniques that could transform any settlement.</p>
+      <p>But the Landmark remains unfinished. A skeleton of ambition poking through the canopy, half-built platforms swaying in the wind. The knowledge exists, but the monument that would <em>proclaim</em> it to the world does not.</p>
+      <p>Wanderers who visit find a community rich in wisdom but modest in stature. "Come back when we've finished building," they say with tired smiles. The blueprints are ready. The hands were not enough.</p>`;
+      break;
+    case 6: // Time ran out, decent shape
+      content += `<p>Sixty days. Not enough to complete the great work, but enough to build something worth remembering. The Landmark stands half-finished — ${Math.round(G.landmark.progress/G.landmark.required*100)}% complete — and the research continues, page by careful page.</p>
+      <p>The collective endures. The garden produces. The Bloom, at ${Math.round(bloomFinal)}, speaks of a community that found balance even if it didn't find completion.</p>
+      <p>This isn't failure. It's a chapter ending mid-sentence, with the pen still in hand. The next sixty days — and the sixty after that — will determine whether this was a prologue or an epitaph.</p>
+      <p>"We didn't finish," says one survivor over the evening fire. "But we didn't break, either."</p>`;
+      break;
+    case 7: // Time ran out, poor shape
+      content += `<p>The days blur together until, one morning, the community realises the season has turned and the window has closed. The Landmark sits at ${Math.round(G.landmark.progress/G.landmark.required*100)}% — a monument to good intentions and hard choices.</p>
+      <p>With bloom at ${Math.round(bloomFinal)} and ${alive.length} weary survivor${alive.length!==1?'s':''} remaining, the collective faces a hard truth: survival consumed every ounce of energy that might have gone toward building something greater.</p>
+      <p>Some drift away. Others dig in deeper. The tree grows on, indifferent to human timelines, patient as only a living thing can be. Perhaps others will come. Perhaps <em>these</em> survivors will try again, older and wiser.</p>
+      <p>The wind carries seeds. That is its own kind of hope.</p>`;
+      break;
+    case 8: // All dead
+      content += `<p>The platforms stand empty. The garden, untended, begins its slow return to wild. The Great Tree absorbs the abandoned structures into its bark, year by year, ring by ring.</p>
+      <p>The research notes scatter in the wind. The Landmark — ${Math.round(G.landmark.progress/G.landmark.required*100)}% complete — becomes a ruin before it was ever finished. Nature reclaims what was borrowed.</p>`;
+      if(petCount > 0) content += `<p>The animals linger longest. ${G.pets.map(p=>p.name).join(' and ')} patrol the empty platforms for weeks before finally venturing into the wild, carrying with them the last warmth of human kindness they knew.</p>`;
+      content += `<p>A hundred years from now, a traveler will pause beneath its branches and feel something — a warmth, a sadness, a sense that someone tried very hard here.</p>
+      <p>The Bloom remembers, even when the world forgets.</p>`;
+      break;
+    case 9: // Morale zero
+      content += `<p>The collective dissolves not with a bang but with a quiet, exhausted exhale. One by one, the survivors drift away — not in anger, but in the simple absence of hope.</p>
+      <p>The research — ${researchGrade} level, ${Math.round(resLvl)} insights gathered — goes with them in fragments. Pieces of knowledge distributed across wanderers who may never meet again.</p>
+      <p>The tree remains. The garden, half-built and half-wild, holds on. Somewhere, the seeds of what you planted still wait in the soil.</p>
+      <p>It wasn't the end. It was an interruption.</p>`;
+      break;
   }
 
-  // Individual survivors
+  // ── Pet epilogues ──
+  if(petCount > 0 && alive.length > 0 && tier !== 8) {
+    content += `<div style="margin-top:16px"><strong>The Companions</strong></div>`;
+    G.pets.forEach(pet => {
+      const pt = PET_TYPES.find(t=>t.id===pet.type);
+      const petFates = {
+        fox: `${pet.name} the Fox continues to scout the perimeter at dawn, an unbreakable habit from expedition days.`,
+        owl: `${pet.name} the Owl roosts in the library rafters, hooting softly as researchers work below.`,
+        cat: `${pet.name} the Cat claims the warmest spot by the fire each evening, settling arguments simply by existing.`,
+        dog: `${pet.name} the Dog remains the first to greet every returning expedition, tail never still.`,
+        rabbit: `${pet.name} the Rabbit has turned the garden into a warren of tunnels — the gardeners pretend to mind.`,
+        crow: `${pet.name} the Crow still brings shiny trinkets to the workshop, arranged in neat rows nobody asked for.`,
+        deer: `${pet.name} the Deer leads the foragers each morning, always knowing where the best growth hides.`,
+        hawk: `${pet.name} the Hawk circles the Landmark at dusk, a silhouette against the painted sky.`
+      };
+      content += `<div class="ep-survivor">${pt.icon} ${petFates[pet.type]||pet.name+' lived on.'}</div>`;
+    });
+  }
+
+  // ── Individual survivors ──
   if(alive.length > 0) {
     content += `<div style="margin-top:16px"><strong>The Survivors</strong></div>`;
     alive.forEach(s => {
@@ -1980,7 +2387,7 @@ function showEpilogue() {
     });
   }
 
-  // Decision summary
+  // ── Decision summary ──
   const puristChoices = G.decisions.filter(d => {
     const dilemma = DILEMMAS.find(di=>di.id===d.dilemma);
     return dilemma && dilemma.choices[d.choice] && dilemma.choices[d.choice].trait === 'Purist';
@@ -1990,9 +2397,16 @@ function showEpilogue() {
     return dilemma && dilemma.choices[d.choice] && dilemma.choices[d.choice].trait === 'Pragmatist';
   }).length;
 
-  content += `<div style="margin-top:16px;font-size:0.8rem;color:var(--text-dim)">
-    <p>Decisions made: ${G.decisions.length} · Days survived: ${G.day} · Structures built: ${G.buildings.length}</p>
-    <p>Leaned Purist ${puristChoices} time${puristChoices!==1?'s':''} · Leaned Pragmatist ${pragmatistChoices} time${pragmatistChoices!==1?'s':''}</p>
+  // Ending grade
+  const grades = {1:'🌟 Perfect Bloom',2:'🌸 Balanced Growth',3:'🔥 Pyrrhic Victory',4:'🏗️ Unfinished Business',5:'📖 Scholar\'s Lament',6:'🛡️ Endurance',7:'🍂 Fading Light',8:'💀 The Silence',9:'😔 Despair'};
+
+  content += `<div style="margin-top:20px;padding:12px;background:rgba(107,143,94,0.1);border:1px solid var(--border);border-radius:4px">
+    <div style="font-size:1rem;margin-bottom:8px;color:var(--bloom-glow)">${grades[tier]||'Unknown'}</div>
+    <div style="font-size:0.8rem;color:var(--text-dim);line-height:1.6">
+      <p>Days survived: ${G.day} · Decisions made: ${G.decisions.length} · Structures built: ${G.buildings.length} · Pets rescued: ${petCount}</p>
+      <p>Landmark: ${Math.round(G.landmark.progress)}/${G.landmark.required} (${Math.round(G.landmark.progress/G.landmark.required*100)}%) · Research: ${researchGrade} (${Math.round(resLvl)}/25)</p>
+      <p>Leaned Purist ${puristChoices} time${puristChoices!==1?'s':''} · Leaned Pragmatist ${pragmatistChoices} time${pragmatistChoices!==1?'s':''}</p>
+    </div>
   </div>`;
 
   document.getElementById('epilogue-content').innerHTML = content;
