@@ -1042,17 +1042,24 @@ function drawSanctuary() {
   ctx.lineTo(w, h);
   ctx.fill();
 
-  // Ground vegetation
-  if(G.bloom > 30) {
-    for(let i=0;i<15;i++){
-      const gx = (i/15)*w + Math.sin(i*3)*20;
+  // Ground vegetation — lush at high bloom, sparse/dead at low bloom
+  {
+    const grassCount = G.bloom > 30 ? 15 : Math.max(3, Math.floor(G.bloom/5));
+    for(let i=0;i<grassCount;i++){
+      const gx = (i/grassCount)*w + Math.sin(i*3)*20;
       const gy = h*0.85 + Math.sin(gx*0.03)*8 + Math.sin(gx*0.01)*15;
-      const gh = 5 + bm*8 + Math.sin(Date.now()*0.002+i)*2;
-      ctx.strokeStyle = `rgba(${80+bm*40},${100+bm*50},${60+bm*30},${0.3+bm*0.3})`;
+      const gh = G.bloom > 30 ? (5 + bm*8 + Math.sin(Date.now()*0.002+i)*2) : (3 + bm*3);
+      const swayAmt = G.bloom > 30 ? Math.sin(Date.now()*0.003+i)*3 : Math.sin(Date.now()*0.003+i)*1;
+      // Low bloom: brown/yellow dead grass. High bloom: vibrant green
+      if(G.bloom < 30) {
+        ctx.strokeStyle = `rgba(${120+Math.floor(Math.random()*30)},${90+Math.floor(Math.random()*20)},${40},${0.25+bm*0.15})`;
+      } else {
+        ctx.strokeStyle = `rgba(${80+bm*40},${100+bm*50},${60+bm*30},${0.3+bm*0.3})`;
+      }
       ctx.lineWidth = 1.5;
       ctx.beginPath();
       ctx.moveTo(gx, gy);
-      ctx.quadraticCurveTo(gx+Math.sin(Date.now()*0.003+i)*3, gy-gh*0.6, gx+Math.sin(Date.now()*0.002+i)*5, gy-gh);
+      ctx.quadraticCurveTo(gx+swayAmt, gy-gh*0.6, gx+Math.sin(Date.now()*0.002+i)*5, gy-gh);
       ctx.stroke();
     }
   }
@@ -1122,39 +1129,138 @@ function drawSanctuary() {
     ctx.quadraticCurveTo(bx+(endX-bx)*0.5+sway, by+(endY-by)*0.3, endX+sway, endY);
     ctx.stroke();
 
-    // Leaf clusters on branches
-    if(G.bloom > 15) {
-      const leafCount = Math.floor(3 + bm * 5);
+    // Leaf clusters on branches — density scales with bloom
+    if(G.bloom > 10) {
+      const leafCount = Math.floor(1 + bm * 6);
       for(let i=0;i<leafCount;i++){
         const t = 0.3 + (i/leafCount)*0.7;
         const lx = bx + (endX-bx)*t + sway*t + (Math.random()-0.5)*20;
         const ly = by + (endY-by)*t + (Math.random()-0.5)*15;
-        const lr = 6 + bm*8 + Math.sin(Date.now()*0.002+i+b.x)*2;
-        const alpha = 0.15 + bm*0.3;
-        const g = Math.floor(100 + bm*80 + Math.random()*30);
-        ctx.fillStyle = `rgba(${60+Math.floor(Math.random()*30)},${g},${40+Math.floor(Math.random()*20)},${alpha})`;
+        const lr = 4 + bm*8 + Math.sin(Date.now()*0.002+i+b.x)*2;
+        const alpha = 0.1 + bm*0.35;
+        // Low bloom: brown/yellow leaves. High bloom: lush green
+        const rC = G.bloom < 35 ? 130+Math.floor(Math.random()*40) : 60+Math.floor(Math.random()*30);
+        const gC = G.bloom < 35 ? 90+Math.floor(Math.random()*30) : Math.floor(100+bm*80+Math.random()*30);
+        const bC = G.bloom < 35 ? 30 : 40+Math.floor(Math.random()*20);
+        ctx.fillStyle = `rgba(${rC},${gC},${bC},${alpha})`;
         ctx.beginPath();
         ctx.ellipse(lx,ly,lr,lr*0.7,Math.random()*Math.PI,0,Math.PI*2);
         ctx.fill();
       }
     }
+
+    // Flowers on branches — appear at high bloom
+    if(G.bloom > 55) {
+      const flowerCount = Math.floor((G.bloom - 55) / 8);
+      for(let i=0;i<flowerCount;i++){
+        const t = 0.4 + (i/Math.max(flowerCount,1))*0.5;
+        const fx = bx + (endX-bx)*t + sway*t + (Math.random()-0.5)*15;
+        const fy = by + (endY-by)*t + (Math.random()-0.5)*10 - 5;
+        drawFlower(fx, fy, 3+Math.random()*2, i+b.x*10);
+      }
+    }
+
+    // Bare branch tips at low bloom — exposed wood
+    if(G.bloom < 30) {
+      const tipX = endX + sway + Math.cos(b.angle)*15;
+      const tipY = endY - Math.abs(Math.sin(b.angle))*8;
+      ctx.strokeStyle = `rgba(80,60,40,${0.5 - bm*0.3})`;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(endX+sway, endY);
+      ctx.lineTo(tipX, tipY);
+      ctx.stroke();
+      // Sub-twigs
+      ctx.lineWidth = 0.8;
+      ctx.beginPath();
+      ctx.moveTo(tipX, tipY);
+      ctx.lineTo(tipX+8, tipY-6);
+      ctx.moveTo(tipX, tipY);
+      ctx.lineTo(tipX-5, tipY-8);
+      ctx.stroke();
+    }
   });
 
-  // Canopy
+  // Canopy — size and color react to bloom
   const canopyLayers = [
     {y:0.08,r:0.28,alpha:0.2},{y:0.12,r:0.32,alpha:0.25},
     {y:0.18,r:0.25,alpha:0.3},{y:0.06,r:0.2,alpha:0.15}
   ];
+  const canopyScale = G.bloom < 30 ? 0.5 + (G.bloom/30)*0.5 : 1;
   canopyLayers.forEach(cl => {
     const cx = treeX + Math.sin(Date.now()*0.0005+cl.y*10)*3;
     const cy = h * cl.y;
-    const cr = w * cl.r + bm*20;
-    const g = Math.floor(80 + bm*80);
-    ctx.fillStyle = `rgba(${40+Math.floor(bm*30)},${g},${30+Math.floor(bm*20)},${cl.alpha + bm*0.15})`;
+    const cr = (w * cl.r + bm*20) * canopyScale;
+    // Low bloom: sparse brown-green. High bloom: rich emerald
+    const rC = G.bloom < 35 ? 70+Math.floor(bm*20) : 40+Math.floor(bm*30);
+    const gC = G.bloom < 35 ? 60+Math.floor(bm*40) : Math.floor(80+bm*80);
+    const bC = G.bloom < 35 ? 25 : 30+Math.floor(bm*20);
+    ctx.fillStyle = `rgba(${rC},${gC},${bC},${cl.alpha + bm*0.15})`;
     ctx.beginPath();
     ctx.ellipse(cx,cy,cr,cr*0.5,0,0,Math.PI*2);
     ctx.fill();
   });
+
+  // Canopy flowers at high bloom
+  if(G.bloom > 60) {
+    const flowerRing = Math.floor((G.bloom - 60) / 5);
+    for(let i=0;i<flowerRing;i++){
+      const angle = (i/flowerRing)*Math.PI*2 + Date.now()*0.0001;
+      const radius = w*0.15 + Math.sin(i*2.3)*20;
+      const fx = treeX + Math.cos(angle)*radius;
+      const fy = h*0.12 + Math.sin(angle)*radius*0.35;
+      drawFlower(fx, fy, 3+Math.random()*3, i*7);
+    }
+  }
+
+  // Trunk cracks at low bloom
+  if(G.bloom < 40) {
+    const crackIntensity = 1 - (G.bloom / 40); // 0 at bloom=40, 1 at bloom=0
+    const crackCount = Math.floor(3 + crackIntensity * 8);
+    ctx.strokeStyle = `rgba(30,20,10,${0.3 + crackIntensity*0.4})`;
+    ctx.lineWidth = 0.8 + crackIntensity;
+    for(let i=0;i<crackCount;i++){
+      const cy = treeBase - (i/crackCount)*(treeBase-h*0.2);
+      const cw = trunkW * (0.3 + 0.5*(cy-h*0.2)/(treeBase-h*0.2));
+      const cx = treeX + (Math.sin(i*4.7)-0.5)*cw*0.6;
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      // Jagged crack line
+      ctx.lineTo(cx + (Math.sin(i*3.1)*6), cy + 8 + crackIntensity*6);
+      ctx.lineTo(cx + (Math.cos(i*2.7)*4), cy + 16 + crackIntensity*10);
+      ctx.lineTo(cx + (Math.sin(i*5.3)*5), cy + 22 + crackIntensity*8);
+      ctx.stroke();
+    }
+  }
+
+  // Ground flowers at high bloom
+  if(G.bloom > 50) {
+    const groundFlowers = Math.floor((G.bloom - 50) / 6);
+    for(let i=0;i<groundFlowers;i++){
+      const gx = (i/groundFlowers)*w*0.8 + w*0.1 + Math.sin(i*5.1)*30;
+      const gy = h*0.85 + Math.sin(gx*0.03)*8 + Math.sin(gx*0.01)*15 - 3;
+      drawFlower(gx, gy, 2.5+Math.random()*2, i*13+99);
+    }
+  }
+
+  // Ground cracks/decay at very low bloom
+  if(G.bloom < 25) {
+    const decayAlpha = (25 - G.bloom) / 25;
+    ctx.strokeStyle = `rgba(50,35,20,${decayAlpha*0.5})`;
+    ctx.lineWidth = 1;
+    for(let i=0;i<6;i++){
+      const dx = w*0.1 + (i/6)*w*0.8;
+      const dy = h*0.87 + Math.sin(dx*0.02)*5;
+      ctx.beginPath();
+      ctx.moveTo(dx, dy);
+      ctx.lineTo(dx+12, dy+4);
+      ctx.lineTo(dx+8, dy+10);
+      ctx.moveTo(dx+12, dy+4);
+      ctx.lineTo(dx+22, dy+2);
+      ctx.lineTo(dx+18, dy+8);
+      ctx.stroke();
+    }
+  }
 
   // Platform/building indicators on the tree
   drawPlatforms(treeX, treeBase, trunkW, h);
@@ -1168,17 +1274,56 @@ function drawSanctuary() {
   // Falling leaves
   updateAndDrawLeaves(w, h, bm);
 
-  // Bloom glow
-  if(G.bloom > 60) {
-    const glowAlpha = (G.bloom - 60) / 200;
-    const glowGrad = ctx.createRadialGradient(treeX, h*0.4, 0, treeX, h*0.4, w*0.5);
-    glowGrad.addColorStop(0, `rgba(107,143,94,${glowAlpha})`);
-    glowGrad.addColorStop(1, `rgba(107,143,94,0)`);
-    ctx.fillStyle = glowGrad;
-    ctx.fillRect(0,0,w,h);
+  // At very high bloom: occasional petal particles float up
+  if(G.bloom > 80) {
+    const petalCount = Math.floor((G.bloom - 80) / 5);
+    for(let i=0;i<petalCount;i++){
+      const px = treeX + Math.sin(Date.now()*0.001+i*3.7)*w*0.2;
+      const py = h*0.5 - (Date.now()*0.02+i*200)%( h*0.5);
+      const pa = 0.2 + Math.sin(Date.now()*0.003+i)*0.15;
+      ctx.fillStyle = `rgba(220,160,180,${pa})`;
+      ctx.beginPath();
+      ctx.ellipse(px, py, 2.5, 1.5, Date.now()*0.002+i, 0, Math.PI*2);
+      ctx.fill();
+    }
   }
 
   requestAnimationFrame(drawSanctuary);
+}
+
+function drawFlower(x, y, size, seed) {
+  const t = Date.now() * 0.001 + seed;
+  const petalCount = 5;
+  const bloomPhase = Math.min(1, (G.bloom - 50) / 40); // 0 at bloom=50, 1 at bloom=90
+  // Petal colors: pink, white, lavender, soft yellow
+  const colors = [
+    [220,160,175],[240,235,220],[190,170,210],[230,215,160],[210,180,170]
+  ];
+  const c = colors[Math.floor(seed) % colors.length];
+  const sway = Math.sin(t * 0.5) * 0.5;
+
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(sway * 0.1);
+
+  // Petals
+  for(let i=0; i<petalCount; i++) {
+    const angle = (i / petalCount) * Math.PI * 2 + t * 0.2;
+    const px = Math.cos(angle) * size;
+    const py = Math.sin(angle) * size * 0.8;
+    ctx.fillStyle = `rgba(${c[0]},${c[1]},${c[2]},${0.4 + bloomPhase*0.3})`;
+    ctx.beginPath();
+    ctx.ellipse(px, py, size*0.6, size*0.35, angle, 0, Math.PI*2);
+    ctx.fill();
+  }
+
+  // Center
+  ctx.fillStyle = `rgba(230,200,100,${0.5 + bloomPhase*0.3})`;
+  ctx.beginPath();
+  ctx.arc(0, 0, size*0.3, 0, Math.PI*2);
+  ctx.fill();
+
+  ctx.restore();
 }
 
 function drawPlatforms(treeX, treeBase, trunkW, h) {
@@ -1337,13 +1482,21 @@ function updateAndDrawFireflies(w, h, bm) {
 }
 
 function updateAndDrawLeaves(w, h, bm) {
-  // Spawn falling leaves
-  if(Math.random() < 0.02 * bm && leafParticles.length < 20) {
+  // Low bloom = lots of fast-falling dead leaves. High bloom = gentle rare green drift.
+  const isDecaying = G.bloom < 35;
+  const spawnRate = isDecaying ? 0.08 + (1-bm)*0.1 : 0.015 * bm;
+  const maxLeaves = isDecaying ? 40 : 15;
+
+  if(Math.random() < spawnRate && leafParticles.length < maxLeaves) {
     leafParticles.push({
       x: Math.random()*w, y: -10,
-      vx: (Math.random()-0.5)*0.5, vy: 0.3+Math.random()*0.5,
-      rot: Math.random()*Math.PI*2, rotSpeed: (Math.random()-0.5)*0.02,
-      size: 3+Math.random()*4, life: 1
+      vx: (Math.random()-0.5) * (isDecaying ? 1.2 : 0.4),
+      vy: isDecaying ? 0.6+Math.random()*1.0 : 0.2+Math.random()*0.4,
+      rot: Math.random()*Math.PI*2,
+      rotSpeed: (Math.random()-0.5) * (isDecaying ? 0.04 : 0.015),
+      size: isDecaying ? 2+Math.random()*3 : 3+Math.random()*4,
+      life: 1,
+      dead: isDecaying
     });
   }
 
@@ -1351,7 +1504,7 @@ function updateAndDrawLeaves(w, h, bm) {
     l.x += l.vx + Math.sin(Date.now()*0.002+i)*0.3;
     l.y += l.vy;
     l.rot += l.rotSpeed;
-    l.life -= 0.001;
+    l.life -= (l.dead ? 0.003 : 0.001);
 
     if(l.y > h || l.life <= 0) {
       leafParticles.splice(i, 1);
@@ -1361,10 +1514,17 @@ function updateAndDrawLeaves(w, h, bm) {
     ctx.save();
     ctx.translate(l.x, l.y);
     ctx.rotate(l.rot);
-    const g = Math.floor(100+bm*60);
-    ctx.fillStyle = `rgba(${70+Math.floor(Math.random()*20)},${g},${40},${l.life*0.6})`;
+    if(l.dead) {
+      // Dead leaf: brown, curled, faded
+      const brown = 80 + Math.floor(Math.random()*40);
+      ctx.fillStyle = `rgba(${brown+40},${brown},${30},${l.life*0.5})`;
+    } else {
+      // Living leaf: green, vibrant
+      const g = Math.floor(120+bm*60);
+      ctx.fillStyle = `rgba(${60+Math.floor(Math.random()*20)},${g},${40},${l.life*0.6})`;
+    }
     ctx.beginPath();
-    ctx.ellipse(0,0,l.size,l.size*0.4,0,0,Math.PI*2);
+    ctx.ellipse(0,0,l.size,l.size*(l.dead?0.3:0.45),0,0,Math.PI*2);
     ctx.fill();
     ctx.restore();
   });
