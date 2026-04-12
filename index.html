@@ -382,8 +382,8 @@ const BUILDINGS = [
   {id:'herb_garden',name:'Herb Garden',desc:'Grows medicinal herbs, boosting the medic\'s output.',cost:{compost:5,scrap:2},effect:{medicinePerDay:1,bloomBonus:2},icon:'🌿'},
   {id:'lookout',name:'Lookout Post',desc:'Spot wanderers and threats earlier. Improves expedition safety.',cost:{scrap:8},effect:{expSafety:15},icon:'🔭'},
   {id:'compost_bin',name:'Compost Bin',desc:'Converts food waste into rich soil nutrients.',cost:{scrap:3,compost:1},effect:{compostPerDay:2},icon:'♻️'},
-  {id:'workshop',name:'Workshop',desc:'Doubles crafter output for landmark construction.',cost:{scrap:12,compost:3},effect:{craftBonus:2},icon:'⚒️'},
-  {id:'library',name:'Library',desc:'Researchers work faster and unlock blueprints sooner.',cost:{scrap:6,compost:2},effect:{researchBonus:2},icon:'📚'},
+  {id:'workshop',name:'Workshop',desc:'Doubles crafter output for landmark construction. Shifts toward Industry.',cost:{scrap:12,compost:3},effect:{craftBonus:2},icon:'⚒️'},
+  {id:'library',name:'Library',desc:'Researchers work faster and unlock blueprints sooner. Slight Industry shift.',cost:{scrap:6,compost:2},effect:{researchBonus:2},icon:'📚'},
   {id:'sleeping_quarters',name:'Sleeping Quarters',desc:'Doubles passive overnight health & morale recovery.',cost:{scrap:8,compost:4},effect:{nightRecovery:2},icon:'🛏️'},
   {id:'recreation',name:'Recreation Area',desc:'A space to unwind. Passive morale boost each day.',cost:{scrap:5,compost:4},effect:{moralePerDay:5},icon:'🎲'},
   {id:'shrine',name:'Shrine of Balance',desc:'A meditative space. Gently shifts the community toward Harmony each day.',cost:{compost:8,scrap:4},effect:{bloomPerDay:2},icon:'🕯️'},
@@ -1002,7 +1002,7 @@ function calcDayChanges() {
     changes.morale -= Math.round(industryPenalty() * 5);
     if(Math.random() < industryPenalty() * 0.3) {
       aliveSurvivors.forEach(s => s.health = Math.max(10, s.health - 3));
-      addLog('🏭 The relentless pace takes its toll. Some survivors feel unwell.');
+      addLog('🏭 The relentless pace takes its toll. Some survivors feel unwell.', 'danger');
     }
   }
 
@@ -1010,7 +1010,7 @@ function calcDayChanges() {
   if(harmonyStrength() > 0.5 && Math.random() < 0.1) {
     changes.food += 3;
     changes.compost += 2;
-    addLog('🌱 Wild seeds sprout near the tree — nature rewards your harmony.');
+    addLog('🌱 Wild seeds sprout near the tree — nature rewards your harmony.', 'story');
   }
 
   // Industry bonus: scrap income from efficient salvaging
@@ -1038,12 +1038,17 @@ function calcDayChanges() {
     G.researchBonus = (G.researchBonus||0) + 1;
   }
 
-  // Building bonuses
-  if(G.buildings.includes('rain_catcher')) changes.water += 2;
-  if(G.buildings.includes('herb_garden')) { changes.medicine += 1; changes.bloom += 2; }
-  if(G.buildings.includes('compost_bin')) changes.compost += 2;
-  if(G.buildings.includes('shrine')) changes.bloom += 2; // shifts toward harmony
-  if(G.buildings.includes('nursery')) { changes.morale += 3; changes.bloom += 1; }
+  // Building bonuses — each building has a balance weight:
+  // Harmony (+bloom): herb_garden, shrine, nursery — nature-focused
+  // Industry (-bloom): workshop, library — productivity-focused
+  // Neutral: rain_catcher, compost_bin, lookout, sleeping_quarters, recreation, apothecary
+  if(G.buildings.includes('rain_catcher')) changes.water += 2;           // neutral
+  if(G.buildings.includes('herb_garden')) { changes.medicine += 1; changes.bloom += 2; }  // harmony
+  if(G.buildings.includes('compost_bin')) changes.compost += 2;          // neutral
+  if(G.buildings.includes('shrine')) changes.bloom += 2;                 // harmony
+  if(G.buildings.includes('nursery')) { changes.morale += 3; changes.bloom += 1; }  // slight harmony
+  if(G.buildings.includes('workshop')) changes.bloom -= 2;               // industry — forges & hammers
+  if(G.buildings.includes('library')) changes.bloom -= 1;                // slight industry — knowledge is power
 
   // Industry bonus: expedition rewards doubled (applied later in progressExpeditions)
   // Industry bonus: cheaper building costs (applied in buildStructure)
@@ -1079,7 +1084,9 @@ function calcDayChanges() {
         const namePool = PET_NAME_POOLS[newPet.id] || ['Luna','Ash','Ember','Twig','Pebble','Moss','Fable','Dusk'];
         const petName = namePool[Math.floor(Math.random()*namePool.length)];
         G.pets.push({type:newPet.id, name:petName});
-        addLog(`🐾 A wild ${newPet.name} ${newPet.icon} has been rescued! Named "${petName}". ${newPet.desc}`);
+        addLog(`🐾 A wild ${newPet.name} ${newPet.icon} has been rescued! Named "${petName}". ${newPet.desc}`, 'pet');
+        // Show prominent toast for pet arrival
+        showResult(`${newPet.icon} New Companion!`, `A wild ${newPet.name} has wandered into the sanctuary! The survivors have named them "${petName}". ${newPet.desc}`, {morale: 5}, false);
         G.petCooldown = 5;
       }
     }
@@ -1117,8 +1124,8 @@ function applyChanges(changes) {
   }
 
   // Morale decay from low resources
-  if(G.resources.food <= 0) { G.morale -= 8; addLog('⚠️ No food! Morale plummets.'); }
-  if(G.resources.water <= 0) { G.morale -= 5; addLog('⚠️ Water shortage! Survivors suffer.'); }
+  if(G.resources.food <= 0) { G.morale -= 8; addLog('⚠️ No food! Morale plummets.', 'danger'); }
+  if(G.resources.water <= 0) { G.morale -= 5; addLog('⚠️ Water shortage! Survivors suffer.', 'danger'); }
 
   // Health decay from starvation
   if(G.resources.food <= 0) {
@@ -1129,15 +1136,46 @@ function applyChanges(changes) {
   G.survivors.filter(s=>s.alive).forEach(s => {
     if(s.health <= 0) {
       s.alive = false;
-      addLog(`💀 ${s.name} has perished. The collective mourns.`);
+      addLog(`💀 ${s.name} has perished. The collective mourns.`, 'danger');
       G.morale -= 15;
     }
   });
 }
 
-function addLog(msg) {
-  logEntries.unshift({text: msg, day: G.day});
+function addLog(msg, category) {
+  // Categories: 'day' (daily summary), 'relationship', 'pet', 'event' (default), 'danger', 'story'
+  logEntries.unshift({text: msg, day: G.day, cat: category || 'event'});
   document.getElementById('event-log').textContent = msg;
+}
+
+// Track previous relationship levels so we can detect changes
+let prevRelLevels = {};
+function trackRelationshipChanges() {
+  const alive = G.survivors.filter(s=>s.alive);
+  for(let i=0;i<alive.length;i++) {
+    for(let j=i+1;j<alive.length;j++) {
+      const a = alive[i].name, b = alive[j].name;
+      const key = a < b ? a+'|'+b : b+'|'+a;
+      const score = getRelationship(a, b);
+      const newLabel = relLabel(score);
+      const oldLabel = prevRelLevels[key];
+      if(oldLabel && oldLabel !== newLabel.text) {
+        const improved = ['Neutral','Warm','Friends','Inseparable'].indexOf(newLabel.text) >
+                         ['Neutral','Warm','Friends','Inseparable'].indexOf(oldLabel);
+        if(improved) {
+          addLog(`${newLabel.icon} ${a} & ${b} are now ${newLabel.text}!`, 'relationship');
+        } else {
+          const worsened = ['Hostile','Rivals','Tense','Neutral'].indexOf(newLabel.text) >
+                           ['Hostile','Rivals','Tense','Neutral'].indexOf(oldLabel) ||
+                           (['Hostile','Rivals','Tense'].includes(newLabel.text) && !['Hostile','Rivals','Tense'].includes(oldLabel));
+          if(worsened || (['Hostile','Rivals','Tense'].includes(newLabel.text) && !['Hostile','Rivals','Tense'].includes(oldLabel))) {
+            addLog(`${newLabel.icon} ${a} & ${b} have become ${newLabel.text}.`, 'relationship');
+          }
+        }
+      }
+      prevRelLevels[key] = newLabel.text;
+    }
+  }
 }
 
 // ════════════════════════════════════════════
@@ -1155,6 +1193,20 @@ function endDay() {
   // Relationship drift — survivors bond or clash based on roles, traits, proximity
   dailyRelationshipDrift();
 
+  // Detect relationship level changes and log them
+  trackRelationshipChanges();
+
+  // Daily summary log
+  const aliveCt = G.survivors.filter(s=>s.alive).length;
+  const bl = balanceLabel();
+  const summaryParts = [];
+  if(changes.food > 0) summaryParts.push(`🌾+${changes.food}`);
+  if(changes.food < 0) summaryParts.push(`🌾${changes.food}`);
+  if(changes.landmark > 0) summaryParts.push(`🏛️+${changes.landmark}`);
+  summaryParts.push(`${aliveCt} survivors`);
+  summaryParts.push(bl);
+  addLog(`📋 Day ${G.day} — ${summaryParts.join(' · ')}`, 'day');
+
   // Progress expeditions
   progressExpeditions();
 
@@ -1169,20 +1221,20 @@ function endDay() {
 
   // ── Fail states (always checked) ──
   if(G.survivors.filter(s=>s.alive).length === 0) {
-    addLog('The last survivor has fallen. The Bloom fades to silence.');
+    addLog('The last survivor has fallen. The Bloom fades to silence.', 'danger');
     setTimeout(() => showEpilogue(), 500);
     return;
   }
 
   if(G.morale <= 0) {
-    addLog('Hope has abandoned the collective. One by one, they scatter into the wilds.');
+    addLog('Hope has abandoned the collective. One by one, they scatter into the wilds.', 'danger');
     setTimeout(() => showEpilogue(), 500);
     return;
   }
 
   // ── If the player already made their Final Choice, trigger the ending ──
   if(G.endingPath) {
-    addLog('The path is chosen. The story of the Bloom Collective reaches its conclusion.');
+    addLog('The path is chosen. The story of the Bloom Collective reaches its conclusion.', 'story');
     setTimeout(() => showEpilogue(), 500);
     return;
   }
@@ -1197,7 +1249,7 @@ function endDay() {
   // Hints about approaching the Final Choice
   if(!G.finalChoiceShown) {
     if(landmarkPct >= 0.5 && resLvl >= 10 && discoveryCount >= 1 && G.day % 5 === 0) {
-      addLog('🌐 The researchers sense something building — the tree hums with purpose. Keep pushing your landmark, research, and investigations...');
+      addLog('🌐 The researchers sense something building — the tree hums with purpose. Keep pushing your landmark, research, and investigations...', 'story');
     }
   }
 
@@ -1503,7 +1555,7 @@ function resolveDilemma(choiceIndex) {
       effects.morale = (effects.morale||0) - 8;
     }
     outcomeText = (choice.badResult || choice.result) + ' But fate had other plans — things went worse than expected.';
-    addLog(`⚠️ ${dilemma.title}: Misfortune strikes...`);
+    addLog(`⚠️ ${dilemma.title}: Misfortune strikes...`, 'danger');
     playWarning();
   } else if(roll > (100 - goodLuckChance)) {
     // GOOD LUCK — things go better than hoped
@@ -1534,7 +1586,7 @@ function resolveDilemma(choiceIndex) {
     if(availNames.length > 0) {
       const newS = createSurvivor(availNames[Math.floor(Math.random()*availNames.length)]);
       G.survivors.push(newS);
-      addLog(`🌟 ${newS.name} has joined the collective!`);
+      addLog(`🌟 ${newS.name} has joined the collective!`, 'story');
     }
   }
 
@@ -1544,7 +1596,7 @@ function resolveDilemma(choiceIndex) {
     if(expendable.length > 1) {
       const leaving = expendable[Math.floor(Math.random()*expendable.length)];
       leaving.alive = false;
-      addLog(`👋 ${leaving.name} departs the collective with our blessings.`);
+      addLog(`👋 ${leaving.name} departs the collective with our blessings.`, 'story');
     }
   }
 
@@ -1765,7 +1817,7 @@ function checkInvestigationTrigger(dilemmaId, choiceIndex) {
 
   // Queue investigation — will prompt player on next day to send survivors
   G.pendingInvestigation = inv.id;
-  addLog(`🔍 ${inv.name}: A deeper mystery has been uncovered. Volunteers needed to investigate...`);
+  addLog(`🔍 ${inv.name}: A deeper mystery has been uncovered. Volunteers needed to investigate...`, 'story');
 }
 
 function showInvestigationPrompt() {
@@ -1847,7 +1899,7 @@ function showInvestigationPrompt() {
   declineBtn.onclick = () => {
     document.getElementById('dilemma-overlay').classList.remove('active');
     G.pendingInvestigation = null;
-    addLog(`🔍 The investigation into ${inv.name} is postponed.`);
+    addLog(`🔍 The investigation into ${inv.name} is postponed.`, 'story');
   };
   choicesDiv.appendChild(declineBtn);
 
@@ -1879,7 +1931,7 @@ function launchInvestigation(invId, survivorNames) {
     pendingChoice: null
   });
 
-  addLog(`🔍 Investigation begun: ${inv.name}. ${survivorNames.join(' & ')} depart for ${inv.days} days.`);
+  addLog(`🔍 Investigation begun: ${inv.name}. ${survivorNames.join(' & ')} depart for ${inv.days} days.`, 'story');
   updateUI();
 }
 
@@ -1900,7 +1952,7 @@ function progressInvestigations() {
 
       if(stage.choice) {
         inv.pendingChoice = stage.choice;
-        addLog(`🔍 ${invData.name}: A critical decision point underground...`);
+        addLog(`🔍 ${invData.name}: A critical decision point underground...`, 'story');
         return true;
       }
     }
@@ -1912,7 +1964,7 @@ function progressInvestigations() {
         if(s) {
           s.expedition = null;
           s.morale = Math.min(100, s.morale + 8);
-          addLog(`🔍 ${s.name} returns from ${invData.name}, changed by what they found.`);
+          addLog(`🔍 ${s.name} returns from ${invData.name}, changed by what they found.`, 'story');
         }
       });
 
@@ -3303,21 +3355,16 @@ function updateCommunityPanel() {
         }).join('')}
       </div>` : ''}
       ${(() => {
+        // Show only notable relationships as compact badges (no bars/percentages)
         const rels = alive.filter(o => o.name !== s.name).map(o => {
           const score = getRelationship(s.name, o.name);
           return {name:o.name, score};
-        }).filter(r => Math.abs(r.score) >= 8).sort((a,b) => Math.abs(b.score) - Math.abs(a.score)).slice(0,3);
+        }).filter(r => Math.abs(r.score) >= 20).sort((a,b) => Math.abs(b.score) - Math.abs(a.score)).slice(0,3);
         if(rels.length === 0) return '';
-        return '<div style="margin-top:6px;padding-top:6px;border-top:1px solid rgba(74,69,64,0.3)">' +
+        return '<div style="margin-top:6px;padding-top:6px;border-top:1px solid rgba(74,69,64,0.3);display:flex;gap:4px;flex-wrap:wrap">' +
           rels.map(r => {
             const rl = relLabel(r.score);
-            const barColor = r.score >= 0 ? 'var(--bloom)' : 'var(--danger)';
-            const barWidth = Math.min(100, Math.abs(r.score));
-            return '<div class="rel-row">' +
-              '<span style="min-width:40px">' + r.name + '</span>' +
-              '<div class="rel-bar-outer"><div class="rel-bar-inner" style="width:'+barWidth+'%;background:'+barColor+'"></div></div>' +
-              '<span class="rel-badge '+rl.css+'">' + rl.icon + ' ' + rl.text + '</span>' +
-            '</div>';
+            return '<span class="rel-badge '+rl.css+'" title="'+r.name+': '+rl.text+' ('+r.score+')">' + rl.icon + ' ' + r.name + '</span>';
           }).join('') +
         '</div>';
       })()}
@@ -3374,7 +3421,7 @@ function updateBuildPanel() {
       <div style="font-size:0.7rem;color:var(--text-dim);margin-top:2px">${Math.round(rLvl)} / 25 ${researchComplete?'✓ Breakthrough!':'— Researchers generate insights over time'}</div>
     </div>
     <div style="font-size:0.65rem;color:var(--text-dim);margin-top:6px;font-style:italic">
-      Victory requires both: Landmark complete + Research breakthrough. Day limit: 60.
+      Push your Landmark and Research to unlock the Final Choice.
     </div>
   </div>`;
 
@@ -3404,7 +3451,7 @@ function buildStructure(id) {
   playChime();
   Object.entries(cost).forEach(([k,v]) => { G.resources[k] -= v; });
   G.buildings.push(id);
-  addLog(`🔨 Built: ${b.name}!`);
+  addLog(`🔨 Built: ${b.name}!`, 'story');
   updateUI();
 }
 
@@ -3539,9 +3586,32 @@ function updateLogPanel() {
   }
 
   html += `<div style="font-size:0.8rem;margin-bottom:8px;color:var(--text-dim)">Event History</div>`;
-  logEntries.slice(0, 40).forEach(entry => {
-    html += `<div style="font-size:0.75rem;padding:4px 0;border-bottom:1px solid rgba(74,69,64,0.3);line-height:1.4">
-      <span style="color:var(--text-dim)">Day ${entry.day}</span> — ${entry.text}
+  logEntries.slice(0, 50).forEach(entry => {
+    const cat = entry.cat || 'event';
+    // Style based on category
+    let style = 'font-size:0.75rem;padding:6px 8px;margin-bottom:4px;border-radius:3px;line-height:1.5;';
+    let dayStyle = 'color:var(--text-dim);font-size:0.65rem;';
+    switch(cat) {
+      case 'day':
+        style += 'background:rgba(107,143,94,0.08);border-left:3px solid var(--bloom);';
+        break;
+      case 'relationship':
+        style += 'background:rgba(196,168,78,0.08);border-left:3px solid var(--gold);';
+        break;
+      case 'pet':
+        style += 'background:rgba(180,130,80,0.1);border-left:3px solid rgba(180,140,80,0.7);';
+        break;
+      case 'danger':
+        style += 'background:rgba(168,84,84,0.08);border-left:3px solid var(--danger);';
+        break;
+      case 'story':
+        style += 'background:rgba(94,127,143,0.1);border-left:3px solid var(--water);';
+        break;
+      default:
+        style += 'border-bottom:1px solid rgba(74,69,64,0.2);';
+    }
+    html += `<div style="${style}">
+      <span style="${dayStyle}">Day ${entry.day}</span> ${entry.text}
     </div>`;
   });
   if(logEntries.length === 0) {
@@ -3829,7 +3899,18 @@ function closeTutorial() {
   initCanvas();
 
   // Initial log
-  addLog('☀️ Dawn breaks over the Great Tree. A new day for the Bloom Collective.');
+  addLog('☀️ Dawn breaks over the Great Tree. A new day for the Bloom Collective.', 'day');
+
+  // Snapshot initial relationship levels so we don't spam "now Neutral" on day 1
+  prevRelLevels = {};
+  const aliveSurvivors = G.survivors.filter(s=>s.alive);
+  for(let i=0;i<aliveSurvivors.length;i++) {
+    for(let j=i+1;j<aliveSurvivors.length;j++) {
+      const a = aliveSurvivors[i].name, b = aliveSurvivors[j].name;
+      const key = a < b ? a+'|'+b : b+'|'+a;
+      prevRelLevels[key] = relLabel(getRelationship(a, b)).text;
+    }
+  }
 
   setTimeout(() => {
     resizeCanvas();
