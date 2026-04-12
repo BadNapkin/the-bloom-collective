@@ -612,6 +612,127 @@ const EXP_EVENTS_ALT = {
   ]
 };
 
+// ── INVESTIGATION EXPEDITIONS — triggered by dilemma chain choices ──
+// These are special multi-day expeditions spawned from dilemma outcomes
+// Survivors are locked out for the duration, like regular expeditions
+const INVESTIGATIONS = {
+  underground_signal: {
+    id: 'underground_signal',
+    name: 'The Underground Signal',
+    days: 4,
+    triggerDilemma: 'relic_signal', // spawned when player investigates the signal
+    triggerChoice: 0, // choice index that triggers this
+    stages: [
+      {text:'Day 1: The team descends through a crack in the root network. The humming grows louder — rhythmic, almost organic. The walls are warm to the touch.'},
+      {text:'Day 2: A vast cavern opens below. Bioluminescent fungi coat the ceiling like stars. In the center: a pillar of intertwined roots and metal, pulsing with light.',
+        choice:{a:'Touch the pillar',aEffect:{landmark:10,bloom:8,healthAll:-12},aText:'The pillar surges with energy. Visions flood the team — images of the world before, during, and after the Switch-Off. The tree above groans and grows.',b:'Document and observe',bEffect:{landmark:6,bloom:3},bText:'Careful sketches and notes. The researchers will pore over these for weeks. Knowledge without risk.'}},
+      {text:'Day 3: The fungi spell out patterns on the walls — maps. Your settlement is marked. So are dozens of others. Lines connect them all, converging on a point labeled "MERIDIAN PRIME."',
+        choice:{a:'Map the coordinates of Meridian Prime',aEffect:{landmark:15,scrap:5},aText:'The coordinates are burned into memory. Somewhere out there, the heart of Project Meridian waits. This changes everything.',b:'Focus on understanding our own node',bEffect:{bloom:6,food:4,compost:3},bText:'Understanding our tree\'s role in the network reveals ways to strengthen it. The sanctuary pulses with renewed vigor.'}},
+      {text:'Day 4: Returning to the surface, the team is changed. They speak of the underground as if it were alive — a nervous system connecting all the Meridian settlements. The tree hums louder now, as if acknowledging what was found.'}
+    ],
+    rewards: {landmark:8, bloom:5, scrap:3},
+    metaFlag: 'underground_explored'
+  },
+  meridian_documents: {
+    id: 'meridian_documents',
+    name: 'The Meridian Files',
+    days: 3,
+    triggerDilemma: 'old_cache',
+    triggerChoice: 1, // blueprints choice
+    stages: [
+      {text:'Day 1: The blueprints from the cache contain more than construction notes. Encoded in the margins: references to "Phase 3" and a facility called "The Nursery." Not for children — for civilizations.'},
+      {text:'Day 2: Cross-referencing with expedition findings reveals a pattern. Every Meridian settlement was seeded near a geological fault line — places where the earth\'s energy runs close to the surface.',
+        choice:{a:'Share findings with the whole community',aEffect:{morale:8,bloom:4},aText:'The community gathers in awe. They aren\'t just survivors — they\'re part of something designed to outlast the old world.',b:'Keep findings among researchers',bEffect:{landmark:12},bText:'The research team works through the night. These findings could accelerate the Landmark dramatically.'}},
+      {text:'Day 3: The final page of the encoded notes: "When the Landmarks activate, the network completes. What was composted becomes soil for what grows next." The researchers look at each other. The Landmark isn\'t just a monument — it\'s a transmitter.'}
+    ],
+    rewards: {landmark:10, scrap:2},
+    metaFlag: 'meridian_files_found'
+  },
+  pulsebox_study: {
+    id: 'pulsebox_study',
+    name: 'Secrets of the Pulsebox',
+    days: 3,
+    triggerDilemma: 'traders',
+    triggerChoice: 1, // pulsebox choice
+    stages: [
+      {text:'Day 1: The Pulsebox sits on the research bench, humming. Its surface is warm — body temperature exactly. When held near the tree, both resonate at the same frequency.'},
+      {text:'Day 2: The team cracks the casing. Inside: not circuits, but a lattice of crystallized organic material wrapped around a seed. A seed that\'s still alive.',
+        choice:{a:'Plant the seed near the Great Tree',aEffect:{bloom:15,food:5},aText:'The seed takes root with explosive speed. New growth spirals up the trunk overnight. The tree is evolving.',b:'Preserve it for study',bEffect:{landmark:14,scrap:4},bText:'The crystalline lattice is a biological computer. Its patterns encode instructions for a new kind of infrastructure — grown, not built.'}},
+      {text:'Day 3: Whether planted or preserved, the Pulsebox has revealed its purpose: a starter kit for post-Switch settlements. Meridian didn\'t just tear down the old world — they planted the seeds of the next one. Literally.'}
+    ],
+    rewards: {landmark:6, bloom:4},
+    metaFlag: 'pulsebox_decoded'
+  },
+  iron_collective_intel: {
+    id: 'iron_collective_intel',
+    name: 'Behind the Iron Curtain',
+    days: 3,
+    triggerDilemma: 'rival',
+    triggerChoice: 2, // alliance choice
+    stages: [
+      {text:'Day 1: The alliance with the Iron Collective grants access to their camp. It\'s harsh — strip-mined earth, belching furnaces. But in their leader\'s tent: a map with the same Meridian symbols you\'ve seen.'},
+      {text:'Day 2: Their leader confides in private: "We found a facility too. But ours was different — it was a furnace, not a garden. Instructions for breaking things down, not building up. Two sides of the same coin."',
+        choice:{a:'Propose merging knowledge',aEffect:{landmark:12,bloom:-4,scrap:8},aText:'Industry and Harmony — the Iron Collective\'s furnace data combined with your tree data reveals Meridian\'s full design. Civilization composted AND rebuilt.',b:'Keep your discoveries secret',bEffect:{bloom:6,morale:4},bText:'Some knowledge is dangerous in the wrong hands. You smile, nod, and keep the tree\'s secrets close.'}},
+      {text:'Day 3: Returning home, the team carries a heavy truth: Meridian designed BOTH paths. Industry and Harmony aren\'t mistakes — they\'re both part of the plan. The balance between them may be the real key.'}
+    ],
+    rewards: {scrap:6, landmark:5},
+    metaFlag: 'iron_collective_truth'
+  }
+};
+
+// ── CHAIN DILEMMAS — triggered after investigation expeditions complete ──
+// These fire as follow-up dilemmas after specific meta flags are set
+const CHAIN_DILEMMAS = [
+  {
+    id:'meridian_convergence',
+    title:'The Convergence Signal',
+    text:'Since the underground expedition, the tree has been broadcasting. Other settlements have responded — flickering lights on the horizon, rhythmic drum patterns carried on the wind. A convergence is being called. But answering means exposing your location to everyone — friend and foe alike.',
+    requiresFlag:'underground_explored',
+    choices:[
+      {text:'Answer the signal — broadcast our location',effects:{bloom:8,morale:10,landmark:15},trait:'Diplomatic',result:'Settlements begin communicating. Trade routes form. The network Meridian designed is coming alive.',badResult:'Raiders intercept the signal. A coordinated attack depletes your stores.',rng:{bad:{food:-12,scrap:-8,healthAll:-10},chance:20}},
+      {text:'Listen but don\'t respond',effects:{bloom:3,landmark:5},trait:'Vigilant',result:'Intelligence without exposure. You learn of other settlements, their struggles, their solutions. Knowledge is power.'},
+      {text:'Jam the signal — we survive alone',effects:{bloom:-8,morale:-6,scrap:6},trait:'Skeptic',result:'Silence. The tree dims slightly, as if disappointed. But no one knows where you are. Safety in isolation.'}
+    ],
+    chain:'phase2_convergence'
+  },
+  {
+    id:'landmark_revelation',
+    title:'The Landmark\'s True Purpose',
+    text:'The Meridian files have revealed a staggering truth: the Landmark isn\'t just a monument — it\'s an antenna. When complete, it will connect to the underground mycelium network and broadcast a resonance that accelerates plant growth across the entire region. But activating it will drain massive energy from the settlement.',
+    requiresFlag:'meridian_files_found',
+    choices:[
+      {text:'Accelerate Landmark construction at any cost',effects:{landmark:25,bloom:-10,healthAll:-15,morale:-8},trait:'Inventive',result:'Workers pour everything into the Landmark. It takes terrible toll, but the structure rises faster than anyone imagined.',badResult:'The forced labor breaks spirits. A worker collapses. The community questions your leadership.',rng:{bad:{morale:-20,healthAll:-10},chance:25}},
+      {text:'Build steadily — the Landmark will come in time',effects:{landmark:8,bloom:5,morale:5},trait:'Resilient',result:'Patience. The Landmark grows at its own pace, like the tree itself. Some things shouldn\'t be rushed.'},
+      {text:'Repurpose Landmark resources for survival',effects:{landmark:-10,food:10,scrap:8,medicine:5},trait:'Pragmatist',result:'Meridian\'s grand plan can wait. Your people need to eat today. The Landmark can resume when bellies are full.'}
+    ],
+    chain:'phase2_landmark'
+  },
+  {
+    id:'seed_network',
+    title:'The Living Network',
+    text:'The Pulsebox seed — whether planted or studied — has begun emitting spores. They drift on the wind like glowing dandelion seeds, settling on nearby soil and sprouting overnight. The tree\'s root network is expanding on its own, reaching toward something underground.',
+    requiresFlag:'pulsebox_decoded',
+    choices:[
+      {text:'Encourage the growth — feed the roots',effects:{compost:-8,bloom:12,food:6},trait:'Purist',result:'The root network explodes with vitality. New growth tunnels connect the settlement to underground water sources and mineral deposits.',badResult:'The roots grow too aggressively, cracking building foundations and disrupting the sleeping quarters.',rng:{bad:{scrap:-6,morale:-8},chance:20}},
+      {text:'Study the spores — understand before encouraging',effects:{landmark:10,bloom:3},trait:'Inventive',result:'The spores carry encoded data in their DNA — construction blueprints for biological infrastructure. Nature\'s own engineering manual.'},
+      {text:'Contain the spread — this is too fast',effects:{bloom:-6,morale:4,scrap:4},trait:'Vigilant',result:'You contain the spores behind barriers. Control maintained, but the tree\'s humming takes on a mournful tone.'}
+    ],
+    chain:'phase2_seeds'
+  },
+  {
+    id:'two_paths',
+    title:'The Two Paths of Meridian',
+    text:'The Iron Collective\'s revelation echoes in your mind: Meridian designed both destruction and creation as a single system. Now a choice crystallizes — lean into one path, or try to walk both. Scouts report a Meridian waystation equidistant between your settlements, untouched since the Switch-Off.',
+    requiresFlag:'iron_collective_truth',
+    choices:[
+      {text:'Claim the waystation for Harmony',effects:{bloom:15,food:8,morale:5},trait:'Purist',result:'The waystation becomes a garden outpost — a living bridge between settlements. Nature reclaims another ruin.'},
+      {text:'Share it with the Iron Collective',effects:{bloom:2,scrap:10,landmark:12,morale:3},trait:'Diplomatic',result:'A joint operation. Their furnaces process raw materials while your gardens provide food. Uneasy, but productive.',badResult:'The Iron Collective uses the opportunity to fortify their position. Trust fractures.',rng:{bad:{morale:-12,scrap:-6},chance:20}},
+      {text:'Claim it for Industry — we need production',effects:{bloom:-10,scrap:15,landmark:10},trait:'Pragmatist',result:'The waystation becomes a factory. Smoke rises, but so does your landmark progress. The earth may forgive you. Eventually.'}
+    ],
+    chain:'phase2_two_paths'
+  }
+];
+
 const PET_TYPES = [
   {id:'fox',name:'Fox',icon:'🦊',trait:'scout',desc:'Scouts ahead on expeditions, reducing risk.',effect:{expSafety:10}},
   {id:'owl',name:'Owl',icon:'🦉',trait:'researcher',desc:'Helps researchers find patterns in old data.',effect:{researchBonus:2}},
@@ -655,7 +776,10 @@ function initState() {
     researchLevel: 0,
     pets: [],
     petCooldown: 0,
-    expVisits: {echoes:0, wildlands:0, shore:0, ruins:0}
+    expVisits: {echoes:0, wildlands:0, shore:0, ruins:0},
+    metaFlags: {},
+    investigations: [],
+    chainDilemmasShown: new Set()
   };
   usedDilemmas.clear();
   logEntries = [];
@@ -995,6 +1119,9 @@ function endDay() {
   // Progress expeditions
   progressExpeditions();
 
+  // Progress investigations (meta story)
+  progressInvestigations();
+
   // Advance day
   G.day++;
 
@@ -1033,8 +1160,16 @@ function endDay() {
     return;
   }
 
-  // Trigger dilemma (60% base chance, guaranteed every 3 days)
-  if(G.day % 3 === 0 || Math.random() < 0.55) {
+  // Check for pending investigation prompts first (takes priority)
+  if(G.pendingInvestigation) {
+    showInvestigationPrompt();
+  }
+  // Then check for chain dilemmas (meta story follow-ups)
+  else if(G.day % 2 === 0 && checkChainDilemmas()) {
+    // Chain dilemma shown — skip regular dilemma this day
+  }
+  // Regular dilemma (60% base chance, guaranteed every 3 days)
+  else if(G.day % 3 === 0 || Math.random() < 0.55) {
     triggerDilemma();
   }
 
@@ -1371,6 +1506,10 @@ function resolveDilemma(choiceIndex) {
   // Record decision
   G.decisions.push({dilemma: dilemma.id, choice: choiceIndex, day: G.day});
 
+  // ── CHECK FOR INVESTIGATION TRIGGER ──
+  // Certain dilemma choices unlock special multi-day investigation expeditions
+  checkInvestigationTrigger(dilemma.id, choiceIndex);
+
   // Show result
   showResult(dilemma.title, outcomeText, effects, wasUnlucky);
 }
@@ -1565,6 +1704,228 @@ function resolveExpChoice(expIndex, choiceKey) {
 }
 
 // ════════════════════════════════════════════
+// INVESTIGATION EXPEDITION SYSTEM
+// ════════════════════════════════════════════
+
+function checkInvestigationTrigger(dilemmaId, choiceIndex) {
+  // Check if this dilemma+choice combo triggers an investigation
+  const inv = Object.values(INVESTIGATIONS).find(i =>
+    i.triggerDilemma === dilemmaId && i.triggerChoice === choiceIndex
+  );
+  if(!inv) return;
+  // Don't trigger if already explored this investigation
+  if(G.metaFlags[inv.metaFlag]) return;
+  // Don't trigger if investigation already active
+  if(G.investigations.some(ig => ig.id === inv.id)) return;
+
+  // Queue investigation — will prompt player on next day to send survivors
+  G.pendingInvestigation = inv.id;
+  addLog(`🔍 ${inv.name}: A deeper mystery has been uncovered. Volunteers needed to investigate...`);
+}
+
+function showInvestigationPrompt() {
+  if(!G.pendingInvestigation) return;
+  const inv = INVESTIGATIONS[G.pendingInvestigation];
+  if(!inv) { G.pendingInvestigation = null; return; }
+
+  const alive = G.survivors.filter(s => s.alive && !s.expedition);
+  if(alive.length < 1) {
+    addLog(`⚠️ No available survivors to investigate ${inv.name}. The mystery will wait.`);
+    G.pendingInvestigation = null;
+    return;
+  }
+
+  // Show a special dilemma-like modal for choosing investigators
+  pendingDilemma = null;
+  playWarning();
+
+  document.getElementById('dilemma-day').textContent = `Day ${G.day} · Investigation`;
+  document.getElementById('dilemma-title').textContent = `🔍 ${inv.name}`;
+  document.getElementById('dilemma-text').textContent =
+    `Your discovery has revealed something deeper. ${inv.stages[0].text.replace('Day 1: ','')} Send 1-2 survivors to investigate — they'll be away for ${inv.days} days.`;
+
+  const opDiv = document.getElementById('dilemma-opinions');
+  opDiv.innerHTML = '';
+
+  const choicesDiv = document.getElementById('dilemma-choices');
+  choicesDiv.innerHTML = '';
+  choicesDiv.style.display = 'flex';
+
+  // Build survivor selection buttons
+  let selectedInvestigators = [];
+  const selDiv = document.createElement('div');
+  selDiv.style.cssText = 'width:100%;margin-bottom:10px';
+  selDiv.innerHTML = `<div style="font-size:0.75rem;color:var(--text-dim);margin-bottom:8px">Select investigators (1-2 survivors):</div>`;
+
+  const survivorGrid = document.createElement('div');
+  survivorGrid.style.cssText = 'display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px';
+
+  alive.forEach(s => {
+    const btn = document.createElement('button');
+    btn.className = 'btn btn-sm';
+    btn.textContent = `${s.name} (❤️${s.health})`;
+    btn.style.cssText = 'font-size:0.7rem';
+    btn.onclick = () => {
+      const idx = selectedInvestigators.indexOf(s.name);
+      if(idx >= 0) {
+        selectedInvestigators.splice(idx, 1);
+        btn.classList.remove('btn-bloom');
+      } else if(selectedInvestigators.length < 2) {
+        selectedInvestigators.push(s.name);
+        btn.classList.add('btn-bloom');
+      }
+      sendBtn.style.display = selectedInvestigators.length > 0 ? 'inline-block' : 'none';
+    };
+    survivorGrid.appendChild(btn);
+  });
+  selDiv.appendChild(survivorGrid);
+  choicesDiv.appendChild(selDiv);
+
+  // Send button
+  const sendBtn = document.createElement('button');
+  sendBtn.className = 'dilemma-choice fade-in';
+  sendBtn.innerHTML = '<span>🔍 Send investigators into the unknown</span>';
+  sendBtn.style.display = 'none';
+  sendBtn.onclick = () => {
+    if(selectedInvestigators.length === 0) return;
+    launchInvestigation(inv.id, selectedInvestigators);
+    document.getElementById('dilemma-overlay').classList.remove('active');
+    G.pendingInvestigation = null;
+  };
+  choicesDiv.appendChild(sendBtn);
+
+  // Decline button
+  const declineBtn = document.createElement('button');
+  declineBtn.className = 'dilemma-choice fade-in';
+  declineBtn.style.animationDelay = '0.1s';
+  declineBtn.innerHTML = '<span>Not now — the mystery can wait</span>';
+  declineBtn.onclick = () => {
+    document.getElementById('dilemma-overlay').classList.remove('active');
+    G.pendingInvestigation = null;
+    addLog(`🔍 The investigation into ${inv.name} is postponed.`);
+  };
+  choicesDiv.appendChild(declineBtn);
+
+  document.getElementById('dilemma-overlay').classList.add('active');
+}
+
+function launchInvestigation(invId, survivorNames) {
+  const inv = INVESTIGATIONS[invId];
+  if(!inv) return;
+  playChime();
+
+  // Lock survivors
+  survivorNames.forEach(name => {
+    const s = G.survivors.find(s => s.name === name);
+    if(s) {
+      s.expedition = 'investigation_' + invId;
+      s.health = Math.max(10, s.health - 10);
+      s.morale = Math.max(5, s.morale - 3);
+    }
+  });
+
+  G.investigations.push({
+    id: invId,
+    survivors: survivorNames,
+    daysLeft: inv.days,
+    totalDays: inv.days,
+    currentStage: 0,
+    journal: [`📍 ${survivorNames.join(' and ')} descend${survivorNames.length>1?'':'s'} to investigate ${inv.name}.`],
+    pendingChoice: null
+  });
+
+  addLog(`🔍 Investigation begun: ${inv.name}. ${survivorNames.join(' & ')} depart for ${inv.days} days.`);
+  updateUI();
+}
+
+function progressInvestigations() {
+  if(!G.investigations) return;
+  G.investigations = G.investigations.filter(inv => {
+    if(inv.pendingChoice) return true; // waiting for player
+
+    inv.daysLeft--;
+    const invData = INVESTIGATIONS[inv.id];
+    if(!invData) return false;
+
+    const stageIdx = inv.totalDays - inv.daysLeft - 1;
+
+    if(stageIdx < invData.stages.length) {
+      const stage = invData.stages[stageIdx];
+      inv.journal.push(stage.text);
+
+      if(stage.choice) {
+        inv.pendingChoice = stage.choice;
+        addLog(`🔍 ${invData.name}: A critical decision point underground...`);
+        return true;
+      }
+    }
+
+    if(inv.daysLeft <= 0) {
+      // Investigation complete — return survivors and set meta flag
+      inv.survivors.forEach(name => {
+        const s = G.survivors.find(s => s.name === name);
+        if(s) {
+          s.expedition = null;
+          s.morale = Math.min(100, s.morale + 8);
+          addLog(`🔍 ${s.name} returns from ${invData.name}, changed by what they found.`);
+        }
+      });
+
+      // Apply rewards
+      applyChanges(invData.rewards);
+
+      // Set meta flag — this unlocks chain dilemmas
+      G.metaFlags[invData.metaFlag] = true;
+
+      // Show investigation haul
+      const haulTitle = `🔍 Investigation Complete: ${invData.name}`;
+      const lastJournal = inv.journal[inv.journal.length - 1] || '';
+      const haulText = `${inv.survivors.join(' & ')} emerged after ${inv.totalDays} days underground.\n"${lastJournal.replace(/^Day \d+: /,'')}"`;
+      showResult(haulTitle, haulText, invData.rewards, false);
+
+      return false; // remove investigation
+    }
+    return true;
+  });
+}
+
+function resolveInvChoice(invIndex, choiceKey) {
+  playClick();
+  const inv = G.investigations[invIndex];
+  if(!inv || !inv.pendingChoice) return;
+
+  const effects = choiceKey === 'a' ? inv.pendingChoice.aEffect : inv.pendingChoice.bEffect;
+  const flavorText = choiceKey === 'a' ? (inv.pendingChoice.aText || inv.pendingChoice.a) : (inv.pendingChoice.bText || inv.pendingChoice.b);
+  applyChanges(effects);
+
+  const label = choiceKey === 'a' ? (inv.pendingChoice.a || 'Option A') : (inv.pendingChoice.b || 'Option B');
+  inv.journal.push(`→ ${label}: ${flavorText}`);
+  inv.pendingChoice = null;
+
+  updateUI();
+}
+
+function checkChainDilemmas() {
+  // Check if any chain dilemmas should fire based on meta flags
+  if(!G.chainDilemmasShown) G.chainDilemmasShown = new Set();
+
+  const available = CHAIN_DILEMMAS.filter(cd =>
+    G.metaFlags[cd.requiresFlag] &&
+    !G.chainDilemmasShown.has(cd.id)
+  );
+
+  if(available.length === 0) return false;
+
+  // Pick one (prioritize older flags)
+  const chosen = available[0];
+  G.chainDilemmasShown.add(chosen.id);
+
+  // Show it as a special dilemma
+  showDilemma(chosen);
+  return true;
+}
+
+// ════════════════════════════════════════════
 // CANVAS - TREE SANCTUARY
 // ════════════════════════════════════════════
 
@@ -1656,11 +2017,11 @@ function drawSanctuary() {
       const gy = h*0.85 + Math.sin(gx*0.03)*8 + Math.sin(gx*0.01)*15;
       const gh = G.bloom > 30 ? (5 + bm*8 + Math.sin(Date.now()*0.002+i)*2) : (3 + bm*3);
       const swayAmt = G.bloom > 30 ? Math.sin(Date.now()*0.003+i)*3 : Math.sin(Date.now()*0.003+i)*1;
-      // Low bloom: brown/yellow dead grass. High bloom: vibrant green
+      // Low bloom: brown/amber grass (more opaque). High bloom: vibrant green
       if(G.bloom < 30) {
-        ctx.strokeStyle = `rgba(${120+Math.floor(Math.random()*30)},${90+Math.floor(Math.random()*20)},${40},${0.25+bm*0.15})`;
+        ctx.strokeStyle = `rgba(${130+Math.floor(Math.random()*30)},${95+Math.floor(Math.random()*20)},${40},${0.45+bm*0.15})`;
       } else {
-        ctx.strokeStyle = `rgba(${80+bm*40},${100+bm*50},${60+bm*30},${0.3+bm*0.3})`;
+        ctx.strokeStyle = `rgba(${80+bm*40},${100+bm*50},${60+bm*30},${0.4+bm*0.35})`;
       }
       ctx.lineWidth = 1.5;
       ctx.beginPath();
@@ -1801,21 +2162,33 @@ function drawSanctuary() {
       ctx.stroke();
     }
 
-    // Leaf clusters — MORE leaves and BIGGER at high bloom, sparse and brown at low
+    // Leaf clusters — MORE leaves and BIGGER at high bloom, brown (not vanishing) at low/industry
     {
       const bloomN = G.bloom / 100; // 0 to 1
-      const leafCount = Math.max(1, Math.floor(bloomN * 10));
+      // Industry-leaning: still show leaves, just brown/amber — minimum 3 leaves even at bloom=0
+      const leafCount = Math.max(3, Math.floor(bloomN * 10));
       for(let i=0;i<leafCount;i++){
         const t = 0.2 + (i/leafCount)*0.7;
         const lx = bx + (endX-bx)*t + sway*t + (Math.random()-0.5)*18;
         const ly = by + (endY-by)*t + (Math.random()-0.5)*12;
         const lr = 3 + bloomN*12 + Math.sin(Date.now()*0.002+i+b.x)*2;
-        const alpha = 0.1 + bloomN*0.4;
-        // Color: brown/yellow at low, rich green at high
-        const rC = Math.floor(130 - bloomN*70 + Math.random()*20);
-        const gC = Math.floor(70 + bloomN*120 + Math.random()*20);
-        const bC = Math.floor(25 + bloomN*20);
-        ctx.fillStyle = `rgba(${rC},${gC},${bC},${alpha})`;
+        // More opaque across the board — industry leaves are brown but still visible
+        const alpha = 0.3 + bloomN*0.45;
+        // Color: amber/brown at low (industry), rich green at high (harmony)
+        let rC, gC, bCC;
+        if(bloomN < 0.5) {
+          // Industry range: amber → brown (warm tones, not vanishing)
+          const indN = 1 - (bloomN / 0.5); // 0 at bloom=50, 1 at bloom=0
+          rC = Math.floor(140 + indN*40 + Math.random()*15); // warm orange-brown
+          gC = Math.floor(100 - indN*40 + Math.random()*15); // muted greens → brown
+          bCC = Math.floor(30 + Math.random()*10);
+        } else {
+          // Harmony range: green → rich emerald
+          rC = Math.floor(130 - bloomN*70 + Math.random()*20);
+          gC = Math.floor(70 + bloomN*120 + Math.random()*20);
+          bCC = Math.floor(25 + bloomN*20);
+        }
+        ctx.fillStyle = `rgba(${rC},${gC},${bCC},${alpha})`;
         ctx.beginPath();
         ctx.ellipse(lx,ly,lr,lr*0.7,Math.random()*Math.PI,0,Math.PI*2);
         ctx.fill();
@@ -1860,16 +2233,25 @@ function drawSanctuary() {
     {y:0.18,r:0.25,alpha:0.3},{y:0.06,r:0.2,alpha:0.15}
   ];
   const bloomN = G.bloom / 100;
-  const canopyScale = 0.3 + bloomN * 0.9; // 0.3 at bloom=0, 1.2 at bloom=100
+  const canopyScale = 0.4 + bloomN * 0.8; // 0.4 at bloom=0 (still visible), 1.2 at bloom=100
   canopyLayers.forEach(cl => {
     const cx = treeX + Math.sin(Date.now()*0.0005+cl.y*10)*3;
     const cy = h * cl.y;
     const cr = (w * cl.r) * canopyScale;
-    // Color shifts: brown-grey at low, rich emerald at high
-    const rC = Math.floor(90 - bloomN*50);
-    const gC = Math.floor(50 + bloomN*130);
-    const bC = Math.floor(25 + bloomN*25);
-    const alpha = cl.alpha * (0.4 + bloomN*0.8);
+    // Color: warm brown/amber at low (industry), rich emerald at high (harmony)
+    let rC, gC, bC;
+    if(bloomN < 0.5) {
+      const indN = 1 - (bloomN / 0.5); // 0 at 50, 1 at 0
+      rC = Math.floor(100 + indN*50);  // warm brown
+      gC = Math.floor(70 - indN*20);   // muted
+      bC = Math.floor(30);
+    } else {
+      rC = Math.floor(90 - bloomN*50);
+      gC = Math.floor(50 + bloomN*130);
+      bC = Math.floor(25 + bloomN*25);
+    }
+    // More opaque overall — industry canopy is brown, not transparent
+    const alpha = cl.alpha * (0.5 + bloomN*0.7);
     ctx.fillStyle = `rgba(${rC},${gC},${bC},${alpha})`;
     ctx.beginPath();
     ctx.ellipse(cx,cy,cr,cr*0.5,0,0,Math.PI*2);
@@ -1908,7 +2290,7 @@ function drawSanctuary() {
     }
   }
 
-  // Ground flowers AND bushes at high bloom — much more at higher bloom
+  // Ground flowers at high bloom
   if(G.bloom > 40) {
     const groundFlowers = Math.floor((G.bloom - 40) / 4);
     for(let i=0;i<groundFlowers;i++){
@@ -1916,19 +2298,34 @@ function drawSanctuary() {
       const gy = h*0.85 + Math.sin(gx*0.03)*8 + Math.sin(gx*0.01)*15 - 3;
       drawFlower(gx, gy, 2+Math.random()*3, i*13+99);
     }
-    // Bushes (small leafy mounds)
-    const bushCount = Math.floor((G.bloom - 40) / 8);
-    for(let i=0;i<bushCount;i++){
-      const bx = w*0.08 + (i/(bushCount||1))*w*0.84 + Math.sin(i*7.3)*30;
+  }
+  // Bushes — always present, green at high bloom, brown/amber at low (industry)
+  {
+    const bushCount = G.bloom > 40 ? Math.floor((G.bloom - 40) / 8) : Math.max(2, Math.floor(G.bloom / 12));
+    const totalBushes = Math.max(2, bushCount);
+    for(let i=0;i<totalBushes;i++){
+      const bx = w*0.08 + (i/(totalBushes||1))*w*0.84 + Math.sin(i*7.3)*30;
       const by = h*0.85 + Math.sin(bx*0.03)*8 + Math.sin(bx*0.01)*15;
-      const bSize = 8 + (G.bloom/100)*12 + Math.sin(Date.now()*0.001+i)*2;
-      const gVal = Math.floor(80 + (G.bloom/100)*100);
-      ctx.fillStyle = `rgba(${50+Math.floor(Math.random()*20)},${gVal},${35},${0.3+(G.bloom/100)*0.3})`;
+      const bSize = 6 + (G.bloom/100)*14 + Math.sin(Date.now()*0.001+i)*2;
+      let gVal, rVal, bushAlpha;
+      if(G.bloom >= 50) {
+        // Harmony: green bushes
+        rVal = 50 + Math.floor(Math.random()*20);
+        gVal = Math.floor(80 + (G.bloom/100)*100);
+        bushAlpha = 0.35 + (G.bloom/100)*0.35;
+      } else {
+        // Industry: amber/brown bushes — still visible!
+        const indN = (50 - G.bloom) / 50; // 0 at 50, 1 at 0
+        rVal = Math.floor(110 + indN*50 + Math.random()*15);
+        gVal = Math.floor(80 - indN*25 + Math.random()*10);
+        bushAlpha = 0.3 + (1-indN)*0.2;
+      }
+      ctx.fillStyle = `rgba(${rVal},${gVal},${35},${bushAlpha})`;
       ctx.beginPath();
       ctx.ellipse(bx, by-bSize*0.4, bSize, bSize*0.6, 0, 0, Math.PI*2);
       ctx.fill();
       // Bush highlight
-      ctx.fillStyle = `rgba(${60},${gVal+20},${40},${0.15+(G.bloom/100)*0.15})`;
+      ctx.fillStyle = `rgba(${rVal+10},${gVal+20},${40},${bushAlpha*0.5})`;
       ctx.beginPath();
       ctx.ellipse(bx-2, by-bSize*0.5, bSize*0.6, bSize*0.35, -0.2, 0, Math.PI*2);
       ctx.fill();
@@ -2699,21 +3096,21 @@ function updateAndDrawFireflies(w, h, bm) {
 }
 
 function updateAndDrawLeaves(w, h, bm) {
-  // Low bloom = lots of fast-falling dead leaves. High bloom = gentle rare green drift.
-  const isDecaying = G.bloom < 35;
-  const spawnRate = isDecaying ? 0.08 + (1-bm)*0.1 : 0.015 * bm;
-  const maxLeaves = isDecaying ? 40 : 15;
+  // Low bloom = brown autumn leaves drifting. High bloom = gentle green drift.
+  const isIndustry = G.bloom < 35;
+  const spawnRate = isIndustry ? 0.06 + (1-bm)*0.08 : 0.015 * bm;
+  const maxLeaves = isIndustry ? 35 : 15;
 
   if(Math.random() < spawnRate && leafParticles.length < maxLeaves) {
     leafParticles.push({
       x: Math.random()*w, y: -10,
-      vx: (Math.random()-0.5) * (isDecaying ? 1.2 : 0.4),
-      vy: isDecaying ? 0.6+Math.random()*1.0 : 0.2+Math.random()*0.4,
+      vx: (Math.random()-0.5) * (isIndustry ? 1.0 : 0.4),
+      vy: isIndustry ? 0.5+Math.random()*0.8 : 0.2+Math.random()*0.4,
       rot: Math.random()*Math.PI*2,
-      rotSpeed: (Math.random()-0.5) * (isDecaying ? 0.04 : 0.015),
-      size: isDecaying ? 2+Math.random()*3 : 3+Math.random()*4,
+      rotSpeed: (Math.random()-0.5) * (isIndustry ? 0.035 : 0.015),
+      size: isIndustry ? 3+Math.random()*3 : 3+Math.random()*4,
       life: 1,
-      dead: isDecaying
+      dead: isIndustry
     });
   }
 
@@ -2732,13 +3129,13 @@ function updateAndDrawLeaves(w, h, bm) {
     ctx.translate(l.x, l.y);
     ctx.rotate(l.rot);
     if(l.dead) {
-      // Dead leaf: brown, curled, faded
+      // Dead/industry leaf: brown and opaque
       const brown = 80 + Math.floor(Math.random()*40);
-      ctx.fillStyle = `rgba(${brown+40},${brown},${30},${l.life*0.5})`;
+      ctx.fillStyle = `rgba(${brown+40},${brown},${30},${l.life*0.8})`;
     } else {
-      // Living leaf: green, vibrant
+      // Living leaf: green, vibrant, more opaque
       const g = Math.floor(120+bm*60);
-      ctx.fillStyle = `rgba(${60+Math.floor(Math.random()*20)},${g},${40},${l.life*0.6})`;
+      ctx.fillStyle = `rgba(${60+Math.floor(Math.random()*20)},${g},${40},${l.life*0.85})`;
     }
     ctx.beginPath();
     ctx.ellipse(0,0,l.size,l.size*(l.dead?0.3:0.45),0,0,Math.PI*2);
@@ -2990,6 +3387,27 @@ function updateExpeditionPanel() {
     });
   }
 
+  // Active investigations (meta story)
+  if(G.investigations && G.investigations.length > 0) {
+    html += `<div style="font-size:0.8rem;margin-bottom:8px;color:var(--gold)">🔍 Active Investigations</div>`;
+    G.investigations.forEach((inv, idx) => {
+      const invData = INVESTIGATIONS[inv.id];
+      if(!invData) return;
+      html += `<div class="exp-card exp-active" style="border-color:var(--gold)">
+        <div class="exp-name" style="color:var(--gold)">🔍 ${invData.name}</div>
+        <div class="exp-survivors">🧑 ${inv.survivors.join(' & ')}</div>
+        <div class="exp-progress">Day ${inv.totalDays - inv.daysLeft} of ${inv.totalDays}</div>
+        <div class="exp-journal">${inv.journal[inv.journal.length-1]}</div>
+        ${inv.pendingChoice ? `
+          <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">
+            <button class="btn btn-sm btn-bloom" onclick="resolveInvChoice(${idx},'a')">${inv.pendingChoice.a}</button>
+            <button class="btn btn-sm btn-warn" onclick="resolveInvChoice(${idx},'b')">${inv.pendingChoice.b}</button>
+          </div>
+        ` : ''}
+      </div>`;
+    });
+  }
+
   // Send new expedition
   const availableSurvivors = G.survivors.filter(s=>s.alive && !s.expedition);
   const canSend = G.expeditions.length < 2 && availableSurvivors.length >= 2;
@@ -3052,7 +3470,30 @@ function toggleExpSurvivor(name) {
 
 function updateLogPanel() {
   const div = document.getElementById('tab-log');
-  let html = `<div style="font-size:0.8rem;margin-bottom:8px;color:var(--text-dim)">Event History</div>`;
+  let html = '';
+
+  // Meridian Discoveries section
+  const flags = G.metaFlags || {};
+  const discoveryCount = Object.values(flags).filter(v=>v).length;
+  if(discoveryCount > 0) {
+    const flagLabels = {
+      underground_explored: '🌿 The Underground Signal — root network mapped',
+      meridian_files_found: '📄 The Meridian Files — Landmark\'s true purpose revealed',
+      pulsebox_decoded: '⚡ Pulsebox Decoded — Meridian seed technology understood',
+      iron_collective_truth: '⚔️ Iron Collective Truth — two paths of Meridian discovered'
+    };
+    html += `<div style="font-size:0.8rem;margin-bottom:6px;color:var(--gold)">🔍 Meridian Discoveries (${discoveryCount}/4)</div>`;
+    Object.entries(flagLabels).forEach(([flag, label]) => {
+      if(flags[flag]) {
+        html += `<div style="font-size:0.7rem;padding:3px 0;color:var(--bloom)">${label}</div>`;
+      } else {
+        html += `<div style="font-size:0.7rem;padding:3px 0;color:var(--text-dim);font-style:italic">??? — Undiscovered</div>`;
+      }
+    });
+    html += `<div style="border-bottom:1px solid var(--border);margin:8px 0"></div>`;
+  }
+
+  html += `<div style="font-size:0.8rem;margin-bottom:8px;color:var(--text-dim)">Event History</div>`;
   logEntries.slice(0, 40).forEach(entry => {
     html += `<div style="font-size:0.75rem;padding:4px 0;border-bottom:1px solid rgba(74,69,64,0.3);line-height:1.4">
       <span style="color:var(--text-dim)">Day ${entry.day}</span> — ${entry.text}
@@ -3243,15 +3684,34 @@ function showEpilogue() {
     });
   }
 
-  // ── Decision summary ──
+  // ── Decision summary (includes chain dilemma decisions) ──
+  const allDilemmaPool = [...DILEMMAS, ...CHAIN_DILEMMAS];
   const puristChoices = G.decisions.filter(d => {
-    const dilemma = DILEMMAS.find(di=>di.id===d.dilemma);
+    const dilemma = allDilemmaPool.find(di=>di.id===d.dilemma);
     return dilemma && dilemma.choices[d.choice] && dilemma.choices[d.choice].trait === 'Purist';
   }).length;
   const pragmatistChoices = G.decisions.filter(d => {
-    const dilemma = DILEMMAS.find(di=>di.id===d.dilemma);
+    const dilemma = allDilemmaPool.find(di=>di.id===d.dilemma);
     return dilemma && dilemma.choices[d.choice] && dilemma.choices[d.choice].trait === 'Pragmatist';
   }).length;
+
+  // ── Meridian Discoveries epilogue ──
+  const flags = G.metaFlags || {};
+  const discoveryCount = Object.values(flags).filter(v=>v).length;
+  if(discoveryCount > 0) {
+    content += `<div style="margin-top:16px"><strong>🔍 Project Meridian — ${discoveryCount}/4 Discoveries</strong></div>`;
+    if(flags.underground_explored) content += `<div class="ep-survivor">The underground signal was followed to its source. The root network connecting Meridian settlements was mapped — your tree is a node in a vast living web.</div>`;
+    if(flags.meridian_files_found) content += `<div class="ep-survivor">The encoded blueprints revealed the Landmark's true purpose: not a monument, but a transmitter designed to complete the Meridian network.</div>`;
+    if(flags.pulsebox_decoded) content += `<div class="ep-survivor">The Pulsebox seed was cracked open, revealing biological computing and the starter-kit nature of every Meridian settlement.</div>`;
+    if(flags.iron_collective_truth) content += `<div class="ep-survivor">The Iron Collective's cooperation unveiled Meridian's dual design — both destruction and creation were always part of the plan.</div>`;
+    if(discoveryCount >= 4) {
+      content += `<div style="padding:8px;margin-top:8px;background:rgba(196,168,78,0.15);border:1px solid var(--gold);border-radius:4px;font-size:0.85rem;color:var(--gold);line-height:1.5">
+        <strong>THE FULL PICTURE:</strong> You uncovered all of Meridian's secrets. The Switch-Off was not an ending — it was a controlled demolition to make way for something new. The Great Trees, the Landmarks, the underground networks — all seeds planted by those who knew civilization needed to be composted before it could grow again. Your collective is not just surviving. It is the future Meridian designed. And it is blooming.
+      </div>`;
+    } else if(discoveryCount >= 2) {
+      content += `<div style="padding:6px;margin-top:6px;font-size:0.8rem;color:var(--text-dim);font-style:italic">Fragments of a larger picture... but some mysteries remained buried.</div>`;
+    }
+  }
 
   // Ending grade
   const grades = {1:'⚖️ The Way Found',2:'🌿 Garden of Patience',3:'⚒️ Iron Will',4:'🏗️ Unfinished Business',5:'📖 Scholar\'s Lament',6:'🛡️ Endurance',7:'🍂 Fading Light',8:'💀 The Silence',9:'😔 Despair'};
