@@ -181,14 +181,17 @@ canvas{display:block}
 #result-effects{font-size:0.75rem;color:var(--text-dim);margin-bottom:16px}
 
 /* ── Epilogue ── */
-#epilogue-screen{flex-direction:column;align-items:center;justify-content:center;background:var(--bg);
-  text-align:center;padding:40px;overflow-y:auto}
-#epilogue-screen h1{font-size:2rem;color:var(--bloom-glow);margin-bottom:8px}
-#epilogue-screen .ep-subtitle{font-size:1rem;color:var(--text-dim);font-style:italic;margin-bottom:24px}
-#epilogue-content{max-width:560px;text-align:left;font-size:0.85rem;line-height:1.8;margin-bottom:24px}
-#epilogue-content p{margin-bottom:12px}
-#epilogue-content .ep-survivor{padding:8px 12px;border-left:2px solid var(--bloom);margin-bottom:8px}
-#balance-final{font-size:1.5rem;color:var(--bloom-glow);margin-bottom:16px}
+#epilogue-screen{flex-direction:column;align-items:center;background:var(--bg);
+  text-align:center;padding:30px 20px;overflow-y:auto}
+#epilogue-screen h1{font-size:1.8rem;color:var(--bloom-glow);margin-bottom:4px}
+#epilogue-screen .ep-subtitle{font-size:0.9rem;color:var(--text-dim);font-style:italic;margin-bottom:12px}
+#epilogue-content{max-width:560px;text-align:left;font-size:0.8rem;line-height:1.7;margin-bottom:20px;max-height:65vh;overflow-y:auto;padding-right:8px}
+#epilogue-content::-webkit-scrollbar{width:4px}
+#epilogue-content::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+#epilogue-content p{margin-bottom:8px}
+#epilogue-content .ep-survivor{padding:6px 10px;border-left:2px solid var(--bloom);margin-bottom:6px;font-size:0.78rem}
+#epilogue-content .ep-section{margin-top:14px;margin-bottom:6px;font-size:0.85rem;color:var(--bloom-glow);border-bottom:1px solid var(--border);padding-bottom:4px}
+#balance-final{font-size:0.85rem;color:var(--text-dim);margin-bottom:12px}
 
 /* ── Tutorial (two-column newspaper) ── */
 #tutorial-screen{align-items:center;justify-content:center;background:var(--bg);padding:20px}
@@ -274,7 +277,7 @@ canvas{display:block}
       </div>
       <div class="tut-item" style="border-color:var(--text-dim)">
         <strong style="color:var(--text)">🏛️ Goal</strong>
-        Complete the <em>Community Landmark</em> <strong>AND</strong> achieve the <em>Research Breakthrough</em> before <strong>Day 60</strong>. Middle-ground endings await if you don't fully succeed. Press <strong>End Day →</strong> to advance.
+        Uncover the truth of <em>Project Meridian</em>, build your <em>Community Landmark</em>, and advance your <em>Research</em>. When you've progressed far enough, a <strong>Final Choice</strong> will shape your community's destiny — three paths, each with its own ending. Press <strong>End Day →</strong> to advance.
       </div>
     </div>
     <div style="text-align:center;margin-top:18px">
@@ -348,12 +351,14 @@ canvas{display:block}
 
 <!-- ═══ EPILOGUE ═══ -->
 <div id="epilogue-screen" class="screen">
-  <div style="font-size:3rem;margin-bottom:12px">⚖️</div>
+  <div style="font-size:2.5rem;margin-bottom:8px">⚖️</div>
   <h1>Epilogue</h1>
   <p class="ep-subtitle" id="ep-subtitle"></p>
   <div id="balance-final"></div>
   <div id="epilogue-content"></div>
-  <button class="btn" onclick="location.reload()">Begin Again</button>
+  <div style="margin-top:8px;display:flex;gap:12px">
+    <button class="btn" onclick="location.reload()">Begin Again</button>
+  </div>
 </div>
 
 <script>
@@ -733,6 +738,38 @@ const CHAIN_DILEMMAS = [
   }
 ];
 
+// ── FINAL CHOICE — the endgame dilemma triggered by reaching checkpoints ──
+// Requires: Landmark >=60%, Research >= 15, AND at least 2 Meridian discoveries
+const FINAL_CHOICE = {
+  id: 'final_choice',
+  title: 'The Path Forward',
+  text: 'The research is clear. The Meridian network is real — roots beneath the earth connecting every Great Tree, every settlement, every survivor. Your Landmark nears completion, and with it, a choice that will define not just your community, but the future of the post-Switch world.',
+  textMeridianFull: 'You\'ve uncovered all four pieces of Project Meridian\'s design. The network is real — and your Landmark is the final switch. One signal, and the mycorrhizal web connecting every Great Tree activates. But activation isn\'t the only option.',
+  choices: [
+    {
+      id: 'connected',
+      text: 'Activate the Landmark — connect the bloom network',
+      desc: 'Complete the Meridian network. Broadcast your location, share your knowledge, and link every settlement through the living web beneath the earth. The old world ended in isolation. The new one begins in connection.',
+      trait: 'Diplomatic',
+      requirements: 'Landmark ≥ 70% and Research ≥ 20'
+    },
+    {
+      id: 'isolationist',
+      text: 'Sever the roots — cut off from civilization',
+      desc: 'Disable the Landmark\'s transmitter. Collapse the tunnels. Burn the Meridian files. Your community survived this long alone — you don\'t need a network designed by the same people who ended the world. True safety is independence.',
+      trait: 'Vigilant',
+      requirements: 'Always available'
+    },
+    {
+      id: 'purist',
+      text: 'Return to the earth — reject all technology',
+      desc: 'Dismantle the Landmark. Bury the research. Let the tree grow wild and the Meridian network fade into myth. The people who switched off civilization were right about one thing — humanity\'s tools became its chains. Live simply. Live free.',
+      trait: 'Purist',
+      requirements: 'Always available'
+    }
+  ]
+};
+
 const PET_TYPES = [
   {id:'fox',name:'Fox',icon:'🦊',trait:'scout',desc:'Scouts ahead on expeditions, reducing risk.',effect:{expSafety:10}},
   {id:'owl',name:'Owl',icon:'🦉',trait:'researcher',desc:'Helps researchers find patterns in old data.',effect:{researchBonus:2}},
@@ -778,6 +815,8 @@ function initState() {
     petCooldown: 0,
     expVisits: {echoes:0, wildlands:0, shore:0, ruins:0},
     metaFlags: {},
+    endingPath: null,
+    finalChoiceShown: false,
     investigations: [],
     chainDilemmasShown: new Set()
   };
@@ -1128,26 +1167,7 @@ function endDay() {
   // Natural morale recovery
   if(G.morale < 30) G.morale += 2;
 
-  // Check game end conditions
-  // Win: Landmark complete AND research level >= 25 (need real research investment)
-  const landmarkDone = G.landmark.progress >= G.landmark.required;
-  const researchReady = (G.researchLevel||0) >= 25;
-  if(landmarkDone && researchReady) {
-    addLog('🏛️ The Landmark is complete and the research breakthrough is achieved!');
-    setTimeout(() => showEpilogue(), 500);
-    return;
-  }
-  // Landmark done but not enough research — keep going, hint at needing research
-  if(landmarkDone && !researchReady) {
-    if(G.day % 3 === 0) addLog('🏛️ The Landmark stands, but the researchers say the final breakthrough eludes them. Assign more researchers!');
-  }
-  // Day limit: game ends on day 60 no matter what (middle-ground endings)
-  if(G.day >= 60) {
-    addLog('The seasons turn. Time has run its course for this chapter of the collective.');
-    setTimeout(() => showEpilogue(), 500);
-    return;
-  }
-
+  // ── Fail states (always checked) ──
   if(G.survivors.filter(s=>s.alive).length === 0) {
     addLog('The last survivor has fallen. The Bloom fades to silence.');
     setTimeout(() => showEpilogue(), 500);
@@ -1160,9 +1180,34 @@ function endDay() {
     return;
   }
 
+  // ── If the player already made their Final Choice, trigger the ending ──
+  if(G.endingPath) {
+    addLog('The path is chosen. The story of the Bloom Collective reaches its conclusion.');
+    setTimeout(() => showEpilogue(), 500);
+    return;
+  }
+
+  // ── Checkpoint-based Final Choice trigger ──
+  // Conditions: Landmark >= 60% AND Research >= 15 AND at least 2 Meridian discoveries
+  const landmarkPct = G.landmark.progress / G.landmark.required;
+  const resLvl = G.researchLevel || 0;
+  const discoveryCount = Object.values(G.metaFlags||{}).filter(v=>v).length;
+  const finalChoiceReady = !G.finalChoiceShown && landmarkPct >= 0.6 && resLvl >= 15 && discoveryCount >= 2;
+
+  // Hints about approaching the Final Choice
+  if(!G.finalChoiceShown) {
+    if(landmarkPct >= 0.5 && resLvl >= 10 && discoveryCount >= 1 && G.day % 5 === 0) {
+      addLog('🌐 The researchers sense something building — the tree hums with purpose. Keep pushing your landmark, research, and investigations...');
+    }
+  }
+
   // Check for pending investigation prompts first (takes priority)
   if(G.pendingInvestigation) {
     showInvestigationPrompt();
+  }
+  // Final Choice takes priority when conditions are met
+  else if(finalChoiceReady) {
+    showFinalChoice();
   }
   // Then check for chain dilemmas (meta story follow-ups)
   else if(G.day % 2 === 0 && checkChainDilemmas()) {
@@ -3216,7 +3261,7 @@ function updateCommunityPanel() {
     <div style="margin-top:4px;display:flex;gap:8px;flex-wrap:wrap">${fEntries}</div>
     <div style="margin-top:6px;display:flex;gap:12px;flex-wrap:wrap">
       <span style="color:var(--water)">📖 Research: ${resGrade} (${Math.round(resLvl)}/25)</span>
-      <span style="color:var(--text-dim)">📅 Day ${G.day}/60</span>
+      <span style="color:var(--text-dim)">📅 Day ${G.day}</span>
     </div>
   </div>`;
 
@@ -3509,221 +3554,257 @@ function updateLogPanel() {
 // EPILOGUE
 // ════════════════════════════════════════════
 
+// ── FINAL CHOICE — the endgame dilemma ──
+function showFinalChoice() {
+  G.finalChoiceShown = true;
+  playClick();
+
+  const discoveryCount = Object.values(G.metaFlags||{}).filter(v=>v).length;
+  const fc = FINAL_CHOICE;
+  const text = discoveryCount >= 4 ? fc.textMeridianFull : fc.text;
+
+  // Check if "Connected" path is available (needs Landmark >= 70% and Research >= 20)
+  const landmarkPct = G.landmark.progress / G.landmark.required;
+  const resLvl = G.researchLevel || 0;
+  const connectedAvailable = landmarkPct >= 0.7 && resLvl >= 20;
+
+  const overlay = document.getElementById('dilemma-overlay');
+  let html = '<div style="max-width:520px;width:90%;background:var(--panel);border:2px solid var(--gold);border-radius:8px;padding:24px;position:relative">';
+  html += '<div style="position:absolute;top:-14px;left:50%;transform:translateX(-50%);background:var(--gold);color:var(--bg);padding:2px 14px;border-radius:3px;font-size:0.7rem;letter-spacing:0.15em;font-weight:bold">\u2696\uFE0F THE FINAL CHOICE</div>';
+  html += '<h3 style="color:var(--gold);margin-bottom:12px;font-size:1.1rem">' + fc.title + '</h3>';
+  html += '<p style="font-size:0.82rem;line-height:1.7;color:var(--text);margin-bottom:16px">' + text + '</p>';
+
+  fc.choices.forEach(function(choice, idx) {
+    const isConnected = choice.id === 'connected';
+    const disabled = isConnected && !connectedAvailable;
+    const borderColor = choice.id === 'connected' ? 'var(--bloom)' : choice.id === 'isolationist' ? 'var(--industry)' : 'var(--water)';
+    const icon = choice.id === 'connected' ? '\uD83C\uDF10' : choice.id === 'isolationist' ? '\uD83D\uDEE1\uFE0F' : '\uD83C\uDF3F';
+
+    html += '<div style="margin-bottom:10px;padding:12px;border:1px solid ' + (disabled ? 'var(--border)' : borderColor) + ';border-radius:4px;' + (disabled ? 'opacity:0.45;' : 'cursor:pointer;') + 'background:rgba(0,0,0,0.2);transition:all 0.3s"';
+    if(!disabled) {
+      html += ' onclick="resolveFinalChoice(\'' + choice.id + '\')"';
+      html += ' onmouseover="this.style.background=\'rgba(107,143,94,0.1)\'" onmouseout="this.style.background=\'rgba(0,0,0,0.2)\'"';
+    }
+    html += '>';
+    html += '<div style="font-size:0.85rem;color:' + (disabled ? 'var(--text-dim)' : 'var(--text)') + ';margin-bottom:4px"><strong>' + icon + ' ' + choice.text + '</strong></div>';
+    html += '<div style="font-size:0.75rem;color:var(--text-dim);line-height:1.5">' + choice.desc + '</div>';
+    if(disabled) {
+      html += '<div style="font-size:0.7rem;color:var(--warn);margin-top:4px;font-style:italic">Requires: ' + choice.requirements + '</div>';
+    }
+    html += '</div>';
+  });
+
+  html += '</div>';
+  overlay.innerHTML = html;
+  overlay.style.display = 'flex';
+}
+
+function resolveFinalChoice(pathId) {
+  playClick();
+  G.endingPath = pathId;
+  G.decisions.push({dilemma:'final_choice', choice:pathId, day:G.day});
+
+  var pathNames = {connected:'Connect the Bloom Network', isolationist:'Cut Off from Civilization', purist:'Return to the Earth'};
+  addLog('\u2696\uFE0F THE PATH IS CHOSEN: ' + pathNames[pathId]);
+
+  if(pathId === 'connected') {
+    G.bloom = Math.min(100, G.bloom + 10);
+    G.morale = Math.min(100, G.morale + 10);
+    G.landmark.progress = G.landmark.required;
+    addLog('\uD83C\uDF10 The Landmark hums to life. The bloom network activates. Signals ripple through the earth...');
+  } else if(pathId === 'isolationist') {
+    G.bloom = Math.max(0, G.bloom - 10);
+    G.morale = Math.min(100, G.morale + 5);
+    var scrapGain = Math.round(G.landmark.progress * 0.3);
+    G.resources.scrap = (G.resources.scrap||0) + scrapGain;
+    addLog('\uD83D\uDEE1\uFE0F The tunnels collapse. The Landmark\'s transmitter is dismantled for ' + scrapGain + ' scrap. Silence. Safety.');
+  } else if(pathId === 'purist') {
+    G.bloom = Math.min(100, G.bloom + 15);
+    G.morale = Math.min(100, G.morale + 8);
+    addLog('\uD83C\uDF3F The research notes feed the compost. The Landmark becomes a trellis for climbing vines. The tree breathes.');
+  }
+
+  document.getElementById('dilemma-overlay').style.display = 'none';
+  updateUI();
+}
+
 function showEpilogue() {
   G.gameOver = true;
   const alive = G.survivors.filter(s=>s.alive);
-  const landmarkDone = G.landmark.progress >= G.landmark.required;
-  const researchReady = (G.researchLevel||0) >= 25;
-  const fullWin = landmarkDone && researchReady;
   const bloomFinal = G.bloom;
   const resLvl = G.researchLevel||0;
   const petCount = G.pets.length;
+  const path = G.endingPath;
+  const flags = G.metaFlags || {};
+  const discoveryCount = Object.values(flags).filter(v=>v).length;
 
   document.getElementById('game-screen').classList.remove('active');
   const epi = document.getElementById('epilogue-screen');
   epi.classList.add('active');
 
-  // ── Determine ending tier ──
-  // Tier 1: Full Victory (landmark + research + high bloom)
-  // Tier 2: Bittersweet Victory (landmark + research + mid bloom)
-  // Tier 3: Pyrrhic Victory (landmark + research + low bloom)
-  // Tier 4: Unfinished Beacon (landmark done, research short)
-  // Tier 5: The Scholar's Regret (research done, landmark short)
-  // Tier 6: Endurance (time ran out, decent bloom, survivors alive)
-  // Tier 7: Fade (time ran out, low bloom or few survivors)
-  // Tier 8: Total collapse (all dead)
-  // Tier 9: Despair (morale zero)
+  // ── Determine ending ──
+  let subtitle, grade;
 
-  let tier, subtitle;
-  const isBalanced = bloomFinal >= 35 && bloomFinal <= 65;
   if(alive.length === 0) {
-    tier = 8;
     subtitle = 'The Silence Returns';
+    grade = '\uD83D\uDC80 The Silence';
   } else if(G.morale <= 0) {
-    tier = 9;
     subtitle = 'Hope Fades to Memory';
-  } else if(fullWin && isBalanced) {
-    tier = 1;
-    subtitle = 'The Way Found';
-  } else if(fullWin && bloomFinal > 65) {
-    tier = 2;
-    subtitle = 'A Garden of Patience';
-  } else if(fullWin) {
-    tier = 3;
-    subtitle = 'Built on Iron Will';
-  } else if(landmarkDone && !researchReady) {
-    tier = 4;
-    subtitle = 'The Unfinished Beacon';
-  } else if(!landmarkDone && resLvl >= 20) {
-    tier = 5;
-    subtitle = 'The Scholar\'s Lament';
-  } else if(alive.length >= 3 && isBalanced) {
-    tier = 6;
-    subtitle = 'Endurance';
+    grade = '\uD83D\uDE14 Despair';
+  } else if(path === 'connected') {
+    subtitle = discoveryCount >= 4 ? 'The Network Awakens' : 'A Signal in the Dark';
+    grade = '\uD83C\uDF10 The Connected';
+  } else if(path === 'isolationist') {
+    subtitle = 'The Fortress Endures';
+    grade = '\uD83D\uDEE1\uFE0F The Fortress';
+  } else if(path === 'purist') {
+    subtitle = 'Return to the Green';
+    grade = '\uD83C\uDF3F The Rewilding';
   } else {
-    tier = 7;
     subtitle = 'A Fading Light';
+    grade = '\uD83C\uDF42 Unfinished';
   }
 
   document.getElementById('ep-subtitle').textContent = subtitle;
 
-  // Research grade
   let researchGrade = 'Novice';
   if(resLvl >= 30) researchGrade = 'Visionary';
   else if(resLvl >= 20) researchGrade = 'Scholar';
   else if(resLvl >= 12) researchGrade = 'Apprentice';
   else if(resLvl >= 5) researchGrade = 'Student';
 
-  const balLabel = bloomFinal >= 65 ? '🌿 Harmony' : bloomFinal >= 35 ? '⚖️ Balanced' : '⚒️ Industry';
-  document.getElementById('balance-final').textContent = `${balLabel} (${Math.round(bloomFinal)}) · Day ${G.day} · ${alive.length} survivors · Research: ${researchGrade} (${Math.round(resLvl)})${petCount>0?' · 🐾 '+petCount+' pets':''}`;
+  const balLabel = bloomFinal >= 65 ? '\uD83C\uDF3F Harmony' : bloomFinal >= 35 ? '\u2696\uFE0F Balanced' : '\u2692\uFE0F Industry';
+  document.getElementById('balance-final').textContent = balLabel + ' (' + Math.round(bloomFinal) + ') \u00B7 Day ' + G.day + ' \u00B7 ' + alive.length + ' survivors \u00B7 Research: ' + researchGrade + (petCount>0?' \u00B7 \uD83D\uDC3E '+petCount+' pets':'');
 
   let content = '';
 
-  switch(tier) {
-    case 1: // Full Victory - Balanced (The Way)
-      content += `<p>The Community Landmark rises from the canopy like a second sun — a beacon woven from living wood and earned wisdom. It is not brick and steel alone, nor just root and bloom. It is <em>both</em>. The accumulated weight of every choice, every trade-off, every moment you held the line between progress and patience.</p>
-      <p>The researchers' final breakthrough unlocks the secret of the Great Tree's network — a mycorrhizal web that connects every living thing within miles. The knowledge spreads like spores on the wind.</p>
-      <p>You found The Way. Not harmony alone — that would have been too slow. Not industry alone — that would have burned everything down. You walked the line between them, and the community thrived because of it.</p>
-      <p>Word spreads. Other collectives send messengers — not with demands, but with questions. <em>How did you find The Way?</em></p>`;
-      if(petCount > 0) content += `<p>The animals of the nursery — ${G.pets.map(p=>p.name+' the '+PET_TYPES.find(t=>t.id===p.type).name).join(', ')} — roam freely through the canopy, beloved by all.</p>`;
-      break;
-    case 2: // Full Victory - Harmony leaning
-      content += `<p>The Landmark stands, grown as much as built — woven from living wood and patient craft. The researchers' breakthrough came through careful observation of nature's own patterns, and the knowledge it unlocked feels less like invention and more like remembering.</p>
-      <p>The tree hums with vitality. Seeds carried on the wind settle in places no one has tended, and they <em>grow</em>. The garden feeds not just the collective but the land around it.</p>
-      <p>But the Landmark took longer than it needed to. Some nights the community wonders what else they might have built if they'd been willing to push harder. Harmony is beautiful, but it has a price — and that price is speed.</p>
-      <p>Still — the earth remembers kindness, and repays it in time.</p>`;
-      break;
-    case 3: // Full Victory - Industry leaning
-      content += `<p>The Landmark is completed and the research breakthrough achieved — built with iron will and relentless efficiency. The construction moved fast, the salvage operations were ruthless, and the results speak for themselves.</p>
-      <p>But the earth around the tree is tired. The air tastes of ambition. Some of the garden plots lie fallow, and the animals keep their distance. Industry got you here, but the land will need time to forgive.</p>
-      <p>The knowledge your researchers unlocked is powerful — perhaps powerful enough to heal what was spent. The question is whether the collective still has the patience to let it.</p>`;
-      break;
-    case 4: // Landmark done, research incomplete
-      content += `<p>The Community Landmark rises above the canopy — an impressive feat of collective willpower. But the researchers shake their heads. "We needed more time," they say. "More minds on the problem."</p>
-      <p>The beacon stands, but it is <em>inert</em>. Without the research breakthrough, it is stone and wood and good intentions — a monument to what might have been, not a bridge to what comes next.</p>
-      <p>Trade caravans see it from miles away and come to marvel. But when they ask "What does it do?", the collective can only answer: "It reminds us we tried."</p>
-      <p>The knowledge gap haunts the community. The Landmark stands as both triumph and warning — great works require not just labour, but understanding.</p>`;
-      break;
-    case 5: // Research high, landmark incomplete
-      content += `<p>The researchers achieved something remarkable — breakthroughs that will echo through generations. They decoded fragments of the old world's agricultural science, mapped the Great Tree's root network, and developed techniques that could transform any settlement.</p>
-      <p>But the Landmark remains unfinished. A skeleton of ambition poking through the canopy, half-built platforms swaying in the wind. The knowledge exists, but the monument that would <em>proclaim</em> it to the world does not.</p>
-      <p>Wanderers who visit find a community rich in wisdom but modest in stature. "Come back when we've finished building," they say with tired smiles. The blueprints are ready. The hands were not enough.</p>`;
-      break;
-    case 6: // Time ran out, decent shape
-      content += `<p>Sixty days. Not enough to complete the great work, but enough to build something worth remembering. The Landmark stands half-finished — ${Math.round(G.landmark.progress/G.landmark.required*100)}% complete — and the research continues, page by careful page.</p>
-      <p>The collective endures. The garden produces. The Balance sits at ${Math.round(bloomFinal)} — ${bloomFinal >= 45 && bloomFinal <= 55 ? 'right on The Way, a community that found equilibrium even if it didn\'t find completion' : bloomFinal > 55 ? 'leaning toward harmony, a gentle community that perhaps needed more urgency' : 'leaning toward industry, an efficient community that perhaps needed more patience'}.</p>
-      <p>This isn't failure. It's a chapter ending mid-sentence, with the pen still in hand. The next sixty days — and the sixty after that — will determine whether this was a prologue or an epitaph.</p>
-      <p>"We didn't finish," says one survivor over the evening fire. "But we didn't break, either."</p>`;
-      break;
-    case 7: // Time ran out, poor shape
-      content += `<p>The days blur together until, one morning, the community realises the season has turned and the window has closed. The Landmark sits at ${Math.round(G.landmark.progress/G.landmark.required*100)}% — a monument to good intentions and hard choices.</p>
-      <p>With the Balance at ${Math.round(bloomFinal)} and ${alive.length} weary survivor${alive.length!==1?'s':''} remaining, the collective faces a hard truth: ${bloomFinal < 30 ? 'the relentless push for industry consumed the land and the people alike' : bloomFinal > 70 ? 'the gentle pace of harmony couldn\'t outrun the ticking clock' : 'survival consumed every ounce of energy that might have gone toward building something greater'}.</p>
-      <p>Some drift away. Others dig in deeper. The tree grows on, indifferent to human timelines, patient as only a living thing can be. Perhaps others will come. Perhaps <em>these</em> survivors will try again, older and wiser.</p>
-      <p>The wind carries seeds. That is its own kind of hope.</p>`;
-      break;
-    case 8: // All dead
-      content += `<p>The platforms stand empty. The garden, untended, begins its slow return to wild. The Great Tree absorbs the abandoned structures into its bark, year by year, ring by ring.</p>
-      <p>The research notes scatter in the wind. The Landmark — ${Math.round(G.landmark.progress/G.landmark.required*100)}% complete — becomes a ruin before it was ever finished. Nature reclaims what was borrowed.</p>`;
-      if(petCount > 0) content += `<p>The animals linger longest. ${G.pets.map(p=>p.name).join(' and ')} patrol the empty platforms for weeks before finally venturing into the wild, carrying with them the last warmth of human kindness they knew.</p>`;
-      content += `<p>A hundred years from now, a traveler will pause beneath its branches and feel something — a warmth, a sadness, a sense that someone tried very hard here.</p>
-      <p>The Bloom remembers, even when the world forgets.</p>`;
-      break;
-    case 9: // Morale zero
-      content += `<p>The collective dissolves not with a bang but with a quiet, exhausted exhale. One by one, the survivors drift away — not in anger, but in the simple absence of hope.</p>
-      <p>The research — ${researchGrade} level, ${Math.round(resLvl)} insights gathered — goes with them in fragments. Pieces of knowledge distributed across wanderers who may never meet again.</p>
-      <p>The tree remains. The garden, half-built and half-wild, holds on. Somewhere, the seeds of what you planted still wait in the soil.</p>
-      <p>It wasn't the end. It was an interruption.</p>`;
-      break;
+  // ═══ Main narrative based on path ═══
+  if(path === 'connected') {
+    if(discoveryCount >= 4) {
+      content += '<p>The Landmark pulses with light \u2014 not electric, not fire, but something older. The mycorrhizal network beneath the earth carries your signal outward in waves, and one by one, other Landmarks answer. Points of light on a darkened map, flickering to life like stars remembering how to shine.</p>';
+      content += '<p>You uncovered all of Meridian\'s design. The Switch-Off wasn\'t destruction \u2014 it was composting. And now the seeds are sprouting. Your collective becomes a hub in a living web of settlements, sharing knowledge, resources, and hope through the roots beneath the world.</p>';
+    } else {
+      content += '<p>The Landmark hums. The signal goes out \u2014 fragile, uncertain, a voice calling into the dark. And from the dark... answers come. Flickering lights on the horizon. Drum patterns carried on the wind. You don\'t know the full picture of what Meridian planned, but you\'ve chosen to trust that connection is better than silence.</p>';
+      content += '<p>Trade routes form along the root network. Knowledge flows between settlements like sap through veins. It\'s messy, imperfect, and occasionally dangerous \u2014 but it\'s <em>alive</em>.</p>';
+    }
+    if(bloomFinal >= 50) {
+      content += '<p>The garden thrives alongside the network. Your community proves that technology and nature aren\'t enemies \u2014 they\'re partners. The Balance you maintained makes this possible.</p>';
+    } else {
+      content += '<p>The network demanded industry, and industry left its mark. The garden struggles around the Landmark\'s foundations. But knowledge flowing through the network includes techniques for healing scarred earth. In time, the balance may return.</p>';
+    }
+
+  } else if(path === 'isolationist') {
+    content += '<p>The tunnels collapse with a sound like the earth sighing. The Landmark\'s transmitter \u2014 painstakingly built \u2014 is stripped for parts. The Meridian files burn in the evening fire, their encoded secrets returning to ash and memory.</p>';
+    content += '<p>Your community chose independence. The network that Meridian designed will have to complete itself without you. And there is a fierce, defiant pride in that \u2014 in saying <em>"we survive on our own terms."</em></p>';
+    if(bloomFinal >= 50) {
+      content += '<p>The garden feeds you. The tree shelters you. Without the distraction of grand networks and transmitters, the community turns inward \u2014 strengthening bonds, perfecting techniques, building a life that needs nothing from the outside world.</p>';
+    } else {
+      content += '<p>The salvaged scrap fuels new construction. Walls go up. Watchtowers. Forges. Your community becomes a fortress \u2014 self-sufficient, disciplined, and closed. Traders find warm enough welcome, but no one is invited to stay.</p>';
+    }
+    content += '<p>Generations later, the stories of Meridian become bedtime tales \u2014 warnings about trusting grand designs. "We switched ourselves off from <em>their</em> network," the elders say, "and switched on our own."</p>';
+
+  } else if(path === 'purist') {
+    content += '<p>The research notes feed the compost pile. The Landmark \u2014 half-built monument to ambition \u2014 becomes a trellis for climbing vines. Within a season, you can barely see where stone ends and nature begins.</p>';
+    content += '<p>Your community made the choice that Meridian\'s architects always hoped someone would: to let go. Not out of ignorance, but out of wisdom. The people who switched off civilization understood that humanity\'s tools had become its chains. You agree.</p>';
+    if(bloomFinal >= 60) {
+      content += '<p>The tree <em>sings</em>. Without the hum of research equipment or the clang of construction, you hear it for the first time \u2014 a low, resonant tone that vibrates in your chest. The survivors sit in silence beneath its branches, and for the first time since the Switch-Off, the world feels <em>whole</em>.</p>';
+    } else {
+      content += '<p>Letting go of industry is harder than expected. Hands accustomed to hammers learn to hold seeds instead. It\'s slower. Quieter. Some nights, someone stares at the vine-covered Landmark and wonders <em>what if</em>. But the tree grows taller each season, and the wondering fades.</p>';
+    }
+    content += '<p>The underground network pulses on without your input \u2014 Meridian\'s design continuing like roots beneath the earth, whether anyone tends it or not. Your collective becomes a garden. Not a node. Not a fortress. Just a place where things grow.</p>';
+
+  } else if(alive.length === 0) {
+    content += '<p>The platforms stand empty. The garden begins its slow return to wild. The Great Tree absorbs the abandoned structures into its bark, year by year, ring by ring.</p>';
+    content += '<p>The Landmark \u2014 ' + Math.round(G.landmark.progress/G.landmark.required*100) + '% complete \u2014 becomes a ruin before it was ever finished.</p>';
+    if(petCount > 0) content += '<p>' + G.pets.map(function(p){return p.name}).join(' and ') + ' linger longest, patrolling empty platforms before venturing into the wild.</p>';
+    content += '<p>A hundred years from now, a traveler will pause beneath its branches and feel something \u2014 a warmth, a sense that someone tried very hard here. The Bloom remembers.</p>';
+
+  } else if(G.morale <= 0) {
+    content += '<p>The collective dissolves not with a bang but with a quiet exhale. One by one, survivors drift away \u2014 not in anger, but in the absence of hope.</p>';
+    content += '<p>The research goes with them in fragments. The tree remains. The garden holds on. It wasn\'t the end. It was an interruption.</p>';
+
+  } else {
+    content += '<p>The community endures \u2014 day after day, choice after choice. The Landmark at ' + Math.round(G.landmark.progress/G.landmark.required*100) + '% stands as testament to what was attempted, if not completed.</p>';
+    content += '<p>The story isn\'t over. It\'s just waiting for someone to choose its ending.</p>';
   }
 
-  // ── Pet epilogues ──
-  if(petCount > 0 && alive.length > 0 && tier !== 8) {
-    content += `<div style="margin-top:16px"><strong>The Companions</strong></div>`;
-    G.pets.forEach(pet => {
-      const pt = PET_TYPES.find(t=>t.id===pet.type);
+  // ═══ Companions ═══
+  if(petCount > 0 && alive.length > 0) {
+    content += '<div class="ep-section">\uD83D\uDC3E The Companions</div>';
+    G.pets.forEach(function(pet) {
+      const pt = PET_TYPES.find(function(t){return t.id===pet.type});
       const petFates = {
-        fox: `${pet.name} the Fox continues to scout the perimeter at dawn, an unbreakable habit from expedition days.`,
-        owl: `${pet.name} the Owl roosts in the library rafters, hooting softly as researchers work below.`,
-        cat: `${pet.name} the Cat claims the warmest spot by the fire each evening, settling arguments simply by existing.`,
-        dog: `${pet.name} the Dog remains the first to greet every returning expedition, tail never still.`,
-        rabbit: `${pet.name} the Rabbit has turned the garden into a warren of tunnels — the gardeners pretend to mind.`,
-        crow: `${pet.name} the Crow still brings shiny trinkets to the workshop, arranged in neat rows nobody asked for.`,
-        deer: `${pet.name} the Deer leads the foragers each morning, always knowing where the best growth hides.`,
-        hawk: `${pet.name} the Hawk circles the Landmark at dusk, a silhouette against the painted sky.`
+        fox: pet.name + ' the Fox scouts the perimeter at dawn \u2014 an unbreakable habit.',
+        owl: pet.name + ' the Owl roosts in the library rafters, hooting as researchers work.',
+        cat: pet.name + ' the Cat claims the warmest spot each evening, settling arguments by existing.',
+        dog: pet.name + ' the Dog greets every returning expedition, tail never still.',
+        rabbit: pet.name + ' the Rabbit turned the garden into a warren \u2014 the gardeners pretend to mind.',
+        crow: pet.name + ' the Crow still brings trinkets to the workshop in neat rows.',
+        deer: pet.name + ' the Deer leads foragers each morning to the best growth.',
+        hawk: pet.name + ' the Hawk circles at dusk, a silhouette against the painted sky.'
       };
-      content += `<div class="ep-survivor">${pt.icon} ${petFates[pet.type]||pet.name+' lived on.'}</div>`;
+      content += '<div class="ep-survivor">' + pt.icon + ' ' + (petFates[pet.type]||pet.name+' lived on.') + '</div>';
     });
   }
 
-  // ── Individual survivors ──
+  // ═══ Survivors ═══
   if(alive.length > 0) {
-    content += `<div style="margin-top:16px"><strong>The Survivors</strong></div>`;
-    alive.forEach(s => {
+    content += '<div class="ep-section">\uD83D\uDC65 The Survivors</div>';
+    alive.forEach(function(s) {
       const fates = [];
-      if(s.traits.includes('Purist')) fates.push('became a keeper of seeds, guarding the garden\'s legacy');
-      if(s.traits.includes('Pragmatist')) fates.push('organized the first trade routes to neighboring collectives');
-      if(s.traits.includes('Compassionate')) fates.push('founded a tradition of welcoming wanderers');
-      if(s.traits.includes('Inventive')) fates.push('continued to study the old blueprints, dreaming of what comes next');
-      if(s.traits.includes('Diplomatic')) fates.push('became the voice that settled disputes for years to come');
-      if(s.traits.includes('Resilient')) fates.push('never stopped building, even when others rested');
-      if(s.traits.includes('Vigilant')) fates.push('watched the horizon, ensuring the collective was never caught unprepared again');
-      if(s.traits.includes('Resourceful')) fates.push('found uses for things no one else could see');
-      const fate = fates.length > 0 ? fates[Math.floor(Math.random()*fates.length)] : 'lived quietly, content with the peace they helped build';
-      // Find strongest relationship
+      if(s.traits.includes('Purist')) fates.push('became a keeper of seeds');
+      if(s.traits.includes('Pragmatist')) fates.push('organized trade routes');
+      if(s.traits.includes('Compassionate')) fates.push('welcomed wanderers');
+      if(s.traits.includes('Inventive')) fates.push('studied the old blueprints');
+      if(s.traits.includes('Diplomatic')) fates.push('settled disputes for years');
+      if(s.traits.includes('Resilient')) fates.push('never stopped building');
+      if(s.traits.includes('Vigilant')) fates.push('watched the horizon');
+      if(s.traits.includes('Resourceful')) fates.push('found uses for everything');
+      const fate = fates.length > 0 ? fates[Math.floor(Math.random()*fates.length)] : 'lived quietly, content';
       let bestRel = null;
-      alive.forEach(o => {
+      alive.forEach(function(o) {
         if(o.name === s.name) return;
         const r = getRelationship(s.name, o.name);
         if(!bestRel || Math.abs(r) > Math.abs(bestRel.score)) bestRel = {name:o.name, score:r};
       });
       let relNote = '';
-      if(bestRel && bestRel.score >= 40) relNote = ` Their bond with ${bestRel.name} became the stuff of campfire legend.`;
-      else if(bestRel && bestRel.score >= 20) relNote = ` They remained close with ${bestRel.name} through the years.`;
-      else if(bestRel && bestRel.score <= -30) relNote = ` The rift with ${bestRel.name} never fully healed.`;
-      content += `<div class="ep-survivor"><strong>${s.name}</strong> <em>(${s.traits.join(', ')})</em> — ${fate}.${relNote}</div>`;
+      if(bestRel && bestRel.score >= 40) relNote = ' Bond with ' + bestRel.name + ' became legend.';
+      else if(bestRel && bestRel.score >= 20) relNote = ' Remained close with ' + bestRel.name + '.';
+      else if(bestRel && bestRel.score <= -30) relNote = ' The rift with ' + bestRel.name + ' never healed.';
+      content += '<div class="ep-survivor"><strong>' + s.name + '</strong> <em>(' + s.traits.join(', ') + ')</em> \u2014 ' + fate + '.' + relNote + '</div>';
     });
   }
 
-  // ── Decision summary (includes chain dilemma decisions) ──
-  const allDilemmaPool = [...DILEMMAS, ...CHAIN_DILEMMAS];
-  const puristChoices = G.decisions.filter(d => {
-    const dilemma = allDilemmaPool.find(di=>di.id===d.dilemma);
-    return dilemma && dilemma.choices[d.choice] && dilemma.choices[d.choice].trait === 'Purist';
-  }).length;
-  const pragmatistChoices = G.decisions.filter(d => {
-    const dilemma = allDilemmaPool.find(di=>di.id===d.dilemma);
-    return dilemma && dilemma.choices[d.choice] && dilemma.choices[d.choice].trait === 'Pragmatist';
-  }).length;
-
-  // ── Meridian Discoveries epilogue ──
-  const flags = G.metaFlags || {};
-  const discoveryCount = Object.values(flags).filter(v=>v).length;
+  // ═══ Meridian Discoveries ═══
   if(discoveryCount > 0) {
-    content += `<div style="margin-top:16px"><strong>🔍 Project Meridian — ${discoveryCount}/4 Discoveries</strong></div>`;
-    if(flags.underground_explored) content += `<div class="ep-survivor">The underground signal was followed to its source. The root network connecting Meridian settlements was mapped — your tree is a node in a vast living web.</div>`;
-    if(flags.meridian_files_found) content += `<div class="ep-survivor">The encoded blueprints revealed the Landmark's true purpose: not a monument, but a transmitter designed to complete the Meridian network.</div>`;
-    if(flags.pulsebox_decoded) content += `<div class="ep-survivor">The Pulsebox seed was cracked open, revealing biological computing and the starter-kit nature of every Meridian settlement.</div>`;
-    if(flags.iron_collective_truth) content += `<div class="ep-survivor">The Iron Collective's cooperation unveiled Meridian's dual design — both destruction and creation were always part of the plan.</div>`;
+    content += '<div class="ep-section">\uD83D\uDD0D Project Meridian \u2014 ' + discoveryCount + '/4</div>';
+    if(flags.underground_explored) content += '<div class="ep-survivor">The root network connecting Meridian settlements was mapped.</div>';
+    if(flags.meridian_files_found) content += '<div class="ep-survivor">The Landmark\'s true purpose was revealed \u2014 a transmitter.</div>';
+    if(flags.pulsebox_decoded) content += '<div class="ep-survivor">The Pulsebox revealed biological computing \u2014 Meridian\'s starter kit.</div>';
+    if(flags.iron_collective_truth) content += '<div class="ep-survivor">The Iron Collective unveiled Meridian\'s dual design.</div>';
     if(discoveryCount >= 4) {
-      content += `<div style="padding:8px;margin-top:8px;background:rgba(196,168,78,0.15);border:1px solid var(--gold);border-radius:4px;font-size:0.85rem;color:var(--gold);line-height:1.5">
-        <strong>THE FULL PICTURE:</strong> You uncovered all of Meridian's secrets. The Switch-Off was not an ending — it was a controlled demolition to make way for something new. The Great Trees, the Landmarks, the underground networks — all seeds planted by those who knew civilization needed to be composted before it could grow again. Your collective is not just surviving. It is the future Meridian designed. And it is blooming.
-      </div>`;
-    } else if(discoveryCount >= 2) {
-      content += `<div style="padding:6px;margin-top:6px;font-size:0.8rem;color:var(--text-dim);font-style:italic">Fragments of a larger picture... but some mysteries remained buried.</div>`;
+      content += '<div style="padding:6px;margin-top:6px;background:rgba(196,168,78,0.15);border:1px solid var(--gold);border-radius:4px;font-size:0.78rem;color:var(--gold);line-height:1.5"><strong>THE FULL PICTURE:</strong> The Switch-Off was not an ending \u2014 it was composting. The Great Trees, Landmarks, and underground networks were seeds planted by those who knew civilization needed to be broken down before it could grow again.</div>';
     }
   }
 
-  // Ending grade
-  const grades = {1:'⚖️ The Way Found',2:'🌿 Garden of Patience',3:'⚒️ Iron Will',4:'🏗️ Unfinished Business',5:'📖 Scholar\'s Lament',6:'🛡️ Endurance',7:'🍂 Fading Light',8:'💀 The Silence',9:'😔 Despair'};
+  // ═══ Stats ═══
+  const allDilemmaPool = [...DILEMMAS, ...CHAIN_DILEMMAS];
+  const puristChoices = G.decisions.filter(function(d) {
+    const dilemma = allDilemmaPool.find(function(di){return di.id===d.dilemma});
+    return dilemma && dilemma.choices[d.choice] && dilemma.choices[d.choice].trait === 'Purist';
+  }).length;
+  const pragmatistChoices = G.decisions.filter(function(d) {
+    const dilemma = allDilemmaPool.find(function(di){return di.id===d.dilemma});
+    return dilemma && dilemma.choices[d.choice] && dilemma.choices[d.choice].trait === 'Pragmatist';
+  }).length;
 
-  content += `<div style="margin-top:20px;padding:12px;background:rgba(107,143,94,0.1);border:1px solid var(--border);border-radius:4px">
-    <div style="font-size:1rem;margin-bottom:8px;color:var(--bloom-glow)">${grades[tier]||'Unknown'}</div>
-    <div style="font-size:0.8rem;color:var(--text-dim);line-height:1.6">
-      <p>Days survived: ${G.day} · Decisions made: ${G.decisions.length} · Structures built: ${G.buildings.length} · Pets rescued: ${petCount}</p>
-      <p>Landmark: ${Math.round(G.landmark.progress)}/${G.landmark.required} (${Math.round(G.landmark.progress/G.landmark.required*100)}%) · Research: ${researchGrade} (${Math.round(resLvl)}/25)</p>
-      <p>Leaned Harmony ${puristChoices} time${puristChoices!==1?'s':''} · Leaned Industry ${pragmatistChoices} time${pragmatistChoices!==1?'s':''}</p>
-    </div>
-  </div>`;
+  content += '<div style="margin-top:14px;padding:10px;background:rgba(107,143,94,0.1);border:1px solid var(--border);border-radius:4px">';
+  content += '<div style="font-size:0.9rem;margin-bottom:6px;color:var(--bloom-glow)">' + grade + '</div>';
+  content += '<div style="font-size:0.75rem;color:var(--text-dim);line-height:1.6">';
+  content += 'Days: ' + G.day + ' \u00B7 Decisions: ' + G.decisions.length + ' \u00B7 Buildings: ' + G.buildings.length + ' \u00B7 Pets: ' + petCount + '<br>';
+  content += 'Landmark: ' + Math.round(G.landmark.progress) + '/' + G.landmark.required + ' (' + Math.round(G.landmark.progress/G.landmark.required*100) + '%) \u00B7 Research: ' + researchGrade + ' (' + Math.round(resLvl) + ')<br>';
+  content += 'Harmony choices: ' + puristChoices + ' \u00B7 Industry choices: ' + pragmatistChoices + ' \u00B7 Meridian: ' + discoveryCount + '/4';
+  content += '</div></div>';
 
   document.getElementById('epilogue-content').innerHTML = content;
 }
