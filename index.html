@@ -239,6 +239,7 @@ canvas{display:block}
   #tutorial-inner{padding:16px}
   #epilogue-screen{padding:20px 16px}
   #epilogue-content{max-height:55vh}
+  #music-toggle{bottom:48px;right:8px;width:32px;height:32px;font-size:0.9rem}
 }
 /* ── Small phones ── */
 @media(max-width:400px){
@@ -254,6 +255,29 @@ canvas{display:block}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.6}}
 .fade-in{animation:fadeIn 0.5s ease}
 .pulse{animation:pulse 2s ease infinite}
+
+/* ── Music & Band UI ── */
+#music-toggle{position:fixed;bottom:52px;right:12px;z-index:50;background:var(--panel);border:1px solid var(--border);
+  border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;cursor:pointer;
+  font-size:1.1rem;transition:all 0.3s;opacity:0.7}
+#music-toggle:hover{opacity:1;border-color:var(--bloom);box-shadow:0 0 12px rgba(107,143,94,0.2)}
+#music-toggle.playing{opacity:1;border-color:var(--bloom)}
+.band-card{background:rgba(26,25,23,0.6);border:1px solid var(--border);border-radius:4px;
+  padding:10px;margin-bottom:8px;transition:all 0.3s}
+.band-card:hover{border-color:var(--gold)}
+.band-name{font-size:0.85rem;font-weight:bold;color:var(--gold);margin-bottom:4px}
+.band-genre{font-size:0.7rem;color:var(--text-dim);font-style:italic;margin-bottom:4px}
+.band-members{font-size:0.7rem;color:var(--bloom);margin-bottom:4px}
+.band-morale{font-size:0.65rem;color:var(--text-dim)}
+.band-perform{font-size:0.65rem;padding:3px 8px;cursor:pointer;background:none;border:1px solid var(--gold);
+  color:var(--gold);border-radius:2px;transition:all 0.2s;font-family:var(--font);margin-top:4px}
+.band-perform:hover{background:rgba(196,168,78,0.15);border-color:var(--bloom-glow)}
+.band-perform:disabled{opacity:0.4;cursor:default}
+@keyframes noteFloat{
+  0%{opacity:1;transform:translateY(0) scale(1)}
+  100%{opacity:0;transform:translateY(-40px) scale(0.5)}
+}
+.note-float{position:absolute;pointer-events:none;font-size:1.2rem;animation:noteFloat 1.5s ease-out forwards;z-index:60}
 
 /* ── Scrollbar ── */
 ::-webkit-scrollbar{width:6px}
@@ -367,6 +391,7 @@ canvas{display:block}
     </div>
   </div>
 
+  <div id="music-toggle" onclick="toggleMusic()" title="Toggle ambient music">🔇</div>
   <div id="bottom-bar">
     <span id="event-log"><span class="ticker-text">The community stirs with the dawn…</span></span>
     <button class="btn btn-sm btn-bloom" onclick="endDay()">End Day →</button>
@@ -431,7 +456,8 @@ const BUILDINGS = [
   {id:'recreation',name:'Recreation Area',desc:'A space to unwind. Passive morale boost each day.',cost:{scrap:5,compost:4},effect:{moralePerDay:5},icon:'🎲'},
   {id:'shrine',name:'Shrine of Balance',desc:'A meditative space. Gently shifts the community toward Harmony each day.',cost:{compost:8,scrap:4},effect:{bloomPerDay:2},icon:'🕯️'},
   {id:'nursery',name:'Animal Nursery',desc:'Rescue animals as pets. Pets help expeditions and research. +morale +bloom.',cost:{compost:6,scrap:3},effect:{moralePerDay:3,bloomPerDay:1},icon:'🐾'},
-  {id:'apothecary',name:'Apothecary',desc:'Advanced medicine crafting. Medicine never runs dry.',cost:{scrap:10,compost:6},effect:{medicinePerDay:2},icon:'⚗️'}
+  {id:'apothecary',name:'Apothecary',desc:'Advanced medicine crafting. Medicine never runs dry.',cost:{scrap:10,compost:6},effect:{medicinePerDay:2},icon:'⚗️'},
+  {id:'amphitheatre',name:'Amphitheatre',desc:'A stage among the branches. Bands form and perform, boosting morale and harmony. Unlocks music culture.',cost:{scrap:7,compost:5},effect:{moralePerDay:4,bloomPerDay:1},icon:'🎵'}
 ];
 
 const DESTINATIONS = [
@@ -661,6 +687,36 @@ const DILEMMAS = [
       {text:'Follow her guidance — compost the roots, reduce construction vibrations',effects:{compost:-6,bloom:12,food:5,morale:6},trait:'Purist',result:'The tree responds. Growth accelerates, new branches reach toward the sky, and fruit appears where none grew before. The resonance shifts to a higher, warmer note. Whether it\'s science or spirit, the results are real.',rng:{chance:10}},
       {text:'Install vibration sensors — study it scientifically',effects:{scrap:-4,landmark:10,bloom:2},trait:'Inventive',result:'The sensors reveal extraordinary data: the tree\'s vibrations match the resonance of healthy mycelium networks worldwide. It\'s not singing — it\'s networking. Both beautiful and useful.'},
       {text:'Ignore it — focus on practical concerns',effects:{morale:-5,bloom:-4},trait:'Skeptic',result:'The humming continues, but quieter. Some survivors feel a creeping unease, as if something important was offered and refused. The tree still grows, but without joy.',rng:{bad:{bloom:-8,morale:-8},chance:30}}
+    ]
+  },
+  {
+    id:'music_dispute',title:'The Battle of the Bands',
+    text:'Two bands in the Amphitheatre want to play at the same time slot — the evening gathering, when the whole community listens. One plays uplifting folk that keeps spirits high; the other experiments with strange resonant frequencies they claim come from pre-Switch-Off recordings. The community is split on who should get the prime slot.',
+    opinions:[{trait:'Compassionate',text:'Music should heal. Give the slot to whoever lifts the most hearts.'},{trait:'Inventive',text:'Those frequencies could be something bigger than entertainment. Let the experimenters play.'}],
+    choices:[
+      {text:'Give the folk band the evening slot',effects:{morale:8,bloom:4},trait:'Compassionate',result:'The familiar melodies ring through the branches. People dance for the first time in weeks. The experimental band grumbles but plays at dawn — and finds a different, quieter audience who loves them.'},
+      {text:'Let the experimental group perform',effects:{morale:-2,bloom:-3,landmark:8},trait:'Inventive',result:'The frequencies ripple through the tree. For a strange moment, every leaf trembles in unison. The researchers scramble for their notes. Something about the sound matches the Meridian frequency patterns.',rng:{bad:{morale:-10,bloom:-6},chance:20}},
+      {text:'Alternate nights — share the stage',effects:{morale:4,bloom:1},trait:'Diplomatic',result:'Both bands get their evenings. The compromise works, and a surprising collaboration emerges — folk melodies layered over experimental frequencies. Something genuinely new.'}
+    ]
+  },
+  {
+    id:'found_instruments',title:'The Instrument Cache',
+    text:'An expedition returned with a sealed crate from the old world: guitars, a violin, a hand drum, and a strange electronic instrument nobody recognizes. The instruments are in remarkable condition, preserved in vacuum wrap. But scrap is tight, and one survivor argues the crate\'s metal casing is more valuable melted down.',
+    opinions:[{trait:'Purist',text:'Music fed the soul before the Switch-Off and it\'ll feed us now. Keep them whole.'},{trait:'Pragmatist',text:'A guitar won\'t keep anyone warm. The metal casing could reinforce the Lookout Post.'}],
+    choices:[
+      {text:'Distribute the instruments — let music flourish',effects:{morale:12,bloom:6,scrap:-3},trait:'Purist',result:'Within days, the tree is alive with sound. Fumbling fingers find melodies. Someone cries hearing a song they remember from before. The collective feels more like a home than ever.'},
+      {text:'Scrap the casing, keep the instruments',effects:{morale:6,scrap:6,bloom:2},trait:'Diplomatic',result:'A pragmatic compromise. The musicians get their instruments, the crafters get their metal. Both sides satisfied, if not thrilled.'},
+      {text:'Melt it all down — survival first',effects:{scrap:12,morale:-10,bloom:-8},trait:'Pragmatist',result:'The metal yields good scrap. But the silence that follows feels heavier than before. Some things, once destroyed, leave a gap no resource can fill.',rng:{bad:{morale:-15},chance:15}}
+    ]
+  },
+  {
+    id:'trojika_anthem',title:'Trojika\'s Anthem',
+    text:'Trojika has composed something special — a song they call "The Way Forward." It\'s become an unofficial anthem, hummed during work shifts and sung at gatherings. But the lyrics are politically charged: half the community hears a celebration of harmony and growth, while others hear a call to build harder and faster. The band didn\'t intend the ambiguity, but now everyone\'s debating what the song really means.',
+    opinions:[{trait:'Diplomatic',text:'Let the song mean whatever people need it to mean. That\'s the power of music.'},{trait:'Vigilant',text:'Symbols matter. If people are rallying around different meanings, it\'ll split us eventually.'}],
+    choices:[
+      {text:'Let it be — the ambiguity is beautiful',effects:{morale:6,bloom:2},trait:'Diplomatic',result:'The song persists, evolving. Different groups sing different verses louder. It becomes a living thing, and somehow that shared disagreement bonds them — they\'re all singing the same melody, even if the words diverge.'},
+      {text:'Ask Trojika to clarify the lyrics toward harmony',effects:{morale:3,bloom:8},trait:'Purist',result:'Trojika rewrites the bridge with nature imagery. The harmony-leaning survivors glow with pride. The song becomes a hymn to growth and patience. Not everyone loves it, but the garden blooms a little brighter.'},
+      {text:'Ask Trojika to add a verse about building and progress',effects:{morale:3,bloom:-5,landmark:10},trait:'Pragmatist',result:'The new verse is a work anthem — hammers keeping time to the beat. Productivity surges. The song becomes a crafter\'s march, and the Landmark grows faster than ever.'}
     ]
   }
 ];
@@ -966,7 +1022,11 @@ function initState() {
     endingPath: null,
     finalChoiceShown: false,
     investigations: [],
-    chainDilemmasShown: new Set()
+    chainDilemmasShown: new Set(),
+    bands: [],
+    bandCooldown: 0,
+    lastPerformDay: 0,
+    musicUnlocked: false
   };
   usedDilemmas.clear();
   logEntries = [];
@@ -1015,8 +1075,17 @@ function shuffle(arr) {
 // ════════════════════════════════════════════
 
 let audioCtx;
+let musicPlaying = false;
+let ambientNodes = [];
+let musicMasterGain;
+
 function initAudio() {
-  try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) {}
+  try {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    musicMasterGain = audioCtx.createGain();
+    musicMasterGain.gain.value = 0;
+    musicMasterGain.connect(audioCtx.destination);
+  } catch(e) {}
 }
 
 function playTone(freq, dur, type='sine', vol=0.08) {
@@ -1045,6 +1114,485 @@ function playWarning() {
 
 function playClick() { playTone(800, 0.05, 'sine', 0.04); }
 function playDay() { playTone(440, 0.6, 'sine', 0.05); setTimeout(() => playTone(554, 0.6, 'sine', 0.04), 200); setTimeout(() => playTone(659, 0.8, 'sine', 0.03), 400); }
+
+// ── PROCEDURAL AMBIENT MUSIC ──
+// Generates evolving ambient soundscape that shifts with Harmony ↔ Industry balance
+// Harmony = warm pads, nature-like tones, pentatonic melodies
+// Industry = darker drones, metallic harmonics, minor intervals
+
+const HARMONY_SCALE = [261.63, 293.66, 329.63, 392.00, 440.00, 523.25, 587.33, 659.25]; // C pentatonic
+const INDUSTRY_SCALE = [220.00, 233.08, 261.63, 311.13, 329.63, 415.30, 466.16, 523.25]; // A minor/diminished
+const NEUTRAL_SCALE = [261.63, 293.66, 329.63, 349.23, 392.00, 440.00, 493.88, 523.25]; // C major
+
+function getScale() {
+  if(!G) return NEUTRAL_SCALE;
+  if(G.bloom >= 65) return HARMONY_SCALE;
+  if(G.bloom <= 35) return INDUSTRY_SCALE;
+  return NEUTRAL_SCALE;
+}
+
+function getMusicMood() {
+  if(!G) return 'neutral';
+  if(G.bloom >= 65) return 'harmony';
+  if(G.bloom <= 35) return 'industry';
+  return 'neutral';
+}
+
+// Ambient drone layer — slow evolving pad
+let droneOscs = [];
+let droneInterval;
+
+function startAmbientDrone() {
+  if(!audioCtx || !musicMasterGain) return;
+  stopAmbientDrone();
+
+  const mood = getMusicMood();
+  const scale = getScale();
+  const baseFreq = scale[0] * 0.5; // One octave below root
+
+  // Create 2-3 oscillators for rich drone
+  const types = mood === 'harmony' ? ['sine','triangle'] : mood === 'industry' ? ['sawtooth','triangle'] : ['sine','triangle'];
+  const detune = mood === 'industry' ? 8 : 3;
+
+  types.forEach((type, i) => {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    const filter = audioCtx.createBiquadFilter();
+
+    osc.type = type;
+    osc.frequency.value = baseFreq * (i === 0 ? 1 : 1.5);
+    osc.detune.value = (i - 0.5) * detune;
+
+    filter.type = 'lowpass';
+    filter.frequency.value = mood === 'harmony' ? 600 : mood === 'industry' ? 400 : 500;
+    filter.Q.value = 1;
+
+    gain.gain.value = 0;
+    gain.gain.linearRampToValueAtTime(mood === 'industry' ? 0.06 : 0.04, audioCtx.currentTime + 3);
+
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(musicMasterGain);
+    osc.start();
+
+    droneOscs.push({osc, gain, filter});
+  });
+
+  // Slowly modulate filter cutoff for movement
+  droneInterval = setInterval(() => {
+    if(!musicPlaying) return;
+    const mood = getMusicMood();
+    droneOscs.forEach(d => {
+      const baseF = mood === 'harmony' ? 600 : mood === 'industry' ? 400 : 500;
+      const mod = Math.sin(Date.now() * 0.0003) * 150 + baseF;
+      d.filter.frequency.linearRampToValueAtTime(mod, audioCtx.currentTime + 1);
+    });
+  }, 2000);
+}
+
+function stopAmbientDrone() {
+  if(droneInterval) { clearInterval(droneInterval); droneInterval = null; }
+  droneOscs.forEach(d => {
+    try {
+      d.gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 1);
+      setTimeout(() => { try { d.osc.stop(); } catch(e){} }, 1500);
+    } catch(e){}
+  });
+  droneOscs = [];
+}
+
+// Melodic note player — plays gentle notes from the current scale
+let melodyInterval;
+let melodyStep = 0;
+
+function startMelody() {
+  if(!audioCtx || !musicMasterGain) return;
+  stopMelody();
+
+  melodyInterval = setInterval(() => {
+    if(!musicPlaying) return;
+    const scale = getScale();
+    const mood = getMusicMood();
+
+    // Probability of playing a note (sparser = more ambient)
+    const chance = mood === 'harmony' ? 0.4 : mood === 'industry' ? 0.25 : 0.3;
+    if(Math.random() > chance) return;
+
+    // Pick a note from the scale with some melodic contour
+    const prevIdx = melodyStep % scale.length;
+    const jump = Math.floor(Math.random() * 3) - 1; // -1, 0, or +1
+    melodyStep = Math.max(0, Math.min(scale.length - 1, prevIdx + jump));
+    const octave = Math.random() < 0.3 ? 2 : 1;
+    const freq = scale[melodyStep] * octave;
+
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    const filter = audioCtx.createBiquadFilter();
+
+    osc.type = mood === 'harmony' ? 'sine' : mood === 'industry' ? 'triangle' : 'sine';
+    osc.frequency.value = freq;
+    osc.detune.value = (Math.random() - 0.5) * 6; // Slight detuning for warmth
+
+    filter.type = 'lowpass';
+    filter.frequency.value = mood === 'harmony' ? 2000 : 1200;
+
+    const vol = mood === 'harmony' ? 0.035 : 0.025;
+    const dur = 1.5 + Math.random() * 2;
+    const now = audioCtx.currentTime;
+
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(vol, now + 0.3);
+    gain.gain.linearRampToValueAtTime(vol * 0.6, now + dur * 0.6);
+    gain.gain.linearRampToValueAtTime(0, now + dur);
+
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(musicMasterGain);
+    osc.start(now);
+    osc.stop(now + dur + 0.1);
+  }, 1800 + Math.random() * 1200);
+}
+
+function stopMelody() {
+  if(melodyInterval) { clearInterval(melodyInterval); melodyInterval = null; }
+}
+
+// Wind/nature layer for high harmony
+let windNoise;
+function startWindLayer() {
+  if(!audioCtx || !musicMasterGain) return;
+  stopWindLayer();
+  if(!G || G.bloom < 55) return;
+
+  // White noise through bandpass = wind
+  const bufferSize = audioCtx.sampleRate * 2;
+  const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for(let i = 0; i < bufferSize; i++) data[i] = (Math.random() * 2 - 1) * 0.5;
+
+  const source = audioCtx.createBufferSource();
+  source.buffer = buffer;
+  source.loop = true;
+
+  const bandpass = audioCtx.createBiquadFilter();
+  bandpass.type = 'bandpass';
+  bandpass.frequency.value = 800;
+  bandpass.Q.value = 0.5;
+
+  const gain = audioCtx.createGain();
+  const vol = Math.min(0.02, (G.bloom - 55) / 45 * 0.02);
+  gain.gain.value = 0;
+  gain.gain.linearRampToValueAtTime(vol, audioCtx.currentTime + 2);
+
+  source.connect(bandpass);
+  bandpass.connect(gain);
+  gain.connect(musicMasterGain);
+  source.start();
+
+  windNoise = {source, gain, bandpass};
+}
+
+function stopWindLayer() {
+  if(windNoise) {
+    try {
+      windNoise.gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 1);
+      setTimeout(() => { try { windNoise.source.stop(); } catch(e){} }, 1500);
+    } catch(e){}
+    windNoise = null;
+  }
+}
+
+function toggleMusic() {
+  if(!audioCtx) initAudio();
+  if(audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+
+  musicPlaying = !musicPlaying;
+  const btn = document.getElementById('music-toggle');
+
+  if(musicPlaying) {
+    btn.textContent = '🔊';
+    btn.classList.add('playing');
+    musicMasterGain.gain.linearRampToValueAtTime(1, audioCtx.currentTime + 1);
+    startAmbientDrone();
+    startMelody();
+    startWindLayer();
+  } else {
+    btn.textContent = '🔇';
+    btn.classList.remove('playing');
+    musicMasterGain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 1);
+    setTimeout(() => {
+      stopAmbientDrone();
+      stopMelody();
+      stopWindLayer();
+    }, 1200);
+  }
+}
+
+// Update music mood when balance shifts (called from updateUI)
+let lastMusicMood = '';
+function updateMusicMood() {
+  if(!musicPlaying) return;
+  const mood = getMusicMood();
+  if(mood !== lastMusicMood) {
+    lastMusicMood = mood;
+    // Restart layers with new mood
+    stopAmbientDrone();
+    stopWindLayer();
+    setTimeout(() => {
+      if(musicPlaying) {
+        startAmbientDrone();
+        startWindLayer();
+      }
+    }, 1500);
+  }
+}
+
+// ── BAND PERFORMANCE MUSIC ──
+// When a band performs, play a short musical phrase
+
+function playBandPerformance(band) {
+  if(!audioCtx) return;
+  if(audioCtx.state === 'suspended') audioCtx.resume();
+
+  const genre = band.genre;
+  let notes, timing, waveform, vol;
+
+  if(genre === 'folk') {
+    notes = [392, 440, 523.25, 440, 392, 329.63, 392, 523.25, 659.25, 523.25];
+    timing = 180; waveform = 'triangle'; vol = 0.07;
+  } else if(genre === 'percussion') {
+    notes = [110, 165, 110, 220, 110, 165, 110, 220, 330, 220];
+    timing = 140; waveform = 'square'; vol = 0.04;
+  } else if(genre === 'choral') {
+    notes = [261.63, 329.63, 392, 523.25, 392, 329.63, 392, 440, 523.25, 659.25];
+    timing = 250; waveform = 'sine'; vol = 0.06;
+  } else if(genre === 'experimental') {
+    notes = [220, 277.18, 349.23, 415.3, 277.18, 466.16, 349.23, 554.37, 415.3, 349.23];
+    timing = 200; waveform = 'sawtooth'; vol = 0.035;
+  } else {
+    // ambient/default
+    notes = [261.63, 392, 329.63, 523.25, 392, 440, 329.63, 523.25, 659.25, 523.25];
+    timing = 220; waveform = 'sine'; vol = 0.06;
+  }
+
+  // Play the phrase
+  notes.forEach((freq, i) => {
+    setTimeout(() => {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = waveform;
+      osc.frequency.value = freq;
+      osc.detune.value = (Math.random() - 0.5) * 10;
+      const dur = timing * 0.002;
+      const now = audioCtx.currentTime;
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(vol, now + 0.05);
+      gain.gain.linearRampToValueAtTime(0, now + dur);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(now);
+      osc.stop(now + dur + 0.1);
+    }, i * timing);
+  });
+
+  // Floating music notes visual
+  spawnMusicNotes();
+}
+
+function spawnMusicNotes() {
+  const noteSymbols = ['♪','♫','♬','🎵','🎶'];
+  for(let i = 0; i < 5; i++) {
+    setTimeout(() => {
+      const note = document.createElement('div');
+      note.className = 'note-float';
+      note.textContent = noteSymbols[i % noteSymbols.length];
+      note.style.left = (20 + Math.random() * 60) + '%';
+      note.style.top = (30 + Math.random() * 40) + '%';
+      document.getElementById('sanctuary-wrap').appendChild(note);
+      setTimeout(() => note.remove(), 1500);
+    }, i * 300);
+  }
+}
+
+// ════════════════════════════════════════════
+// BANDS SYSTEM
+// ════════════════════════════════════════════
+
+const BAND_NAMES = ['Trojika','The Canopy Chorus','Rust & Root','Ember Signal','The Drift','Bark & Wire','Hollow Reed','The Switchoffs','Bloomtide','Iron Lullaby','The Composters','Treeline'];
+const BAND_GENRES = [
+  {id:'folk',name:'Folk',desc:'Acoustic melodies using scavenged instruments',morale:6,harmony:2},
+  {id:'percussion',name:'Percussion',desc:'Rhythmic beats from salvaged metal and wood',morale:5,harmony:0},
+  {id:'choral',name:'Choral',desc:'Harmonized voices echoing through the branches',morale:7,harmony:3},
+  {id:'ambient',name:'Ambient',desc:'Atmospheric sounds blending with the tree\'s creaking',morale:4,harmony:2},
+  {id:'experimental',name:'Experimental',desc:'Strange instruments and stranger tunings from the old world',morale:3,harmony:-1}
+];
+
+function tryFormBand() {
+  if(!G.buildings.includes('amphitheatre')) return;
+  if(G.bands.length >= 3) return; // max 3 bands
+  if(G.bandCooldown > 0) { G.bandCooldown--; return; }
+
+  const alive = G.survivors.filter(s => s.alive && !s.expedition);
+  if(alive.length < 3) return; // Need at least 3 survivors for a band to form
+
+  // 20% chance per day once amphitheatre is built
+  if(Math.random() > 0.2) return;
+
+  // Pick band name — Trojika is always the first band to form
+  let bandName;
+  const usedNames = G.bands.map(b => b.name);
+  if(!usedNames.includes('Trojika')) {
+    bandName = 'Trojika';
+  } else {
+    const available = BAND_NAMES.filter(n => !usedNames.includes(n));
+    if(available.length === 0) return;
+    bandName = available[Math.floor(Math.random() * available.length)];
+  }
+
+  // Pick 2-3 members from alive survivors
+  const memberCount = Math.min(alive.length, 2 + (Math.random() < 0.4 ? 1 : 0));
+  const shuffled = [...alive].sort(() => Math.random() - 0.5);
+  const members = shuffled.slice(0, memberCount).map(s => s.name);
+
+  // Pick genre — influenced by balance
+  let genreWeights;
+  if(G.bloom >= 60) {
+    genreWeights = [{g:'folk',w:3},{g:'choral',w:4},{g:'ambient',w:2},{g:'percussion',w:1},{g:'experimental',w:1}];
+  } else if(G.bloom <= 40) {
+    genreWeights = [{g:'folk',w:1},{g:'choral',w:1},{g:'ambient',w:1},{g:'percussion',w:3},{g:'experimental',w:4}];
+  } else {
+    genreWeights = [{g:'folk',w:2},{g:'choral',w:2},{g:'ambient',w:2},{g:'percussion',w:2},{g:'experimental',w:2}];
+  }
+  const totalW = genreWeights.reduce((a,b) => a + b.w, 0);
+  let r = Math.random() * totalW;
+  let genreId = 'folk';
+  for(const gw of genreWeights) {
+    r -= gw.w;
+    if(r <= 0) { genreId = gw.g; break; }
+  }
+  const genre = BAND_GENRES.find(g => g.id === genreId);
+
+  const band = {
+    name: bandName,
+    genre: genreId,
+    genreName: genre.name,
+    members: members,
+    performances: 0,
+    formed: G.day,
+    moraleBoost: genre.morale,
+    harmonyShift: genre.harmony
+  };
+
+  G.bands.push(band);
+  G.bandCooldown = 8; // 8 days before another band can form
+
+  // Boost relationships between band members
+  for(let i = 0; i < members.length; i++) {
+    for(let j = i + 1; j < members.length; j++) {
+      changeRelationship(members[i], members[j], 8);
+    }
+  }
+
+  const memberStr = members.join(', ');
+  const icon = bandName === 'Trojika' ? '🎸' : '🎵';
+  addLog(`${icon} "${bandName}" has formed! ${memberStr} play ${genre.name.toLowerCase()} in the Amphitheatre. "${genre.desc}."`, 'event');
+  showResult(`${icon} New Band: ${bandName}!`, `${memberStr} have formed "${bandName}", a ${genre.name.toLowerCase()} group. ${genre.desc}. They'll perform in the Amphitheatre, boosting morale.`, {morale: 5}, false);
+
+  G.morale = Math.min(100, G.morale + 5);
+}
+
+function bandPerform(bandIdx) {
+  const band = G.bands[bandIdx];
+  if(!band) return;
+  if(G.lastPerformDay === G.day) return; // one performance per day
+
+  G.lastPerformDay = G.day;
+  band.performances++;
+
+  // Morale and harmony effects
+  const moraleGain = band.moraleBoost + Math.floor(band.performances / 3); // improve with practice
+  G.morale = Math.min(100, G.morale + moraleGain);
+  G.bloom = Math.max(0, Math.min(100, G.bloom + band.harmonyShift));
+
+  // Band members gain morale
+  band.members.forEach(name => {
+    const s = G.survivors.find(s => s.name === name && s.alive);
+    if(s) s.morale = Math.min(100, s.morale + 8);
+  });
+
+  // Everyone bonds slightly from shared experience
+  const alive = G.survivors.filter(s => s.alive && !s.expedition);
+  for(let i = 0; i < alive.length; i++) {
+    for(let j = i + 1; j < alive.length; j++) {
+      changeRelationship(alive[i].name, alive[j].name, 1);
+    }
+  }
+
+  // Band members bond more
+  for(let i = 0; i < band.members.length; i++) {
+    for(let j = i + 1; j < band.members.length; j++) {
+      changeRelationship(band.members[i], band.members[j], 3);
+    }
+  }
+
+  playBandPerformance(band);
+
+  const concertNames = ['a fireside set','an evening concert','a dawn serenade','a canopy performance','a moonlit session','a rooftop gig'];
+  const concertName = concertNames[Math.floor(Math.random() * concertNames.length)];
+  addLog(`🎶 ${band.name} played ${concertName}! Morale +${moraleGain}. The tree sways to the rhythm.`, 'event');
+
+  updateUI();
+}
+
+// Automatic performances — bands play spontaneously some days
+function checkBandPerformances() {
+  if(G.bands.length === 0) return;
+  if(G.lastPerformDay === G.day) return;
+
+  // 30% chance of spontaneous performance
+  if(Math.random() > 0.3) return;
+
+  const band = G.bands[Math.floor(Math.random() * G.bands.length)];
+  // Check members are alive
+  const aliveMembers = band.members.filter(name => G.survivors.some(s => s.name === name && s.alive));
+  if(aliveMembers.length < 2) return;
+
+  band.performances++;
+  G.lastPerformDay = G.day;
+
+  const moraleGain = band.moraleBoost + Math.floor(band.performances / 3);
+  G.morale = Math.min(100, G.morale + Math.floor(moraleGain * 0.7)); // spontaneous = slightly less boost
+
+  G.bloom = Math.max(0, Math.min(100, G.bloom + band.harmonyShift));
+
+  const verbs = ['jammed','played','performed','rehearsed','sang'];
+  const times = ['at dawn','under the stars','during dinner','as the wind picked up','in the afternoon haze'];
+  addLog(`🎵 ${band.name} ${verbs[Math.floor(Math.random()*verbs.length)]} ${times[Math.floor(Math.random()*times.length)]}. Morale +${Math.floor(moraleGain*0.7)}.`, 'event');
+}
+
+// Handle dead band members — bands adapt or disband
+function updateBandRosters() {
+  G.bands = G.bands.filter(band => {
+    const aliveMembers = band.members.filter(name => G.survivors.some(s => s.name === name && s.alive));
+    if(aliveMembers.length < 2) {
+      addLog(`🎵 ${band.name} has disbanded — too few members remain.`, 'event');
+      return false;
+    }
+    // Update roster to only alive members
+    band.members = aliveMembers;
+
+    // Maybe recruit a new member
+    if(aliveMembers.length < 3 && Math.random() < 0.15) {
+      const available = G.survivors.filter(s => s.alive && !s.expedition && !band.members.includes(s.name));
+      if(available.length > 0) {
+        const recruit = available[Math.floor(Math.random() * available.length)];
+        band.members.push(recruit.name);
+        addLog(`🎵 ${recruit.name} has joined ${band.name}!`, 'event');
+      }
+    }
+    return true;
+  });
+}
 
 // ════════════════════════════════════════════
 // RESOURCE CALCULATIONS
@@ -1195,6 +1743,7 @@ function calcDayChanges() {
   if(G.buildings.includes('compost_bin')) { changes.compost += 2; changes.bloom += 0.5; } // slight harmony — working with nature
   if(G.buildings.includes('shrine')) changes.bloom += 3;                 // harmony (was +2)
   if(G.buildings.includes('nursery')) { changes.morale += 3; changes.bloom += 2; }  // harmony (was +1)
+  if(G.buildings.includes('amphitheatre')) { changes.morale += 4; changes.bloom += 1; } // culture
   if(G.buildings.includes('workshop')) changes.bloom -= 1;               // industry (was -2) — less harsh
   if(G.buildings.includes('library')) changes.bloom -= 0.5;              // slight industry (was -1) — knowledge serves both sides
 
@@ -1383,6 +1932,14 @@ function endDay() {
   // Progress investigations (meta story)
   progressInvestigations();
 
+  // Bands — try to form new bands, check performances, update rosters
+  tryFormBand();
+  updateBandRosters();
+  checkBandPerformances();
+
+  // Update music mood
+  updateMusicMood();
+
   // Advance day
   G.day++;
 
@@ -1552,7 +2109,13 @@ function getRelationshipDynamics() {
 // ════════════════════════════════════════════
 
 function triggerDilemma() {
-  const available = DILEMMAS.filter(d => !usedDilemmas.has(d.id));
+  const available = DILEMMAS.filter(d => {
+    if(usedDilemmas.has(d.id)) return false;
+    // Music dilemmas require amphitheatre + bands
+    if(d.id === 'music_dispute' && (G.bands.length < 2 || !G.buildings.includes('amphitheatre'))) return false;
+    if(d.id === 'trojika_anthem' && !G.bands.some(b => b.name === 'Trojika' && b.performances >= 2)) return false;
+    return true;
+  });
   if(available.length === 0) { usedDilemmas.clear(); return; }
 
   // Weighted: prefer dilemmas matching survivor traits
@@ -2883,7 +3446,8 @@ function drawPlatforms(treeX, treeBase, trunkW, h) {
   const positions = [
     {y:0.7,xOff:-1.5},{y:0.55,xOff:1.2},{y:0.4,xOff:-1.8},
     {y:0.3,xOff:1.5},{y:0.22,xOff:-1},{y:0.6,xOff:1.8},
-    {y:0.48,xOff:-1.2},{y:0.35,xOff:0.8},{y:0.25,xOff:-1.6},{y:0.18,xOff:1.3}
+    {y:0.48,xOff:-1.2},{y:0.35,xOff:0.8},{y:0.25,xOff:-1.6},{y:0.18,xOff:1.3},
+    {y:0.15,xOff:-1.3},{y:0.42,xOff:1.6}
   ];
 
   G.buildings.forEach((bId, i) => {
@@ -3100,6 +3664,34 @@ function drawBuildingSprite(id, x, y) {
       ctx.fillStyle = 'rgba(150,220,180,0.4)';
       const bub = Math.sin(Date.now()*0.004)*2;
       ctx.beginPath(); ctx.arc(-3.5*s,-12*s+bub,1.5*s,0,Math.PI*2); ctx.fill();
+      break;
+
+    case 'amphitheatre': // curved stage with music notes
+      // Stage floor (curved)
+      ctx.fillStyle = 'rgba(120,90,60,0.7)';
+      ctx.beginPath();
+      ctx.ellipse(0,-4*s,14*s,4*s,0,0,Math.PI);
+      ctx.fill();
+      // Stage back wall
+      ctx.fillStyle = 'rgba(90,70,50,0.6)';
+      ctx.fillRect(-10*s,-16*s,20*s,12*s);
+      // Arch
+      ctx.strokeStyle = 'rgba(130,100,70,0.8)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(0,-10*s,9*s,Math.PI,0);
+      ctx.stroke();
+      // Posts
+      ctx.fillStyle = 'rgba(100,80,55,0.8)';
+      ctx.fillRect(-9*s,-12*s,2*s,8*s);
+      ctx.fillRect(7*s,-12*s,2*s,8*s);
+      // Musical notes (animated)
+      ctx.fillStyle = 'rgba(196,168,78,0.5)';
+      ctx.font = (8*s)+'px serif';
+      ctx.textAlign = 'center';
+      const noteY = Math.sin(Date.now()*0.002)*3;
+      ctx.fillText('♪', -4*s, -18*s+noteY);
+      ctx.fillText('♫', 4*s, -20*s-noteY);
       break;
 
     default:
@@ -3753,6 +4345,30 @@ function updateCommunityPanel() {
     </div>`;
   }
 
+  // Bands section
+  if(G.bands.length > 0) {
+    html += `<div style="font-size:0.75rem;padding:8px;margin-bottom:12px;background:rgba(196,168,78,0.08);border-radius:3px;border:1px solid rgba(196,168,78,0.25)">
+      <span style="color:var(--gold)">🎵 Bands:</span>
+      <div style="margin-top:4px">`;
+    G.bands.forEach((band, idx) => {
+      const aliveMembers = band.members.filter(name => G.survivors.some(s => s.name === name && s.alive));
+      const canPerform = G.lastPerformDay !== G.day && aliveMembers.length >= 2;
+      const genreInfo = BAND_GENRES.find(g => g.id === band.genre);
+      html += `<div class="band-card">
+        <div class="band-name">${band.name === 'Trojika' ? '🎸' : '🎵'} ${band.name}</div>
+        <div class="band-genre">${genreInfo ? genreInfo.name : band.genreName} · ${band.performances} performance${band.performances!==1?'s':''}</div>
+        <div class="band-members">♪ ${aliveMembers.join(', ')}</div>
+        <div class="band-morale">Morale +${band.moraleBoost}/show${band.harmonyShift > 0 ? ' · Harmony +'+band.harmonyShift : band.harmonyShift < 0 ? ' · Industry '+band.harmonyShift : ''}</div>
+        <button class="band-perform" onclick="bandPerform(${idx})" ${!canPerform ? 'disabled' : ''}>${canPerform ? '▶ Request Performance' : G.lastPerformDay === G.day ? '✓ Played today' : '♪ Not enough members'}</button>
+      </div>`;
+    });
+    html += `</div></div>`;
+  } else if(G.buildings.includes('amphitheatre')) {
+    html += `<div style="font-size:0.7rem;padding:8px;margin-bottom:12px;background:rgba(196,168,78,0.05);border-radius:3px;border:1px dashed rgba(196,168,78,0.2);color:var(--text-dim);font-style:italic">
+      🎵 The Amphitheatre stands ready. Bands will form as survivors find their rhythm…
+    </div>`;
+  }
+
   alive.forEach(s => {
     const onExp = s.expedition !== null;
     html += `<div class="survivor-card${onExp?' on-expedition':''}">
@@ -4250,7 +4866,8 @@ function showEpilogue() {
         rabbit: pet.name + ' the Rabbit turned the garden into a warren \u2014 the gardeners pretend to mind.',
         crow: pet.name + ' the Crow still brings trinkets to the workshop in neat rows.',
         deer: pet.name + ' the Deer leads foragers each morning to the best growth.',
-        hawk: pet.name + ' the Hawk circles at dusk, a silhouette against the painted sky.'
+        hawk: pet.name + ' the Hawk circles at dusk, a silhouette against the painted sky.',
+        parrot: pet.name + ' the Parrot learned every song the bands ever played \u2014 and invented a few of their own, squawking melodies from the highest branch at sunrise.'
       };
       content += '<div class="ep-survivor">' + pt.icon + ' ' + (petFates[pet.type]||pet.name+' lived on.') + '</div>';
     });
@@ -4281,6 +4898,25 @@ function showEpilogue() {
       else if(bestRel && bestRel.score >= 20) relNote = ' Remained close with ' + bestRel.name + '.';
       else if(bestRel && bestRel.score <= -30) relNote = ' The rift with ' + bestRel.name + ' never healed.';
       content += '<div class="ep-survivor"><strong>' + s.name + '</strong> <em>(' + s.traits.join(', ') + ')</em> \u2014 ' + fate + '.' + relNote + '</div>';
+    });
+  }
+
+  // ═══ Music & Bands ═══
+  if(G.bands && G.bands.length > 0) {
+    content += '<div class="ep-section">\uD83C\uDFB5 The Music</div>';
+    G.bands.forEach(function(band) {
+      var totalShows = band.performances || 0;
+      var genreLabel = band.genreName || band.genre;
+      var bandFates = {
+        'Trojika': 'Trojika never stopped playing. Their anthem "The Way Forward" was hummed by every traveler who passed through for generations \u2014 each singing different words, all recognizing the melody.',
+        'The Canopy Chorus': 'The Canopy Chorus grew until their voices echoed in branches three trees away. New communities learned the songs before they learned the names.',
+        'Rust & Root': 'Rust & Root became legend \u2014 the band that turned scrap metal into instruments and silence into rhythm.',
+        'Ember Signal': 'Ember Signal\'s music carried through the root network. Other settlements tuned in, swaying to beats they couldn\'t explain.',
+        'The Drift': 'The Drift never played the same song twice. Their improvisations became the soundtrack of a world rebuilding itself.',
+        'Iron Lullaby': 'Iron Lullaby softened the hardest days. Even the most pragmatic crafters found themselves humming along at the workbench.'
+      };
+      var fate = bandFates[band.name] || band.name + ' played ' + totalShows + ' shows of ' + genreLabel.toLowerCase() + ' that echoed through the branches long after the last note faded.';
+      content += '<div class="ep-survivor">\uD83C\uDFB5 ' + fate + '</div>';
     });
   }
 
