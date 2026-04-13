@@ -33,7 +33,7 @@ canvas{display:block}
 .btn-danger{border-color:var(--danger);color:var(--danger)}
 
 /* ── Game Screen ── */
-#game-screen{flex-direction:column;background:var(--bg)}
+#game-screen{flex-direction:column;background:var(--bg);height:100%}
 #top-bar{display:flex;align-items:center;padding:8px 16px;gap:16px;border-bottom:1px solid var(--border);
   background:rgba(40,38,31,0.95);flex-wrap:wrap;min-height:48px;z-index:5}
 .res{display:flex;align-items:center;gap:4px;font-size:0.8rem;white-space:nowrap}
@@ -48,7 +48,7 @@ canvas{display:block}
 #balance-indicator{position:absolute;top:-1px;width:3px;height:10px;background:var(--text);border-radius:1px;transition:left 0.8s}
 #day-display{font-size:0.85rem;color:var(--text-dim)}
 
-#main-area{display:flex;flex:1;overflow:hidden}
+#main-area{display:flex;flex:1;overflow:hidden;min-height:0}
 #sanctuary-wrap{flex:1;position:relative;min-width:300px}
 #sanctuary{width:100%;height:100%}
 #panel{width:clamp(280px,35vw,420px);display:flex;flex-direction:column;border-left:1px solid var(--border);background:var(--panel)}
@@ -204,12 +204,41 @@ canvas{display:block}
 
 /* ── Responsive ── */
 @media(max-width:768px){
-  #main-area{flex-direction:column}
-  #sanctuary-wrap{height:35vh;min-width:unset}
-  #panel{width:100%;border-left:none;border-top:1px solid var(--border)}
-  #top-bar{padding:6px 10px;gap:8px}
-  .res{font-size:0.7rem}
+  #main-area{flex-direction:column;overflow:hidden}
+  #sanctuary-wrap{height:30vh;min-width:unset;flex-shrink:0}
+  #panel{width:100%;border-left:none;border-top:1px solid var(--border);flex:1;min-height:0;display:flex;flex-direction:column}
+  #panel-content{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:16px}
+  #top-bar{padding:6px 10px;gap:6px;flex-wrap:wrap}
+  .res{font-size:0.65rem}
+  .res-icon{font-size:0.85rem}
+  #balance-display{margin-left:auto;flex-wrap:nowrap}
+  #balance-bar-outer{width:80px}
+  #day-display{font-size:0.75rem;width:100%;order:-1}
   .tut-grid{grid-template-columns:1fr}
+  .tab{padding:8px 4px;font-size:0.7rem}
+  .survivor-card{padding:8px}
+  .sc-role{gap:3px}
+  .role-btn{padding:4px 6px;font-size:0.6rem}
+  .build-card{padding:8px}
+  .exp-card{padding:8px}
+  .exp-dest{padding:8px}
+  #dilemma-box{padding:20px 16px;max-height:85vh}
+  .dilemma-choice{padding:10px 12px}
+  #bottom-bar{padding:6px 10px;gap:8px}
+  #bottom-bar .btn{padding:8px 12px;font-size:0.75rem}
+  #send-exp-section h3{font-size:0.8rem}
+  .exp-survivor-pick{padding:6px 10px;font-size:0.75rem}
+  #tutorial-inner{padding:16px}
+  #epilogue-screen{padding:20px 16px}
+  #epilogue-content{max-height:55vh}
+}
+/* ── Small phones ── */
+@media(max-width:400px){
+  #sanctuary-wrap{height:25vh}
+  #top-bar{gap:4px}
+  .res{font-size:0.6rem}
+  #balance-bar-outer{width:60px}
+  .tab{font-size:0.65rem;padding:6px 3px}
 }
 
 /* ── Animations ── */
@@ -222,6 +251,12 @@ canvas{display:block}
 ::-webkit-scrollbar{width:6px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+@media(max-width:768px){
+  ::-webkit-scrollbar{width:8px}
+  ::-webkit-scrollbar-thumb{background:rgba(107,143,94,0.4);border-radius:4px}
+  ::-webkit-scrollbar-track{background:rgba(0,0,0,0.15)}
+  #panel-content{scrollbar-width:auto;scrollbar-color:rgba(107,143,94,0.4) rgba(0,0,0,0.15)}
+}
 </style>
 </head>
 <body>
@@ -539,6 +574,86 @@ const DILEMMAS = [
       {text:'Refuse and prepare defenses',effects:{scrap:-5,morale:6,bloom:-3},trait:'Vigilant',result:'Your show of defiance buys respect — or at least hesitation. They don\'t return... yet.',badResult:'They attack at dawn. The defenses hold, but barely. Several survivors are badly hurt.',rng:{bad:{healthAll:-18,morale:-5},chance:20}},
       {text:'Offer an alliance instead',effects:{food:-5,scrap:-4,morale:4,bloom:3},trait:'Diplomatic',result:'Negotiations are tense, but a fragile accord is struck. Trade, not tribute.',rng:{chance:15}}
     ]
+  },
+  {
+    id:'sacred_grove',title:'The Sacred Grove',
+    text:'A forager discovers a hidden grove deep in the root network — ancient trees intertwined with the Great Tree, their bark luminous with bioluminescent moss. The grove hums with life. Some say it\'s the heart of the forest. Others see prime building material.',
+    opinions:[{trait:'Purist',text:'This place is sacred. The forest is speaking to us — we must listen.'},{trait:'Pragmatist',text:'Beautiful, yes. But those timbers could house three families.'}],
+    choices:[
+      {text:'Consecrate the grove as a sanctuary within a sanctuary',effects:{bloom:12,morale:8,food:4},trait:'Purist',result:'The grove becomes a place of meditation and renewal. Survivors who spend time there return with a quiet strength. The moss spreads, painting the sanctuary in soft light.',setFlag:'grove_consecrated',rng:{chance:10}},
+      {text:'Harvest the timber carefully — we need shelter',effects:{scrap:10,bloom:-10,morale:-4},trait:'Pragmatist',result:'The wood is extraordinary — strong, light, and warm to the touch. But the grove\'s humming stops. Something has been lost.',badResult:'As the first tree falls, the grove releases a cloud of spores that sickens the harvesters. The forest remembers.',rng:{bad:{healthAll:-18,morale:-12,bloom:-6},chance:25}},
+      {text:'Study the bioluminescent moss',effects:{bloom:5,landmark:8,medicine:4},trait:'Inventive',result:'The moss has remarkable healing properties. Your researchers develop new medicines and learn why the Great Tree thrives — a symbiotic network older than civilization.'}
+    ]
+  },
+  {
+    id:'river_spirit',title:'The River Returns',
+    text:'After weeks of careful composting and water management, something miraculous happens: an underground spring, long thought dead, begins flowing again. Clean water bubbles up through the roots. But the spring emerges right where the workshop foundations were planned.',
+    opinions:[{trait:'Purist',text:'The earth is healing itself. This spring is proof that harmony works.'},{trait:'Inventive',text:'We can redirect it. Engineering and nature aren\'t enemies.'}],
+    choices:[
+      {text:'Protect the spring — let it flow naturally',effects:{water:10,bloom:10,food:5,compost:3},trait:'Purist',result:'The spring becomes the heart of a new garden. Plants drink deep and grow fast. The community gathers here in the evenings, listening to the water sing.',rng:{chance:10}},
+      {text:'Channel it through pipes to maximize utility',effects:{water:14,bloom:-6,scrap:-4},trait:'Inventive',result:'Every drop is accounted for. Efficient, clean, productive. But the spontaneous beauty of the spring is lost to plumbing.',badResult:'The pipes crack under pressure. The spring floods the lower platforms, ruining stored food.',rng:{bad:{food:-8,scrap:-4,morale:-6},chance:20}},
+      {text:'Create a living aqueduct using woven roots',effects:{water:8,bloom:6,compost:-4},trait:'Compassionate',result:'It takes longer, but the root-woven channels become part of the tree itself. Water flows where the tree needs it most. Nature and design, hand in hand.'}
+    ]
+  },
+  {
+    id:'pollinator_crisis',title:'The Silent Garden',
+    text:'The garden has stopped producing. Flowers bloom but bear no fruit. A researcher realizes the cause: there are no pollinators. Bees, butterflies, moths — all vanished in the Switch-Off. Without them, the garden will slowly starve.',
+    opinions:[{trait:'Compassionate',text:'We must rebuild what was lost. Nurture them back.'},{trait:'Pragmatist',text:'Hand-pollinate. We can\'t wait for nature to sort itself out.'}],
+    choices:[
+      {text:'Build pollinator habitats and plant wildflowers',effects:{food:-4,compost:-6,bloom:14,morale:6},trait:'Purist',result:'Weeks pass. Then one morning — a bee. Then two. Then dozens. The garden erupts in buzzing life. Children chase butterflies through the canopy. The world remembers how to bloom.',setFlag:'pollinators_restored',rng:{chance:10}},
+      {text:'Hand-pollinate every plant systematically',effects:{food:4,bloom:-4,morale:-8,healthAll:-6},trait:'Pragmatist',result:'Exhausting, tedious work. Every flower touched by human hand. It works, but the joy has been drained from the garden.',badResult:'Workers develop allergic reactions to constant pollen exposure. The medical supplies take a hit.',rng:{bad:{medicine:-5,healthAll:-10},chance:20}},
+      {text:'Research synthetic pollination methods',effects:{scrap:-5,landmark:10,bloom:-2},trait:'Inventive',result:'Tiny wind-powered devices flutter through the garden. Elegant engineering, but the garden feels mechanical now. Efficient, not alive.'}
+    ]
+  },
+  {
+    id:'mycelium_web',title:'The Whispering Roots',
+    text:'Gardeners report something strange: plants are communicating. A tomato plant under attack by caterpillars somehow warns neighboring plants, which begin producing bitter compounds. The root network beneath the garden is alive with chemical signals — a wood wide web.',
+    opinions:[{trait:'Purist',text:'The forest is teaching us. We should learn its language.'},{trait:'Skeptic',text:'Plants don\'t talk. This is coincidence dressed up as mysticism.'}],
+    choices:[
+      {text:'Nurture the network — feed the roots, listen to the soil',effects:{bloom:10,food:8,compost:-5,morale:5},trait:'Purist',result:'The garden transforms. Plants warn each other of pests, share nutrients with struggling neighbors, and direct growth toward sunlight. Your gardeners become translators for an ancient intelligence.',rng:{chance:10}},
+      {text:'Map the network for agricultural optimization',effects:{food:6,landmark:8,bloom:2},trait:'Inventive',result:'The researchers are ecstatic. The mycelium network is a natural computer — processing information, allocating resources. Understanding it revolutionizes your farming methods.'},
+      {text:'Ignore it — focus on what we can control',effects:{morale:-4,bloom:-3},trait:'Skeptic',result:'The practical work continues. But at night, some gardeners swear they hear the roots whispering. The garden grows, but slowly, as if sulking.',rng:{bad:{food:-5,bloom:-6},chance:30}}
+    ]
+  },
+  {
+    id:'herbalist_wisdom',title:'The Grandmother\'s Gift',
+    text:'An elderly wanderer arrives, not seeking shelter but offering knowledge. She carries a worn leather journal filled with pre-Switch botanical wisdom — remedies, growing techniques, seed-saving methods. "The old ways aren\'t old," she says. "They\'re patient."',
+    opinions:[{trait:'Compassionate',text:'Welcome her. This knowledge is priceless.'},{trait:'Skeptic',text:'Folk remedies and superstition. We have science now.'}],
+    choices:[
+      {text:'Invite her to teach the community',effects:{food:-3,bloom:8,medicine:6,morale:8},trait:'Compassionate',result:'She stays for a week, teaching herb lore, companion planting, and soil reading. The gardeners are transformed. Even the skeptics admit: the garden has never looked better.',rng:{chance:10}},
+      {text:'Copy the journal and send her on her way',effects:{medicine:3,landmark:4,bloom:2},trait:'Pragmatist',result:'The journal is transcribed carefully. Useful, certainly. But the old woman\'s eyes are sad as she leaves. "Knowledge without relationship is just data," she says.'},
+      {text:'Dismiss her — we follow evidence, not folklore',effects:{morale:-6,bloom:-5},trait:'Skeptic',result:'She nods without surprise and walks back into the forest. Later, a gardener finds a single seed pressed into the doorframe. It grows into something no one can identify — beautiful, medicinal, and irreproducible.',rng:{bad:{morale:-10},chance:25}}
+    ]
+  },
+  {
+    id:'rain_ceremony',title:'The Gathering of Rains',
+    text:'The dry season bites hard. Water reserves are dropping. A Purist survivor suggests something unusual: a rain ceremony. Not magic — a community ritual of gratitude and intention. "The old cultures understood something we forgot," she says. "Connection to the land isn\'t metaphor."',
+    opinions:[{trait:'Purist',text:'What do we lose by trying? At worst, we gain community.'},{trait:'Pragmatist',text:'We should be digging wells, not dancing.'}],
+    choices:[
+      {text:'Hold the ceremony — gather the whole community',effects:{water:2,bloom:10,morale:12},trait:'Purist',result:'Under starlight, the community gathers. Songs are sung, stories shared. No rain comes that night — but in the morning, the spring flows stronger. Coincidence? The community doesn\'t care. They feel connected.',rng:{chance:15}},
+      {text:'Dig emergency wells instead',effects:{water:10,healthAll:-8,bloom:-4,scrap:-3},trait:'Pragmatist',result:'Practical. Effective. The wells yield water. But the community feels like a workforce, not a family. Morale sags under the labor.',badResult:'The digging collapses an underground chamber. A worker is trapped for hours before rescue.',rng:{bad:{healthAll:-15,morale:-10},chance:20}},
+      {text:'Do both — ceremony at dawn, digging at noon',effects:{water:6,bloom:5,morale:4,healthAll:-4},trait:'Diplomatic',result:'Tired but hopeful. The community dances, then digs. Both matter. The wells fill slowly, and the community fills faster.'}
+    ]
+  },
+  {
+    id:'wild_garden',title:'The Untamed Plot',
+    text:'A section of the garden has gone wild. Weeds, wildflowers, and volunteer plants have overtaken a carefully planned crop bed. The gardeners are divided — some see chaos, others see abundance.',
+    opinions:[{trait:'Purist',text:'Nature knows what it\'s doing. Let the wild garden teach us.'},{trait:'Resourceful',text:'We need order. Rip it out and replant properly.'}],
+    choices:[
+      {text:'Leave it wild — observe and learn',effects:{bloom:8,food:6,morale:4,compost:3},trait:'Purist',result:'The wild plot outperforms the planned beds. Companion plants protect each other, biodiversity attracts pollinators, and the soil grows richer. The gardeners are humbled and inspired.',rng:{chance:10}},
+      {text:'Clear it and replant with proven crops',effects:{food:8,bloom:-6,compost:-3},trait:'Resourceful',result:'Clean rows, predictable yields. The farmers feel in control. But the soil seems tired, and next season the pests return with a vengeance.',badResult:'Clearing the wild garden destroys a hidden nest of beneficial insects. Pests surge across all beds.',rng:{bad:{food:-8,bloom:-4,morale:-5},chance:25}},
+      {text:'Create a hybrid — wild borders, cultivated center',effects:{food:5,bloom:5,morale:5,compost:2},trait:'Diplomatic',result:'The best of both worlds. Wild edges attract beneficial insects and build soil, while the center produces reliable harvests. A gardener whispers: "This is what balance looks like."'}
+    ]
+  },
+  {
+    id:'tree_singing',title:'The Song of the Great Tree',
+    text:'On still nights, the Great Tree makes sounds. Not wind in the branches — the trunk itself resonates, a deep harmonic that rises through the roots. A Purist survivor claims she can "read" the vibrations. She says the tree is asking for something.',
+    opinions:[{trait:'Purist',text:'The tree sustains us. The least we can do is listen.'},{trait:'Skeptic',text:'Trees don\'t ask for things. It\'s thermal expansion in the wood.'}],
+    choices:[
+      {text:'Follow her guidance — compost the roots, reduce construction vibrations',effects:{compost:-6,bloom:12,food:5,morale:6},trait:'Purist',result:'The tree responds. Growth accelerates, new branches reach toward the sky, and fruit appears where none grew before. The resonance shifts to a higher, warmer note. Whether it\'s science or spirit, the results are real.',rng:{chance:10}},
+      {text:'Install vibration sensors — study it scientifically',effects:{scrap:-4,landmark:10,bloom:2},trait:'Inventive',result:'The sensors reveal extraordinary data: the tree\'s vibrations match the resonance of healthy mycelium networks worldwide. It\'s not singing — it\'s networking. Both beautiful and useful.'},
+      {text:'Ignore it — focus on practical concerns',effects:{morale:-5,bloom:-4},trait:'Skeptic',result:'The humming continues, but quieter. Some survivors feel a creeping unease, as if something important was offered and refused. The tree still grows, but without joy.',rng:{bad:{bloom:-8,morale:-8},chance:30}}
+    ]
   }
 ];
 
@@ -735,6 +850,30 @@ const CHAIN_DILEMMAS = [
       {text:'Claim it for Industry — we need production',effects:{bloom:-10,scrap:15,landmark:10},trait:'Pragmatist',result:'The waystation becomes a factory. Smoke rises, but so does your landmark progress. The earth may forgive you. Eventually.'}
     ],
     chain:'phase2_two_paths'
+  },
+  {
+    id:'grove_awakening',
+    title:'The Grove Remembers',
+    text:'Since consecrating the sacred grove, something has changed. The bioluminescent moss has spread through the root network, painting the entire sanctuary in soft green light at night. But now the grove is producing strange fruit — golden, warm, and pulsing with the same frequency as the tree. The community is divided: eat, plant, or study?',
+    requiresFlag:'grove_consecrated',
+    choices:[
+      {text:'Plant the golden fruit throughout the sanctuary',effects:{bloom:14,food:8,compost:4,morale:6},trait:'Purist',result:'The golden fruit trees grow impossibly fast, weaving into the Great Tree\'s branches. The sanctuary transforms — a living cathedral of light and green. Foragers barely need to leave.'},
+      {text:'Share the fruit with the community as a feast',effects:{morale:15,bloom:5,healthAll:10},trait:'Compassionate',result:'The feast is unlike anything. The golden fruit tastes of honey and rain. Survivors weep with joy. For one night, the old world feels like a dream they\'ve already woken from.'},
+      {text:'Study the fruit\'s bioluminescent properties',effects:{landmark:12,bloom:3,medicine:5},trait:'Inventive',result:'The fruit contains encoded bioluminescent DNA — a natural light source that needs no fuel. Your researchers integrate it into building designs. Living architecture, powered by photosynthesis.'}
+    ],
+    chain:'phase2_grove'
+  },
+  {
+    id:'pollinator_network',
+    title:'The Pollinator\'s Map',
+    text:'The pollinator habitats you built have attracted more than bees. Butterflies arrive in clouds, carrying pollen from distant settlements. A researcher notices patterns in their flight — they\'re following the mycelium network underground, visible only to creatures attuned to the earth\'s magnetic field. The butterflies are living messengers between Meridian settlements.',
+    requiresFlag:'pollinators_restored',
+    choices:[
+      {text:'Follow the butterflies to the nearest settlement',effects:{bloom:8,morale:10,food:5},trait:'Compassionate',result:'A three-day journey following the monarch migration leads to a thriving settlement. They\'ve been following butterflies too. Tears, embraces, and the first inter-settlement trade route — carried on wings.',rng:{chance:10}},
+      {text:'Breed the butterflies to carry our own messages',effects:{bloom:4,landmark:10,scrap:3},trait:'Inventive',result:'Tiny scrolls attached to butterfly legs. It sounds absurd, but it works. A communication network powered by nectar and instinct. The researchers call it "the pollinator protocol."'},
+      {text:'Expand habitats to attract more species',effects:{bloom:12,food:6,compost:5},trait:'Purist',result:'The sanctuary becomes a waypoint on a continental migration route. Birds, butterflies, and even bats pass through, carrying seeds and stories from across the post-Switch world. Biodiversity explodes.'}
+    ],
+    chain:'phase2_pollinators'
   }
 ];
 
@@ -1606,6 +1745,12 @@ function resolveDilemma(choiceIndex) {
   // ── CHECK FOR INVESTIGATION TRIGGER ──
   // Certain dilemma choices unlock special multi-day investigation expeditions
   checkInvestigationTrigger(dilemma.id, choiceIndex);
+
+  // ── SET META FLAGS from dilemma choices ──
+  if(choice.setFlag && !G.metaFlags[choice.setFlag]) {
+    G.metaFlags[choice.setFlag] = true;
+    addLog(`🌿 A deeper connection awakened: ${choice.setFlag.replace(/_/g,' ')}`, 'story');
+  }
 
   // Show result
   showResult(dilemma.title, outcomeText, effects, wasUnlucky);
@@ -3566,22 +3711,38 @@ function updateLogPanel() {
 
   // Meridian Discoveries section
   const flags = G.metaFlags || {};
-  const discoveryCount = Object.values(flags).filter(v=>v).length;
-  if(discoveryCount > 0) {
-    const flagLabels = {
-      underground_explored: '🌿 The Underground Signal — root network mapped',
-      meridian_files_found: '📄 The Meridian Files — Landmark\'s true purpose revealed',
-      pulsebox_decoded: '⚡ Pulsebox Decoded — Meridian seed technology understood',
-      iron_collective_truth: '⚔️ Iron Collective Truth — two paths of Meridian discovered'
-    };
-    html += `<div style="font-size:0.8rem;margin-bottom:6px;color:var(--gold)">🔍 Meridian Discoveries (${discoveryCount}/4)</div>`;
-    Object.entries(flagLabels).forEach(([flag, label]) => {
-      if(flags[flag]) {
-        html += `<div style="font-size:0.7rem;padding:3px 0;color:var(--bloom)">${label}</div>`;
-      } else {
-        html += `<div style="font-size:0.7rem;padding:3px 0;color:var(--text-dim);font-style:italic">??? — Undiscovered</div>`;
-      }
-    });
+  const meridianFlags = {
+    underground_explored: '🌿 The Underground Signal — root network mapped',
+    meridian_files_found: '📄 The Meridian Files — Landmark\'s true purpose revealed',
+    pulsebox_decoded: '⚡ Pulsebox Decoded — Meridian seed technology understood',
+    iron_collective_truth: '⚔️ Iron Collective Truth — two paths of Meridian discovered'
+  };
+  const harmonyFlags = {
+    grove_consecrated: '🌳 The Sacred Grove — ancient sanctuary consecrated',
+    pollinators_restored: '🦋 Pollinators Restored — the garden lives and breathes'
+  };
+  const meridianCount = Object.keys(meridianFlags).filter(f=>flags[f]).length;
+  const harmonyCount = Object.keys(harmonyFlags).filter(f=>flags[f]).length;
+  const totalDiscoveries = meridianCount + harmonyCount;
+  if(totalDiscoveries > 0) {
+    if(meridianCount > 0) {
+      html += `<div style="font-size:0.8rem;margin-bottom:6px;color:var(--gold)">🔍 Meridian Discoveries (${meridianCount}/4)</div>`;
+      Object.entries(meridianFlags).forEach(([flag, label]) => {
+        if(flags[flag]) {
+          html += `<div style="font-size:0.7rem;padding:3px 0;color:var(--bloom)">${label}</div>`;
+        } else {
+          html += `<div style="font-size:0.7rem;padding:3px 0;color:var(--text-dim);font-style:italic">??? — Undiscovered</div>`;
+        }
+      });
+    }
+    if(harmonyCount > 0) {
+      html += `<div style="font-size:0.8rem;margin:8px 0 6px;color:var(--harmony)">🌿 Harmony Awakenings (${harmonyCount}/2)</div>`;
+      Object.entries(harmonyFlags).forEach(([flag, label]) => {
+        if(flags[flag]) {
+          html += `<div style="font-size:0.7rem;padding:3px 0;color:var(--harmony)">${label}</div>`;
+        }
+      });
+    }
     html += `<div style="border-bottom:1px solid var(--border);margin:8px 0"></div>`;
   }
 
