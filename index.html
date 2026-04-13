@@ -2506,6 +2506,38 @@ function drawSanctuary() {
       ctx.lineTo(lx + limbWidth * 0.1 * (1 - t), ly + 2);
       ctx.stroke();
     }
+    // Leaf clusters along major limbs — dense foliage covering the thick limbs
+    {
+      const bloomN = G.bloom / 100;
+      const limbLeaves = Math.max(12, Math.floor(12 + bloomN * 14));
+      const lseed = (n) => ((Math.sin(n) * 43758.5453) % 1 + 1) % 1;
+      for(let i = 0; i < limbLeaves; i++) {
+        const t = 0.15 + (i / limbLeaves) * 0.80;
+        const sx = lseed(i * 8.1 + limb.endOffsetX * 13.3 + limb.startY * 5.7);
+        const sy = lseed(i * 6.3 + limb.endOffsetX * 9.7 + limb.startY * 4.1);
+        const lx = startX + (endX - startX) * t + (sx - 0.5) * 40;
+        const ly = startY + (endY - startY) * t + (sy - 0.5) * 28;
+        const lr = 7 + bloomN * 15 + Math.sin(i * 2.1) * 2;
+        const alpha = 0.5 + bloomN * 0.3;
+        let rC, gC, bCC;
+        const sc = lseed(i * 14.3 + limb.endOffsetX * 19.1);
+        if(bloomN < 0.5) {
+          const indN = 1 - (bloomN / 0.5);
+          rC = Math.floor(140 + indN * 40 + sc * 15);
+          gC = Math.floor(100 - indN * 40 + sc * 15);
+          bCC = Math.floor(30 + sc * 10);
+        } else {
+          rC = Math.floor(130 - bloomN * 70 + sc * 20);
+          gC = Math.floor(70 + bloomN * 120 + sc * 20);
+          bCC = Math.floor(25 + bloomN * 20);
+        }
+        ctx.fillStyle = `rgba(${rC},${gC},${bCC},${alpha})`;
+        ctx.beginPath();
+        const rot = lseed(i * 10.7 + limb.endOffsetX * 6.3) * Math.PI;
+        ctx.ellipse(lx, ly, lr, lr * 0.7, rot, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
   });
 
   // Branches — expanded set with sub-branches, wider horizontal spread
@@ -2528,6 +2560,7 @@ function drawSanctuary() {
     {x:-0.6,y:0.50,len:0.20,angle:-0.85},{x:0.65,y:0.42,len:0.22,angle:0.75},
   ];
 
+  // PASS 1: Draw branch wood + sub-branches (no leaves yet)
   branches.forEach(b => {
     const bx = treeX + b.x * trunkW;
     const by = treeBase - (1-b.y) * (treeBase - h*0.12);
@@ -2562,26 +2595,58 @@ function drawSanctuary() {
       ctx.stroke();
     }
 
+    // Bare branch tips at low bloom — exposed wood
+    if(G.bloom < 30) {
+      const tipX = endX + sway + Math.cos(b.angle)*15;
+      const tipY = endY - Math.abs(Math.sin(b.angle))*8;
+      ctx.strokeStyle = `rgba(80,60,40,${0.5 - bm*0.3})`;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(endX+sway, endY);
+      ctx.lineTo(tipX, tipY);
+      ctx.stroke();
+      // Sub-twigs
+      ctx.lineWidth = 0.8;
+      ctx.beginPath();
+      ctx.moveTo(tipX, tipY);
+      ctx.lineTo(tipX+8, tipY-6);
+      ctx.moveTo(tipX, tipY);
+      ctx.lineTo(tipX-5, tipY-8);
+      ctx.stroke();
+    }
+  });
+
+  // Platform/building indicators on the tree — drawn BEFORE leaves so buildings peek through foliage
+  drawPlatforms(treeX, treeBase, trunkW, h);
+
+  // PASS 2: Draw leaf clusters + flowers on TOP of buildings (foliage covers/frames the buildings)
+  branches.forEach(b => {
+    const bx = treeX + b.x * trunkW;
+    const by = treeBase - (1-b.y) * (treeBase - h*0.12);
+    const endX = bx + Math.cos(b.angle) * w * b.len;
+    const endY = by - Math.abs(Math.sin(b.angle)) * h * b.len * 0.5;
+    const sway = Math.sin(Date.now()*0.0004+b.x*5)*0.8;
+
     // Leaf clusters — dense foliage on branches, brown at industry, lush green at harmony
     {
       const bloomN = G.bloom / 100;
-      // More leaves per branch — minimum 8, up to 22 at full harmony
-      const leafCount = Math.max(8, Math.floor(8 + bloomN * 14));
-      // Upper branches (lower y value) get extra leaves for canopy density
-      const upperBonus = b.y < 0.3 ? Math.floor(6 + bloomN * 8) : 0;
+      // Dense leaves per branch — minimum 14, up to 30 at full harmony
+      const leafCount = Math.max(14, Math.floor(14 + bloomN * 16));
+      // ALL branches get bonus leaves, upper branches get extra for canopy density
+      const upperBonus = b.y < 0.3 ? Math.floor(8 + bloomN * 10) : Math.floor(4 + bloomN * 6);
       const totalLeaves = leafCount + upperBonus;
       // Seeded pseudo-random helper — deterministic per leaf, stable across frames
       const seed = (n) => ((Math.sin(n) * 43758.5453) % 1 + 1) % 1;
       for(let i=0;i<totalLeaves;i++){
-        const t = 0.15 + (i/totalLeaves)*0.75;
+        const t = 0.05 + (i/totalLeaves)*0.90;
         // Deterministic offsets based on branch + leaf index (no Math.random!)
         const sx = seed(i*7.3 + b.x*11.7 + b.y*3.1);
         const sy = seed(i*5.1 + b.x*8.3 + b.y*6.7);
-        const lx = bx + (endX-bx)*t + sway*t + (sx-0.5)*32;
-        const ly = by + (endY-by)*t + (sy-0.5)*20;
-        const lr = 5 + bloomN*14 + Math.sin(Date.now()*0.0008+i+b.x)*0.8;
+        const lx = bx + (endX-bx)*t + sway*t + (sx-0.5)*48;
+        const ly = by + (endY-by)*t + (sy-0.5)*30;
+        const lr = 6 + bloomN*16 + Math.sin(Date.now()*0.0008+i+b.x)*0.8;
         // Visible at ALL bloom levels — brown/amber at industry, green at harmony
-        const alpha = 0.5 + bloomN*0.3;
+        const alpha = 0.55 + bloomN*0.3;
         // Color: amber/brown at low (industry), rich green at high (harmony)
         let rC, gC, bCC;
         const sc = seed(i*13.7 + b.x*17.3);
@@ -2616,26 +2681,6 @@ function drawSanctuary() {
         drawFlower(fx, fy, 3+fseed(i*11.3+b.x*5.7)*2, i+b.x*10);
       }
     }
-
-    // Bare branch tips at low bloom — exposed wood
-    if(G.bloom < 30) {
-      const tipX = endX + sway + Math.cos(b.angle)*15;
-      const tipY = endY - Math.abs(Math.sin(b.angle))*8;
-      ctx.strokeStyle = `rgba(80,60,40,${0.5 - bm*0.3})`;
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      ctx.moveTo(endX+sway, endY);
-      ctx.lineTo(tipX, tipY);
-      ctx.stroke();
-      // Sub-twigs
-      ctx.lineWidth = 0.8;
-      ctx.beginPath();
-      ctx.moveTo(tipX, tipY);
-      ctx.lineTo(tipX+8, tipY-6);
-      ctx.moveTo(tipX, tipY);
-      ctx.lineTo(tipX-5, tipY-8);
-      ctx.stroke();
-    }
   });
 
   // Dense canopy crown — extra leaf clusters at the tree top, no floating ellipses
@@ -2643,9 +2688,9 @@ function drawSanctuary() {
     const bloomN = G.bloom / 100;
     const crownCenterX = treeX;
     const crownCenterY = h * 0.13;
-    const crownRadiusX = w * 0.22 * (0.7 + bloomN * 0.5);
-    const crownRadiusY = h * 0.09 * (0.7 + bloomN * 0.5);
-    const crownCount = Math.max(12, Math.floor(bloomN * 40));
+    const crownRadiusX = w * 0.28 * (0.7 + bloomN * 0.5);
+    const crownRadiusY = h * 0.11 * (0.7 + bloomN * 0.5);
+    const crownCount = Math.max(18, Math.floor(bloomN * 55));
     // Deterministic seeded random — stable across frames
     const cseed = (n) => ((Math.sin(n) * 43758.5453) % 1 + 1) % 1;
     for(let i = 0; i < crownCount; i++) {
@@ -2718,6 +2763,7 @@ function drawSanctuary() {
   {
     const bushCount = G.bloom > 40 ? Math.floor((G.bloom - 40) / 8) : Math.max(2, Math.floor(G.bloom / 12));
     const totalBushes = Math.max(2, bushCount);
+    const bseed = (n) => ((Math.sin(n) * 43758.5453) % 1 + 1) % 1;
     for(let i=0;i<totalBushes;i++){
       const bx = w*0.08 + (i/(totalBushes||1))*w*0.84 + Math.sin(i*7.3)*30;
       const by = h*0.85 + Math.sin(bx*0.03)*8 + Math.sin(bx*0.01)*15;
@@ -2725,14 +2771,14 @@ function drawSanctuary() {
       let gVal, rVal, bushAlpha;
       if(G.bloom >= 50) {
         // Harmony: green bushes
-        rVal = 50 + Math.floor(Math.random()*20);
+        rVal = 50 + Math.floor(bseed(i*11.3+7.7)*20);
         gVal = Math.floor(80 + (G.bloom/100)*100);
         bushAlpha = 0.35 + (G.bloom/100)*0.35;
       } else {
         // Industry: amber/brown bushes — still visible!
         const indN = (50 - G.bloom) / 50; // 0 at 50, 1 at 0
-        rVal = Math.floor(110 + indN*50 + Math.random()*15);
-        gVal = Math.floor(80 - indN*25 + Math.random()*10);
+        rVal = Math.floor(110 + indN*50 + bseed(i*11.3+7.7)*15);
+        gVal = Math.floor(80 - indN*25 + bseed(i*8.9+3.3)*10);
         bushAlpha = 0.3 + (1-indN)*0.2;
       }
       ctx.fillStyle = `rgba(${rVal},${gVal},${35},${bushAlpha})`;
@@ -2765,9 +2811,6 @@ function drawSanctuary() {
       ctx.stroke();
     }
   }
-
-  // Platform/building indicators on the tree
-  drawPlatforms(treeX, treeBase, trunkW, h);
 
   // Survivor dots
   drawSurvivorDots(treeX, treeBase, trunkW, h);
