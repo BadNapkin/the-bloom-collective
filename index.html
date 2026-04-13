@@ -2472,7 +2472,11 @@ function drawSanctuary() {
     // Additional branches for fuller tree
     {x:-0.9,y:0.3,len:0.15,angle:-1.1},{x:0.9,y:0.28,len:0.16,angle:1.0},
     {x:-0.4,y:0.45,len:0.12,angle:-0.6},{x:0.5,y:0.48,len:0.13,angle:0.7},
-    {x:-0.7,y:0.6,len:0.1,angle:-0.9},{x:0.7,y:0.62,len:0.11,angle:0.85}
+    {x:-0.7,y:0.6,len:0.1,angle:-0.9},{x:0.7,y:0.62,len:0.11,angle:0.85},
+    // Extra upper canopy branches for dense crown
+    {x:-0.2,y:0.1,len:0.1,angle:-0.3},{x:0.2,y:0.08,len:0.11,angle:0.3},
+    {x:-0.5,y:0.12,len:0.13,angle:-0.7},{x:0.5,y:0.1,len:0.12,angle:0.65},
+    {x:0.0,y:0.06,len:0.09,angle:-0.1},{x:-0.1,y:0.09,len:0.08,angle:0.2}
   ];
 
   branches.forEach(b => {
@@ -2509,16 +2513,19 @@ function drawSanctuary() {
       ctx.stroke();
     }
 
-    // Leaf clusters — MORE leaves and BIGGER at high bloom, brown (not vanishing) at low/industry
+    // Leaf clusters — dense foliage on branches, brown at industry, lush green at harmony
     {
-      const bloomN = G.bloom / 100; // 0 to 1
-      // Industry-leaning: still show leaves, just brown/amber — minimum 5 leaves even at bloom=0
-      const leafCount = Math.max(5, Math.floor(bloomN * 12));
-      for(let i=0;i<leafCount;i++){
-        const t = 0.2 + (i/leafCount)*0.7;
-        const lx = bx + (endX-bx)*t + sway*t + (Math.random()-0.5)*18;
-        const ly = by + (endY-by)*t + (Math.random()-0.5)*12;
-        const lr = 4 + bloomN*12 + Math.sin(Date.now()*0.0008+i+b.x)*0.8;
+      const bloomN = G.bloom / 100;
+      // More leaves per branch — minimum 8, up to 22 at full harmony
+      const leafCount = Math.max(8, Math.floor(8 + bloomN * 14));
+      // Upper branches (lower y value) get extra leaves for canopy density
+      const upperBonus = b.y < 0.3 ? Math.floor(6 + bloomN * 8) : 0;
+      const totalLeaves = leafCount + upperBonus;
+      for(let i=0;i<totalLeaves;i++){
+        const t = 0.15 + (i/totalLeaves)*0.75;
+        const lx = bx + (endX-bx)*t + sway*t + (Math.random()-0.5)*22;
+        const ly = by + (endY-by)*t + (Math.random()-0.5)*16;
+        const lr = 5 + bloomN*14 + Math.sin(Date.now()*0.0008+i+b.x)*0.8;
         // Visible at ALL bloom levels — brown/amber at industry, green at harmony
         const alpha = 0.5 + bloomN*0.3;
         // Color: amber/brown at low (industry), rich green at high (harmony)
@@ -2574,46 +2581,47 @@ function drawSanctuary() {
     }
   });
 
-  // Canopy — directly scales with bloom: BIG and lush at high, thin and brown at low
-  const canopyLayers = [
-    {y:0.08,r:0.28,alpha:0.2},{y:0.12,r:0.32,alpha:0.25},
-    {y:0.18,r:0.25,alpha:0.3},{y:0.06,r:0.2,alpha:0.15}
-  ];
-  const bloomN = G.bloom / 100;
-  const canopyScale = 0.55 + bloomN * 0.65; // 0.55 at bloom=0 (clearly visible brown), 1.2 at bloom=100
-  canopyLayers.forEach(cl => {
-    const cx = treeX + Math.sin(Date.now()*0.0002+cl.y*10)*1;
-    const cy = h * cl.y;
-    const cr = (w * cl.r) * canopyScale;
-    // Color: warm brown/amber at low (industry), rich emerald at high (harmony)
-    let rC, gC, bC;
-    if(bloomN < 0.5) {
-      const indN = 1 - (bloomN / 0.5); // 0 at 50, 1 at 0
-      rC = Math.floor(100 + indN*50);  // warm brown
-      gC = Math.floor(70 - indN*20);   // muted
-      bC = Math.floor(30);
-    } else {
-      rC = Math.floor(90 - bloomN*50);
-      gC = Math.floor(50 + bloomN*130);
-      bC = Math.floor(25 + bloomN*25);
+  // Dense canopy crown — extra leaf clusters at the tree top, no floating ellipses
+  {
+    const bloomN = G.bloom / 100;
+    const crownCenterX = treeX;
+    const crownCenterY = h * 0.13;
+    const crownRadiusX = w * 0.18 * (0.7 + bloomN * 0.5);
+    const crownRadiusY = h * 0.08 * (0.7 + bloomN * 0.5);
+    const crownCount = Math.max(12, Math.floor(bloomN * 40));
+    for(let i = 0; i < crownCount; i++) {
+      const angle = (i / crownCount) * Math.PI * 2 + i * 1.7;
+      const dist = 0.3 + Math.random() * 0.7;
+      const cx = crownCenterX + Math.cos(angle) * crownRadiusX * dist;
+      const cy = crownCenterY + Math.sin(angle) * crownRadiusY * dist * 0.7;
+      const lr = 6 + bloomN * 14 + Math.sin(i * 2.1) * 3;
+      let rC, gC, bCC;
+      if(bloomN < 0.5) {
+        const indN = 1 - (bloomN / 0.5);
+        rC = Math.floor(140 + indN*40 + Math.sin(i*3.7)*12);
+        gC = Math.floor(100 - indN*40 + Math.sin(i*2.3)*12);
+        bCC = Math.floor(30 + Math.sin(i*1.9)*8);
+      } else {
+        rC = Math.floor(130 - bloomN*70 + Math.sin(i*3.7)*15);
+        gC = Math.floor(70 + bloomN*120 + Math.sin(i*2.3)*15);
+        bCC = Math.floor(25 + bloomN*20);
+      }
+      const alpha = 0.45 + bloomN * 0.35;
+      ctx.fillStyle = `rgba(${rC},${gC},${bCC},${alpha})`;
+      ctx.beginPath();
+      ctx.ellipse(cx, cy, lr, lr * 0.65, Math.sin(i * 1.3) * 0.5, 0, Math.PI * 2);
+      ctx.fill();
     }
-    // More opaque overall — industry canopy is brown, not transparent
-    const alpha = cl.alpha * (0.7 + bloomN*0.5);
-    ctx.fillStyle = `rgba(${rC},${gC},${bC},${alpha})`;
-    ctx.beginPath();
-    ctx.ellipse(cx,cy,cr,cr*0.5,0,0,Math.PI*2);
-    ctx.fill();
-  });
-
-  // Canopy flowers at high bloom
-  if(G.bloom > 60) {
-    const flowerRing = Math.floor((G.bloom - 60) / 5);
-    for(let i=0;i<flowerRing;i++){
-      const angle = (i/flowerRing)*Math.PI*2 + Date.now()*0.00004;
-      const radius = w*0.15 + Math.sin(i*2.3)*20;
-      const fx = treeX + Math.cos(angle)*radius;
-      const fy = h*0.12 + Math.sin(angle)*radius*0.35;
-      drawFlower(fx, fy, 3+Math.random()*3, i*7);
+    // Crown flowers at high bloom — nestled in the canopy
+    if(G.bloom > 60) {
+      const flowerCount = Math.floor((G.bloom - 60) / 6);
+      for(let i = 0; i < flowerCount; i++) {
+        const angle = (i / Math.max(flowerCount,1)) * Math.PI * 2 + i * 2.1;
+        const dist = 0.4 + Math.random() * 0.5;
+        const fx = crownCenterX + Math.cos(angle) * crownRadiusX * dist;
+        const fy = crownCenterY + Math.sin(angle) * crownRadiusY * dist * 0.6;
+        drawFlower(fx, fy, 3 + Math.random() * 2, i * 7);
+      }
     }
   }
 
