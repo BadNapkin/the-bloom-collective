@@ -67,7 +67,15 @@ canvas{display:block}
 #bottom-bar{display:flex;align-items:center;padding:8px 16px;gap:12px;border-top:1px solid var(--border);
   background:rgba(40,38,31,0.95)}
 #event-log{flex:1;font-size:0.75rem;color:var(--text-dim);font-style:italic;overflow:hidden;
-  white-space:nowrap;text-overflow:ellipsis}
+  white-space:nowrap;position:relative;height:1.4em}
+#event-log .ticker-text{display:inline-block;white-space:nowrap;position:absolute;left:0;top:0;
+  animation:none}
+@keyframes tickerScroll{
+  0%{transform:translateX(0)}
+  10%{transform:translateX(0)}
+  90%{transform:translateX(var(--scroll-dist))}
+  100%{transform:translateX(var(--scroll-dist))}
+}
 
 /* ── Survivor Cards ── */
 .survivor-card{background:rgba(26,25,23,0.6);border:1px solid var(--border);border-radius:4px;
@@ -360,7 +368,7 @@ canvas{display:block}
   </div>
 
   <div id="bottom-bar">
-    <span id="event-log">The community stirs with the dawn…</span>
+    <span id="event-log"><span class="ticker-text">The community stirs with the dawn…</span></span>
     <button class="btn btn-sm btn-bloom" onclick="endDay()">End Day →</button>
   </div>
 </div>
@@ -1086,8 +1094,8 @@ function calcDayChanges() {
   aliveSurvivors.forEach(s => {
     if(s.role && s.role !== 'medic') s.health = Math.max(5, s.health - workFatigue);
     switch(s.role) {
-      case 'forager': changes.food += Math.round(harmonyBonus(3)); break;
-      case 'gardener': changes.food += Math.round(harmonyBonus(2)); changes.compost += 1; changes.bloom += 1; break;
+      case 'forager': changes.food += Math.round(harmonyBonus(3)); changes.bloom += 0.5; break;
+      case 'gardener': changes.food += Math.round(harmonyBonus(2)); changes.compost += 1; changes.bloom += 1.5; break;
       case 'crafter':
         let craftAmt = Math.round(industryBonus(4));
         if(G.buildings.includes('workshop')) craftAmt *= 2;
@@ -1109,7 +1117,7 @@ function calcDayChanges() {
         changes.medicine += G.buildings.includes('apothecary') ? 2 : 0;
         // Harmony: medics heal more effectively
         break;
-      default: break; // unassigned survivors just rest passively
+      default: changes.bloom += 0.2; break; // resting survivors commune with nature
     }
   });
 
@@ -1182,12 +1190,12 @@ function calcDayChanges() {
   // Industry (-bloom): workshop, library — productivity-focused
   // Neutral: rain_catcher, compost_bin, lookout, sleeping_quarters, recreation, apothecary
   if(G.buildings.includes('rain_catcher')) changes.water += 2;           // neutral
-  if(G.buildings.includes('herb_garden')) { changes.medicine += 1; changes.bloom += 2; }  // harmony
-  if(G.buildings.includes('compost_bin')) changes.compost += 2;          // neutral
-  if(G.buildings.includes('shrine')) changes.bloom += 2;                 // harmony
-  if(G.buildings.includes('nursery')) { changes.morale += 3; changes.bloom += 1; }  // slight harmony
-  if(G.buildings.includes('workshop')) changes.bloom -= 2;               // industry — forges & hammers
-  if(G.buildings.includes('library')) changes.bloom -= 1;                // slight industry — knowledge is power
+  if(G.buildings.includes('herb_garden')) { changes.medicine += 1; changes.bloom += 3; }  // harmony (was +2)
+  if(G.buildings.includes('compost_bin')) { changes.compost += 2; changes.bloom += 0.5; } // slight harmony — working with nature
+  if(G.buildings.includes('shrine')) changes.bloom += 3;                 // harmony (was +2)
+  if(G.buildings.includes('nursery')) { changes.morale += 3; changes.bloom += 2; }  // harmony (was +1)
+  if(G.buildings.includes('workshop')) changes.bloom -= 1;               // industry (was -2) — less harsh
+  if(G.buildings.includes('library')) changes.bloom -= 0.5;              // slight industry (was -1) — knowledge serves both sides
 
   // Industry bonus: expedition rewards doubled (applied later in progressExpeditions)
   // Industry bonus: cheaper building costs (applied in buildStructure)
@@ -1238,9 +1246,15 @@ function calcDayChanges() {
     G.researchLevel = (G.researchLevel||0) + Math.max(0, researchThisDay * 0.15);
   }
 
-  // Natural bloom drift toward 50
-  if(G.bloom > 55) changes.bloom -= 1;
-  if(G.bloom < 45) changes.bloom += 1;
+  // Natural bloom drift toward 50 — stronger pull at extremes
+  if(G.bloom > 55) {
+    const drift = 1 + Math.floor((G.bloom - 55) / 15); // 1 at 56-69, 2 at 70-84, 3 at 85+
+    changes.bloom -= drift;
+  }
+  if(G.bloom < 45) {
+    const drift = 1 + Math.floor((45 - G.bloom) / 15); // 1 at 30-44, 2 at 15-29, 3 at 0-14
+    changes.bloom += drift;
+  }
 
   return changes;
 }
@@ -1284,7 +1298,22 @@ function applyChanges(changes) {
 function addLog(msg, category) {
   // Categories: 'day' (daily summary), 'relationship', 'pet', 'event' (default), 'danger', 'story'
   logEntries.unshift({text: msg, day: G.day, cat: category || 'event'});
-  document.getElementById('event-log').textContent = msg;
+  const logEl = document.getElementById('event-log');
+  // Use ticker animation for overflow text
+  logEl.innerHTML = `<span class="ticker-text">${msg}</span>`;
+  requestAnimationFrame(() => {
+    const span = logEl.querySelector('.ticker-text');
+    if(!span) return;
+    const overflow = span.scrollWidth - logEl.clientWidth;
+    if(overflow > 0) {
+      // Text overflows — animate it scrolling left then pausing
+      const duration = Math.max(4, overflow / 30); // ~30px per second
+      span.style.setProperty('--scroll-dist', `-${overflow + 10}px`);
+      span.style.animation = `tickerScroll ${duration}s linear infinite`;
+    } else {
+      span.style.animation = 'none';
+    }
+  });
 }
 
 // Track previous relationship levels so we can detect changes
@@ -2407,15 +2436,15 @@ function drawSanctuary() {
     // Leaf clusters — MORE leaves and BIGGER at high bloom, brown (not vanishing) at low/industry
     {
       const bloomN = G.bloom / 100; // 0 to 1
-      // Industry-leaning: still show leaves, just brown/amber — minimum 3 leaves even at bloom=0
-      const leafCount = Math.max(3, Math.floor(bloomN * 10));
+      // Industry-leaning: still show leaves, just brown/amber — minimum 5 leaves even at bloom=0
+      const leafCount = Math.max(5, Math.floor(bloomN * 12));
       for(let i=0;i<leafCount;i++){
         const t = 0.2 + (i/leafCount)*0.7;
         const lx = bx + (endX-bx)*t + sway*t + (Math.random()-0.5)*18;
         const ly = by + (endY-by)*t + (Math.random()-0.5)*12;
-        const lr = 3 + bloomN*12 + Math.sin(Date.now()*0.002+i+b.x)*2;
-        // More opaque across the board — industry leaves are brown but still visible
-        const alpha = 0.3 + bloomN*0.45;
+        const lr = 4 + bloomN*12 + Math.sin(Date.now()*0.002+i+b.x)*2;
+        // Visible at ALL bloom levels — brown/amber at industry, green at harmony
+        const alpha = 0.5 + bloomN*0.3;
         // Color: amber/brown at low (industry), rich green at high (harmony)
         let rC, gC, bCC;
         if(bloomN < 0.5) {
@@ -2475,7 +2504,7 @@ function drawSanctuary() {
     {y:0.18,r:0.25,alpha:0.3},{y:0.06,r:0.2,alpha:0.15}
   ];
   const bloomN = G.bloom / 100;
-  const canopyScale = 0.4 + bloomN * 0.8; // 0.4 at bloom=0 (still visible), 1.2 at bloom=100
+  const canopyScale = 0.55 + bloomN * 0.65; // 0.55 at bloom=0 (clearly visible brown), 1.2 at bloom=100
   canopyLayers.forEach(cl => {
     const cx = treeX + Math.sin(Date.now()*0.0005+cl.y*10)*3;
     const cy = h * cl.y;
@@ -2493,7 +2522,7 @@ function drawSanctuary() {
       bC = Math.floor(25 + bloomN*25);
     }
     // More opaque overall — industry canopy is brown, not transparent
-    const alpha = cl.alpha * (0.5 + bloomN*0.7);
+    const alpha = cl.alpha * (0.7 + bloomN*0.5);
     ctx.fillStyle = `rgba(${rC},${gC},${bC},${alpha})`;
     ctx.beginPath();
     ctx.ellipse(cx,cy,cr,cr*0.5,0,0,Math.PI*2);
@@ -3339,18 +3368,20 @@ function updateAndDrawFireflies(w, h, bm) {
 
 function updateAndDrawLeaves(w, h, bm) {
   // Low bloom = brown autumn leaves drifting. High bloom = gentle green drift.
-  const isIndustry = G.bloom < 35;
-  const spawnRate = isIndustry ? 0.06 + (1-bm)*0.08 : 0.015 * bm;
-  const maxLeaves = isIndustry ? 35 : 15;
+  const bloomN = G.bloom / 100;
+  const isIndustry = G.bloom < 45;
+  // Industry side: more falling leaves (autumn feel). Harmony: fewer, gentle.
+  const spawnRate = isIndustry ? 0.06 + (1-bloomN)*0.06 : 0.02 * bloomN;
+  const maxLeaves = isIndustry ? 40 : 15;
 
   if(Math.random() < spawnRate && leafParticles.length < maxLeaves) {
     leafParticles.push({
       x: Math.random()*w, y: -10,
-      vx: (Math.random()-0.5) * (isIndustry ? 1.0 : 0.4),
-      vy: isIndustry ? 0.5+Math.random()*0.8 : 0.2+Math.random()*0.4,
+      vx: (Math.random()-0.5) * (isIndustry ? 1.2 : 0.4),
+      vy: isIndustry ? 0.4+Math.random()*0.6 : 0.2+Math.random()*0.4,
       rot: Math.random()*Math.PI*2,
       rotSpeed: (Math.random()-0.5) * (isIndustry ? 0.035 : 0.015),
-      size: isIndustry ? 3+Math.random()*3 : 3+Math.random()*4,
+      size: isIndustry ? 4+Math.random()*4 : 3+Math.random()*4,
       life: 1,
       dead: isIndustry
     });
@@ -3360,9 +3391,11 @@ function updateAndDrawLeaves(w, h, bm) {
     l.x += l.vx + Math.sin(Date.now()*0.002+i)*0.3;
     l.y += l.vy;
     l.rot += l.rotSpeed;
-    l.life -= (l.dead ? 0.003 : 0.001);
+    // Dead leaves decay slower so they stay visible much longer
+    l.life -= (l.dead ? 0.0015 : 0.001);
 
-    if(l.y > h || l.life <= 0) {
+    // Only remove when off-screen — dead leaves stay visible until they fall past the bottom
+    if(l.y > h + 20 || (l.life <= 0 && !l.dead) || (l.dead && l.life <= -0.5)) {
       leafParticles.splice(i, 1);
       return;
     }
@@ -3371,16 +3404,17 @@ function updateAndDrawLeaves(w, h, bm) {
     ctx.translate(l.x, l.y);
     ctx.rotate(l.rot);
     if(l.dead) {
-      // Dead/industry leaf: brown and opaque
+      // Dead/industry leaf: brown/amber, ALWAYS visible — minimum alpha 0.4
       const brown = 80 + Math.floor(Math.random()*40);
-      ctx.fillStyle = `rgba(${brown+40},${brown},${30},${l.life*0.8})`;
+      const alpha = Math.max(0.4, 0.3 + l.life * 0.5);
+      ctx.fillStyle = `rgba(${brown+50},${brown+10},${25},${alpha})`;
     } else {
-      // Living leaf: green, vibrant, more opaque
-      const g = Math.floor(120+bm*60);
-      ctx.fillStyle = `rgba(${60+Math.floor(Math.random()*20)},${g},${40},${l.life*0.85})`;
+      // Living leaf: green, vibrant
+      const g = Math.floor(120+bloomN*80);
+      ctx.fillStyle = `rgba(${60+Math.floor(Math.random()*20)},${g},${40},${Math.max(0.3, l.life*0.85)})`;
     }
     ctx.beginPath();
-    ctx.ellipse(0,0,l.size,l.size*(l.dead?0.3:0.45),0,0,Math.PI*2);
+    ctx.ellipse(0,0,l.size,l.size*(l.dead?0.4:0.45),0,0,Math.PI*2);
     ctx.fill();
     ctx.restore();
   });
