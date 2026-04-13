@@ -925,7 +925,8 @@ const PET_TYPES = [
   {id:'rabbit',name:'Rabbit',icon:'🐇',trait:'garden',desc:'Helps gardeners with soil aeration.',effect:{bloomPerDay:1,compostPerDay:1}},
   {id:'crow',name:'Crow',icon:'🐦‍⬛',trait:'scavenger',desc:'Finds trinkets and scrap in the canopy.',effect:{scrapPerDay:1}},
   {id:'deer',name:'Deer',icon:'🦌',trait:'forager',desc:'Leads foragers to better food sources.',effect:{foodPerDay:2}},
-  {id:'hawk',name:'Hawk',icon:'🦅',trait:'lookout',desc:'Spots threats and opportunities from above.',effect:{expSafety:8,researchBonus:1}}
+  {id:'hawk',name:'Hawk',icon:'🦅',trait:'lookout',desc:'Spots threats and opportunities from above.',effect:{expSafety:8,researchBonus:1}},
+  {id:'parrot',name:'Parrot',icon:'🦜',trait:'morale',desc:'Colorful and chatty. Boosts community spirits and mimics useful phrases.',effect:{moralePerDay:4}}
 ];
 
 // ════════════════════════════════════════════
@@ -1226,7 +1227,8 @@ function calcDayChanges() {
           rabbit:['Clover','Pip','Thistle','Nibble','Hazel','Bramble'],
           crow:['Ink','Rook','Caw','Shadow','Obsidian','Midnight'],
           deer:['Fern','Willow','Bracken','Aspen','Moss','Dawn'],
-          hawk:['Talon','Sky','Gust','Arrow','Cirrus','Zenith']
+          hawk:['Talon','Sky','Gust','Arrow','Cirrus','Zenith'],
+          parrot:['TumTum','Timtim','Rio','Kiwi','Mango','Skye']
         };
         const namePool = PET_NAME_POOLS[newPet.id] || ['Luna','Ash','Ember','Twig','Pebble','Moss','Fable','Dusk'];
         const petName = namePool[Math.floor(Math.random()*namePool.length)];
@@ -2213,6 +2215,80 @@ function resizeCanvas() {
   canvas.height = wrap.clientHeight;
 }
 
+// Flying birds — small silhouettes that glide across during high bloom
+const flyingBirds = [];
+let lastBirdSpawn = 0;
+
+function updateAndDrawBirds(w, h) {
+  if(G.bloom < 60) return; // only appear at high bloom
+  const now = Date.now();
+  // Spawn a new bird every 8-15 seconds at high bloom
+  const spawnInterval = 15000 - (G.bloom - 60) * 120; // faster spawns at higher bloom
+  if(now - lastBirdSpawn > Math.max(spawnInterval, 6000) && flyingBirds.length < 3) {
+    const fromLeft = Math.random() > 0.5;
+    flyingBirds.push({
+      x: fromLeft ? -20 : w + 20,
+      y: h * (0.05 + Math.random() * 0.25), // upper sky area
+      vx: fromLeft ? (0.4 + Math.random() * 0.6) : -(0.4 + Math.random() * 0.6),
+      vy: Math.sin(Math.random() * Math.PI) * 0.15,
+      size: 3 + Math.random() * 3,
+      wingPhase: Math.random() * Math.PI * 2,
+      wingSpeed: 0.003 + Math.random() * 0.002
+    });
+    lastBirdSpawn = now;
+  }
+  // Update and draw each bird
+  for(let i = flyingBirds.length - 1; i >= 0; i--) {
+    const bird = flyingBirds[i];
+    bird.x += bird.vx;
+    bird.y += Math.sin(now * 0.0006 + i * 3) * 0.15; // gentle vertical drift
+    bird.wingPhase += bird.wingSpeed;
+    // Remove if offscreen
+    if(bird.x < -30 || bird.x > w + 30) { flyingBirds.splice(i, 1); continue; }
+    // Draw bird silhouette
+    const wingFlap = Math.sin(now * bird.wingSpeed * 3 + bird.wingPhase) * 0.6;
+    const s = bird.size;
+    const dir = bird.vx > 0 ? 1 : -1;
+    ctx.save();
+    ctx.translate(bird.x, bird.y);
+    ctx.scale(dir, 1);
+    // Body — small oval
+    ctx.fillStyle = 'rgba(50,40,35,0.7)';
+    ctx.beginPath();
+    ctx.ellipse(0, 0, s * 1.2, s * 0.4, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // Head
+    ctx.beginPath();
+    ctx.arc(s * 1.0, -s * 0.15, s * 0.35, 0, Math.PI * 2);
+    ctx.fill();
+    // Wings — flapping gently
+    ctx.fillStyle = 'rgba(60,50,42,0.6)';
+    ctx.save();
+    ctx.translate(0, -s * 0.2);
+    ctx.rotate(-0.3 + wingFlap);
+    ctx.beginPath();
+    ctx.ellipse(-s * 0.5, -s * 0.3, s * 1.5, s * 0.35, 0.2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+    ctx.save();
+    ctx.translate(0, -s * 0.2);
+    ctx.rotate(0.3 - wingFlap);
+    ctx.beginPath();
+    ctx.ellipse(-s * 0.5, s * 0.3, s * 1.5, s * 0.35, -0.2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+    // Tail
+    ctx.fillStyle = 'rgba(55,45,38,0.5)';
+    ctx.beginPath();
+    ctx.moveTo(-s * 1.0, 0);
+    ctx.lineTo(-s * 2.0, -s * 0.3);
+    ctx.lineTo(-s * 2.0, s * 0.3);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
 function drawSanctuary() {
   const w = canvas.width, h = canvas.height;
   const bm = bloomMultiplier();
@@ -2286,8 +2362,8 @@ function drawSanctuary() {
     for(let i=0;i<grassCount;i++){
       const gx = (i/grassCount)*w + Math.sin(i*3)*20;
       const gy = h*0.85 + Math.sin(gx*0.03)*8 + Math.sin(gx*0.01)*15;
-      const gh = G.bloom > 30 ? (5 + bm*8 + Math.sin(Date.now()*0.002+i)*2) : (3 + bm*3);
-      const swayAmt = G.bloom > 30 ? Math.sin(Date.now()*0.003+i)*3 : Math.sin(Date.now()*0.003+i)*1;
+      const gh = G.bloom > 30 ? (5 + bm*8 + Math.sin(Date.now()*0.0008+i)*0.8) : (3 + bm*3);
+      const swayAmt = G.bloom > 30 ? Math.sin(Date.now()*0.001+i)*1.2 : Math.sin(Date.now()*0.001+i)*0.5;
       // Low bloom: brown/amber grass (more opaque). High bloom: vibrant green
       if(G.bloom < 30) {
         ctx.strokeStyle = `rgba(${130+Math.floor(Math.random()*30)},${95+Math.floor(Math.random()*20)},${40},${0.45+bm*0.15})`;
@@ -2297,7 +2373,7 @@ function drawSanctuary() {
       ctx.lineWidth = 1.5;
       ctx.beginPath();
       ctx.moveTo(gx, gy);
-      ctx.quadraticCurveTo(gx+swayAmt, gy-gh*0.6, gx+Math.sin(Date.now()*0.002+i)*5, gy-gh);
+      ctx.quadraticCurveTo(gx+swayAmt, gy-gh*0.6, gx+Math.sin(Date.now()*0.0008+i)*2, gy-gh);
       ctx.stroke();
     }
   }
@@ -2404,7 +2480,7 @@ function drawSanctuary() {
     const by = treeBase - (1-b.y) * (treeBase - h*0.12);
     const endX = bx + Math.cos(b.angle) * w * b.len;
     const endY = by - Math.abs(Math.sin(b.angle)) * h * b.len * 0.5;
-    const sway = Math.sin(Date.now()*0.001+b.x*5)*2;
+    const sway = Math.sin(Date.now()*0.0004+b.x*5)*0.8;
 
     // Branch thickness tapers based on length
     const branchThick = 2 + b.len * 8;
@@ -2442,7 +2518,7 @@ function drawSanctuary() {
         const t = 0.2 + (i/leafCount)*0.7;
         const lx = bx + (endX-bx)*t + sway*t + (Math.random()-0.5)*18;
         const ly = by + (endY-by)*t + (Math.random()-0.5)*12;
-        const lr = 4 + bloomN*12 + Math.sin(Date.now()*0.002+i+b.x)*2;
+        const lr = 4 + bloomN*12 + Math.sin(Date.now()*0.0008+i+b.x)*0.8;
         // Visible at ALL bloom levels — brown/amber at industry, green at harmony
         const alpha = 0.5 + bloomN*0.3;
         // Color: amber/brown at low (industry), rich green at high (harmony)
@@ -2506,7 +2582,7 @@ function drawSanctuary() {
   const bloomN = G.bloom / 100;
   const canopyScale = 0.55 + bloomN * 0.65; // 0.55 at bloom=0 (clearly visible brown), 1.2 at bloom=100
   canopyLayers.forEach(cl => {
-    const cx = treeX + Math.sin(Date.now()*0.0005+cl.y*10)*3;
+    const cx = treeX + Math.sin(Date.now()*0.0002+cl.y*10)*1;
     const cy = h * cl.y;
     const cr = (w * cl.r) * canopyScale;
     // Color: warm brown/amber at low (industry), rich emerald at high (harmony)
@@ -2533,7 +2609,7 @@ function drawSanctuary() {
   if(G.bloom > 60) {
     const flowerRing = Math.floor((G.bloom - 60) / 5);
     for(let i=0;i<flowerRing;i++){
-      const angle = (i/flowerRing)*Math.PI*2 + Date.now()*0.0001;
+      const angle = (i/flowerRing)*Math.PI*2 + Date.now()*0.00004;
       const radius = w*0.15 + Math.sin(i*2.3)*20;
       const fx = treeX + Math.cos(angle)*radius;
       const fy = h*0.12 + Math.sin(angle)*radius*0.35;
@@ -2637,6 +2713,9 @@ function drawSanctuary() {
   // Falling leaves
   updateAndDrawLeaves(w, h, bm);
 
+  // Flying birds at high bloom
+  updateAndDrawBirds(w, h);
+
   // At very high bloom: occasional petal particles float up
   if(G.bloom > 80) {
     const petalCount = Math.floor((G.bloom - 80) / 5);
@@ -2663,11 +2742,11 @@ function drawFlower(x, y, size, seed) {
     [220,160,175],[240,235,220],[190,170,210],[230,215,160],[210,180,170]
   ];
   const c = colors[Math.floor(seed) % colors.length];
-  const sway = Math.sin(t * 0.5) * 0.5;
+  const sway = Math.sin(t * 0.25) * 0.25;
 
   ctx.save();
   ctx.translate(x, y);
-  ctx.rotate(sway * 0.1);
+  ctx.rotate(sway * 0.05);
 
   // Petals
   for(let i=0; i<petalCount; i++) {
@@ -2943,7 +3022,7 @@ function drawSurvivorDots(treeX, treeBase, trunkW, h) {
     const by = treeBase - (1-b.y) * (treeBase - h*0.12);
     const endX = bx + Math.cos(b.angle) * w * b.len;
     const endY = by - Math.abs(Math.sin(b.angle)) * h * b.len * 0.5;
-    const sway = Math.sin(Date.now()*0.001+b.x*5)*2;
+    const sway = Math.sin(Date.now()*0.0004+b.x*5)*0.8;
     const t = 0.55 + (bi % 3) * 0.12; // vary position along branch
     const sx = bx + (endX - bx) * t + sway * t;
     const sy = by + (endY - by) * t;
@@ -2960,7 +3039,7 @@ function drawSurvivorDots(treeX, treeBase, trunkW, h) {
 
   alive.forEach((s, i) => {
     const pos = positions[i % positions.length];
-    const idleBob = Math.sin(Date.now()*0.002+i*2)*0.8; // subtle idle bob, not floating
+    const idleBob = Math.sin(Date.now()*0.001+i*2)*0.4; // very subtle idle bob
     drawSurvivorModel(pos.x, pos.y + idleBob, s, i);
   });
 }
@@ -3309,6 +3388,60 @@ function drawPetSprite(type, x, y, name) {
       ctx.beginPath(); ctx.moveTo(-1, bob+3); ctx.lineTo(-2, bob+6); ctx.stroke();
       ctx.beginPath(); ctx.moveTo(2, bob+3); ctx.lineTo(3, bob+6); ctx.stroke();
       break;
+
+    case 'parrot': // colorful tropical bird with curved beak
+      // Body — vibrant green
+      ctx.fillStyle = 'rgba(50,180,80,0.85)';
+      ctx.beginPath(); ctx.ellipse(0, bob, 4.5, 5, 0, 0, Math.PI*2); ctx.fill();
+      // Chest — bright yellow-green
+      ctx.fillStyle = 'rgba(140,210,60,0.7)';
+      ctx.beginPath(); ctx.ellipse(0, bob+1.5, 3, 3, 0, 0, Math.PI*2); ctx.fill();
+      // Head — green with blue-green tint
+      ctx.fillStyle = 'rgba(40,160,90,0.9)';
+      ctx.beginPath(); ctx.arc(0, bob-5, 3.5, 0, Math.PI*2); ctx.fill();
+      // Eye ring — white patch
+      ctx.fillStyle = 'rgba(255,255,255,0.85)';
+      ctx.beginPath(); ctx.arc(2, bob-5.5, 1.8, 0, Math.PI*2); ctx.fill();
+      // Eye
+      ctx.fillStyle = 'rgba(30,30,30,0.9)';
+      ctx.beginPath(); ctx.arc(2.3, bob-5.5, 0.8, 0, Math.PI*2); ctx.fill();
+      // Curved beak — hooked parrot beak
+      ctx.fillStyle = 'rgba(50,50,50,0.9)';
+      ctx.beginPath();
+      ctx.moveTo(3.5, bob-5);
+      ctx.quadraticCurveTo(7, bob-5.5, 6, bob-3.5);
+      ctx.quadraticCurveTo(5, bob-3, 3.5, bob-4);
+      ctx.fill();
+      // Wings — blue-green with red highlights
+      const pWing = Math.sin(t * 1.5) * 0.15;
+      ctx.fillStyle = 'rgba(30,120,180,0.7)';
+      ctx.save(); ctx.translate(-3, bob-1); ctx.rotate(-0.3 + pWing);
+      ctx.beginPath(); ctx.ellipse(-2, 0, 5, 2.5, 0.4, 0, Math.PI*2); ctx.fill();
+      ctx.restore();
+      // Red wing edge
+      ctx.fillStyle = 'rgba(200,50,50,0.6)';
+      ctx.save(); ctx.translate(-3, bob); ctx.rotate(-0.2 + pWing);
+      ctx.beginPath(); ctx.ellipse(-3, 0.5, 3, 1.2, 0.4, 0, Math.PI*2); ctx.fill();
+      ctx.restore();
+      // Long tail feathers — blue and green
+      ctx.fillStyle = 'rgba(30,100,180,0.65)';
+      ctx.beginPath();
+      ctx.moveTo(-1, bob+4);
+      ctx.quadraticCurveTo(-3, bob+10, -2, bob+14);
+      ctx.quadraticCurveTo(-1, bob+10, 0, bob+4);
+      ctx.fill();
+      ctx.fillStyle = 'rgba(40,160,80,0.5)';
+      ctx.beginPath();
+      ctx.moveTo(0, bob+4);
+      ctx.quadraticCurveTo(1, bob+9, -1, bob+12);
+      ctx.quadraticCurveTo(-1, bob+9, -1, bob+4);
+      ctx.fill();
+      // Feet
+      ctx.strokeStyle = 'rgba(100,100,100,0.7)';
+      ctx.lineWidth = 0.8;
+      ctx.beginPath(); ctx.moveTo(-1, bob+4.5); ctx.lineTo(-2, bob+7); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(1, bob+4.5); ctx.lineTo(2, bob+7); ctx.stroke();
+      break;
   }
 
   // Name label below
@@ -3326,8 +3459,8 @@ function drawPets(treeX, treeBase, trunkW, h) {
     // Position pets near tree base, spread out
     const angle = (i / Math.max(G.pets.length, 1)) * Math.PI * 0.6 - Math.PI * 0.3;
     const radius = trunkW * (2 + i * 0.5);
-    const px = treeX + Math.cos(angle) * radius + Math.sin(Date.now() * 0.0008 + i * 2) * 5;
-    const py = treeBase - h * 0.08 + Math.sin(Date.now() * 0.001 + i * 3) * 3;
+    const px = treeX + Math.cos(angle) * radius + Math.sin(Date.now() * 0.0004 + i * 2) * 2;
+    const py = treeBase - h * 0.08 + Math.sin(Date.now() * 0.0005 + i * 3) * 1.5;
     drawPetSprite(pet.type, px, py, pet.name);
   });
 }
