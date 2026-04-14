@@ -141,6 +141,35 @@ canvas{display:block}
 .exp-survivor-pick:hover{border-color:var(--text);color:var(--text)}
 .exp-survivor-pick.selected{border-color:var(--water);color:var(--water);background:rgba(94,127,143,0.1)}
 
+/* ── Expedition Launch Modal ── */
+#exp-modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);
+  z-index:100;display:none;align-items:center;justify-content:center}
+#exp-modal-overlay.active{display:flex}
+#exp-modal{background:var(--panel);border:1px solid var(--water);border-radius:4px;padding:24px;
+  max-width:420px;width:90%;max-height:80vh;overflow-y:auto}
+#exp-modal h3{font-size:1.1rem;color:var(--water);margin-bottom:4px}
+#exp-modal .exp-dest-info{font-size:0.75rem;color:var(--text-dim);line-height:1.4;margin-bottom:16px}
+#exp-modal .exp-stats{display:flex;gap:12px;font-size:0.7rem;color:var(--text-dim);margin-bottom:16px}
+#exp-modal .exp-stats span{padding:3px 8px;border:1px solid var(--border);border-radius:3px}
+.exp-survivor-card{display:flex;align-items:center;gap:10px;padding:8px 12px;margin-bottom:6px;
+  border:1px solid var(--border);border-radius:4px;cursor:pointer;transition:all 0.2s;background:rgba(26,25,23,0.4)}
+.exp-survivor-card:hover{border-color:var(--water);background:rgba(94,127,143,0.05)}
+.exp-survivor-card.selected{border-color:var(--water);background:rgba(94,127,143,0.12)}
+.exp-survivor-card .sc-name{font-size:0.8rem;font-weight:bold}
+.exp-survivor-card .sc-info{font-size:0.65rem;color:var(--text-dim)}
+.exp-survivor-card .sc-check{width:18px;height:18px;border:2px solid var(--border);border-radius:3px;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.2s}
+.exp-survivor-card.selected .sc-check{border-color:var(--water);background:var(--water);color:var(--bg)}
+#exp-launch-btn{width:100%;padding:12px;font-size:0.9rem;margin-top:12px;background:rgba(94,127,143,0.15);
+  border:2px solid var(--water);color:var(--water);border-radius:4px;cursor:pointer;
+  font-family:var(--font);transition:all 0.3s;font-weight:bold}
+#exp-launch-btn:hover{background:rgba(94,127,143,0.25)}
+#exp-launch-btn:disabled{opacity:0.3;cursor:default}
+#exp-cancel-btn{width:100%;padding:8px;font-size:0.75rem;margin-top:6px;background:none;
+  border:1px solid var(--border);color:var(--text-dim);border-radius:4px;cursor:pointer;
+  font-family:var(--font);transition:all 0.3s}
+#exp-cancel-btn:hover{border-color:var(--text);color:var(--text)}
+
 /* ── Dilemma Modal ── */
 #dilemma-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);
   display:none;z-index:100;align-items:center;justify-content:center;padding:20px}
@@ -415,6 +444,19 @@ canvas{display:block}
   <p id="result-text"></p>
   <div id="result-effects"></div>
   <button class="btn btn-sm" onclick="closeResult()">Continue</button>
+</div>
+
+<!-- ═══ EXPEDITION LAUNCH MODAL ═══ -->
+<div id="exp-modal-overlay">
+  <div id="exp-modal">
+    <h3 id="exp-modal-title">🗺️ Expedition</h3>
+    <div id="exp-modal-desc" class="exp-dest-info"></div>
+    <div id="exp-modal-stats" class="exp-stats"></div>
+    <div style="font-size:0.75rem;color:var(--text-dim);margin-bottom:8px">Select 1-2 survivors to send:</div>
+    <div id="exp-modal-survivors"></div>
+    <button id="exp-launch-btn" disabled onclick="launchFromModal()">Select Survivors to Launch</button>
+    <button id="exp-cancel-btn" onclick="closeExpModal()">Cancel</button>
+  </div>
 </div>
 
 <!-- ═══ EPILOGUE ═══ -->
@@ -4546,49 +4588,69 @@ function updateExpeditionPanel() {
   html += `<div id="send-exp-section">
     <h3>🗺️ Send Expedition</h3>
     ${!canSend ? `<div style="font-size:0.75rem;color:var(--text-dim);margin-bottom:8px">
-      ${G.expeditions.length >= 2 ? 'Maximum expeditions active.' : 'Need at least 2 survivors at home.'}
+      ${G.expeditions.length >= 2 ? 'Maximum expeditions active.' : 'Need at least 2 available survivors to send.'}
     </div>` : `
-    <div style="font-size:0.7rem;color:var(--text-dim);margin-bottom:8px">Choose destination, then 1-2 survivors.</div>
+    <div style="font-size:0.7rem;color:var(--text-dim);margin-bottom:8px">Tap a destination to launch an expedition.</div>
     ${DESTINATIONS.map(d => `
-      <div class="exp-dest${expSendState.dest===d.id?' selected':''}" onclick="selectExpDest('${d.id}')">
+      <div class="exp-dest" onclick="openExpModal('${d.id}')" style="cursor:pointer">
         <div class="exp-dest-name">${d.icon} ${d.name}</div>
         <div class="exp-dest-info">${d.desc}<br>Risk: ${d.risk}% · ${d.days} days · Rewards: ${d.rewards}</div>
       </div>
     `).join('')}
-    ${expSendState.dest ? `
-      <div style="margin-top:8px;font-size:0.75rem;color:var(--text-dim);margin-bottom:4px">Select 1-2 survivors:</div>
-      <div style="margin-bottom:8px">
-        ${availableSurvivors.map(s => `
-          <button class="exp-survivor-pick${expSendState.survivors.includes(s.name)?' selected':''}"
-            onclick="toggleExpSurvivor('${s.name}')">${s.name}</button>
-        `).join('')}
-      </div>
-      ${expSendState.survivors.length > 0 ? `
-        <button class="btn btn-sm btn-bloom" onclick="launchSelectedExpedition()">
-          Launch Expedition →
-        </button>
-      ` : ''}
-    ` : ''}
     `}
   </div>`;
 
   div.innerHTML = html;
 }
 
-function launchSelectedExpedition() {
-  if(expSendState.dest && expSendState.survivors.length > 0) {
-    sendExpedition(expSendState.dest, [...expSendState.survivors]);
-  }
-}
-
-function selectExpDest(destId) {
+// ── Expedition Launch Modal ──
+function openExpModal(destId) {
   playClick();
-  expSendState.dest = expSendState.dest === destId ? null : destId;
-  expSendState.survivors = [];
-  updateUI();
+  const dest = DESTINATIONS.find(d=>d.id===destId);
+  if(!dest) return;
+
+  expSendState = {dest: destId, survivors: []};
+
+  document.getElementById('exp-modal-title').textContent = `${dest.icon} ${dest.name}`;
+  document.getElementById('exp-modal-desc').textContent = dest.desc;
+  document.getElementById('exp-modal-stats').innerHTML = `
+    <span>⚠️ Risk: ${dest.risk}%</span>
+    <span>📅 ${dest.days} days</span>
+    <span>🎁 ${dest.rewards}</span>
+  `;
+
+  renderExpModalSurvivors();
+  document.getElementById('exp-modal-overlay').classList.add('active');
 }
 
-function toggleExpSurvivor(name) {
+function renderExpModalSurvivors() {
+  const container = document.getElementById('exp-modal-survivors');
+  const available = G.survivors.filter(s=>s.alive && !s.expedition);
+  const btn = document.getElementById('exp-launch-btn');
+
+  container.innerHTML = available.map(s => {
+    const isSelected = expSendState.survivors.includes(s.name);
+    const healthColor = s.health > 60 ? 'var(--bloom)' : s.health > 30 ? 'var(--warn)' : 'var(--danger)';
+    return `<div class="exp-survivor-card${isSelected ? ' selected' : ''}" onclick="toggleExpModalSurvivor('${s.name}')">
+      <div class="sc-check">${isSelected ? '✓' : ''}</div>
+      <div style="flex:1">
+        <div class="sc-name">${s.name}</div>
+        <div class="sc-info">
+          <span style="color:${healthColor}">❤️ ${s.health}%</span> · 
+          <span>😊 ${s.morale}%</span> · 
+          ${s.traits.slice(0,2).join(', ')}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  const count = expSendState.survivors.length;
+  btn.disabled = count === 0;
+  btn.textContent = count === 0 ? 'Select Survivors to Launch' :
+    `🗺️ Launch ${expSendState.survivors.join(' & ')} →`;
+}
+
+function toggleExpModalSurvivor(name) {
   playClick();
   const idx = expSendState.survivors.indexOf(name);
   if(idx >= 0) {
@@ -4596,7 +4658,20 @@ function toggleExpSurvivor(name) {
   } else if(expSendState.survivors.length < 2) {
     expSendState.survivors.push(name);
   }
-  updateUI();
+  renderExpModalSurvivors();
+}
+
+function launchFromModal() {
+  if(expSendState.dest && expSendState.survivors.length > 0) {
+    sendExpedition(expSendState.dest, [...expSendState.survivors]);
+    closeExpModal();
+  }
+}
+
+function closeExpModal() {
+  playClick();
+  document.getElementById('exp-modal-overlay').classList.remove('active');
+  expSendState = {dest: null, survivors: []};
 }
 
 function updateLogPanel() {
