@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>The Bloom Collective</title>
+<title>Radio Silence</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root{
@@ -324,13 +324,33 @@ canvas{display:block}
 
 <!-- ═══ TITLE SCREEN ═══ -->
 <div id="title-screen" class="screen active">
-  <div style="font-size:3rem;margin-bottom:20px">🌿</div>
-  <h1>THE BLOOM COLLECTIVE</h1>
-  <p class="subtitle">The old world fell silent. No war. No warning. Just… stillness.<br><br>
+  <div style="font-size:3rem;margin-bottom:20px">📻</div>
+  <h1>RADIO SILENCE</h1>
+  <p class="subtitle">The grid went dark. No war. No warning. Just… stillness.<br><br>
   In the canopy of an ancient tree, a small community begins again.<br>
   You are their conscience. Their consensus. Their voice.<br><br>
   <em>Guide them. Grow. Find The Way.</em></p>
-  <button class="btn" onclick="startGame()">Begin</button>
+  <button class="btn" onclick="showClanNaming()">Begin</button>
+</div>
+
+<!-- ═══ CLAN NAMING SCREEN ═══ -->
+<div id="clan-screen" class="screen" style="flex-direction:column;align-items:center;justify-content:center;background:var(--bg);text-align:center">
+  <div style="font-size:2.5rem;margin-bottom:16px">🌿</div>
+  <h2 style="font-size:1.6rem;letter-spacing:0.12em;color:var(--bloom-glow);margin-bottom:8px">NAME YOUR CLAN</h2>
+  <p style="color:var(--text-dim);font-style:italic;max-width:400px;line-height:1.6;margin-bottom:28px;font-size:0.95rem">
+    Every community needs a name to call its own. What will your people be known as in the world of Radio Silence?
+  </p>
+  <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px">
+    <input id="clan-name-input" type="text" maxlength="24" placeholder="e.g. The Root Dwellers…"
+      style="background:var(--panel);border:1px solid var(--border);color:var(--text);font-family:var(--font);
+             font-size:1.1rem;padding:10px 16px;border-radius:2px;width:280px;outline:none;text-align:center"
+      onkeydown="if(event.key==='Enter')confirmClanName()"
+    />
+  </div>
+  <div style="color:var(--text-dim);font-size:0.75rem;margin-bottom:24px">or leave blank to be called <em>The Collective</em></div>
+  <div style="display:flex;gap:12px">
+    <button class="btn btn-bloom" onclick="confirmClanName()">Settle Here</button>
+  </div>
 </div>
 
 <!-- ═══ TUTORIAL SCREEN (newspaper two-column) ═══ -->
@@ -364,8 +384,8 @@ canvas{display:block}
         Your community walks between <span style="color:var(--harmony)">Harmony</span> (nature, renewal, patience) and <span style="color:var(--industry)">Industry</span> (output, construction, speed). Neither extreme is purely good or bad. Finding <em>The Way</em> is the challenge.
       </div>
       <div class="tut-item" style="border-color:rgba(180,130,80,0.7)">
-        <strong style="color:rgba(200,160,100,0.9)">🐾 Pets</strong>
-        Build the <em>Animal Nursery</em> to rescue wild animals. Pets help with expeditions, research, foraging, and morale. Up to 4 companions.
+        <strong style="color:rgba(200,160,100,0.9)">🐾 Companions</strong>
+        Build the <em>Animal Nursery</em> to rescue wild animals. Companions help with expeditions, research, foraging, and morale. Up to 4 companions.
       </div>
       <div class="tut-item" style="border-color:var(--bloom-glow)">
         <strong style="color:var(--bloom-glow)">🤝 Relationships</strong>
@@ -386,6 +406,7 @@ canvas{display:block}
 <div id="game-screen" class="screen">
   <div id="top-bar">
     <span id="day-display">Day 1 · Dawn</span>
+    <span id="clan-name-display" style="font-size:0.75rem;color:var(--bloom-glow);letter-spacing:0.08em;opacity:0.8"></span>
     <div class="res"><span class="res-icon">🌾</span><span class="res-val" id="r-food">20</span><span class="res-change" id="rc-food"></span></div>
     <div class="res"><span class="res-icon">💧</span><span class="res-val" id="r-water">20</span><span class="res-change" id="rc-water"></span></div>
     <div class="res"><span class="res-icon">🌿</span><span class="res-val" id="r-compost">5</span><span class="res-change" id="rc-compost"></span></div>
@@ -477,7 +498,7 @@ canvas{display:block}
 // ════════════════════════════════════════════
 
 const NAMES = ['Ada','Bryn','Cael','Dara','Elian','Fern','Gale','Haze','Iris','Joss','Kael','Luma','Moss','Nyx','Orin','Pax','Quinn','Rune','Sol','Tarn'];
-const POSITIVE_TRAITS = ['Pragmatist','Purist','Resourceful','Compassionate','Resilient','Inventive','Diplomatic','Vigilant'];
+const POSITIVE_TRAITS = ['Pragmatist','Purist','Resourceful','Compassionate','Resilient','Inventive','Diplomatic','Vigilant','Mind Open'];
 const NEGATIVE_TRAITS = ['Skeptic','Reckless','Hoarder','Cynic'];
 const ROLES = [
   {id:'forager',label:'Forage',icon:'🍃',desc:'Gather food from the wilds'},
@@ -497,7 +518,7 @@ const BUILDINGS = [
   {id:'sleeping_quarters',name:'Sleeping Quarters',desc:'Doubles passive overnight health & morale recovery.',cost:{scrap:8,compost:4},effect:{nightRecovery:2},icon:'🛏️'},
   {id:'recreation',name:'Recreation Area',desc:'A space to unwind. Passive morale boost each day.',cost:{scrap:5,compost:4},effect:{moralePerDay:5},icon:'🎲'},
   {id:'shrine',name:'Shrine of Balance',desc:'A meditative space. Gently shifts the community toward Harmony each day.',cost:{compost:8,scrap:4},effect:{bloomPerDay:2},icon:'🕯️'},
-  {id:'nursery',name:'Animal Nursery',desc:'Rescue animals as pets. Pets help expeditions and research. +morale +bloom.',cost:{compost:6,scrap:3},effect:{moralePerDay:3,bloomPerDay:1},icon:'🐾'},
+  {id:'nursery',name:'Animal Nursery',desc:'Rescue animals as companions. Companions help expeditions and research. +morale +bloom.',cost:{compost:6,scrap:3},effect:{moralePerDay:3,bloomPerDay:1},icon:'🐾'},
   {id:'apothecary',name:'Apothecary',desc:'Advanced medicine crafting. Medicine never runs dry.',cost:{scrap:10,compost:6},effect:{medicinePerDay:2},icon:'⚗️'},
   {id:'amphitheatre',name:'Amphitheatre',desc:'A stage among the branches. Bands form and perform, boosting morale and harmony. Unlocks music culture.',cost:{scrap:7,compost:5},effect:{moralePerDay:4,bloomPerDay:1},icon:'🎵'}
 ];
@@ -1057,8 +1078,8 @@ function initState() {
     lastChanges: {},
     researchBonus: 0,
     researchLevel: 0,
-    pets: [],
-    petCooldown: 0,
+    companions: [],
+    companionCooldown: 0,
     expVisits: {echoes:0, wildlands:0, shore:0, ruins:0},
     metaFlags: {},
     endingPath: null,
@@ -1068,9 +1089,15 @@ function initState() {
     bands: [],
     bandCooldown: 0,
     lastPerformDay: 0,
-    musicUnlocked: false
+    musicUnlocked: false,
+    clanName: '',
+    conflicts: [],
+    factions: [],
+    seasons: {current:'spring', dayInSeason:1},
+    reputation: new Map()
   };
   usedDilemmas.clear();
+  initializeFactions();
   logEntries = [];
   // Generate starting survivors
   const startNames = shuffle([...NAMES]).slice(0,4);
@@ -1156,6 +1183,529 @@ function playWarning() {
 
 function playClick() { playTone(800, 0.05, 'sine', 0.04); }
 function playDay() { playTone(440, 0.6, 'sine', 0.05); setTimeout(() => playTone(554, 0.6, 'sine', 0.04), 200); setTimeout(() => playTone(659, 0.8, 'sine', 0.03), 400); }
+
+// ════════════════════════════════════════════
+// SAVE / LOAD SYSTEM
+// ════════════════════════════════════════════
+
+function saveGameState(slot) {
+  slot = slot || 'auto';
+  try {
+    var saveData = {
+      version: '1.2.0',
+      timestamp: Date.now(),
+      day: G.day,
+      bloom: G.bloom,
+      clanName: G.clanName || 'The Collective',
+      resources: JSON.parse(JSON.stringify(G.resources)),
+      morale: G.morale,
+      survivors: JSON.parse(JSON.stringify(G.survivors.map(function(s){
+        var c = JSON.parse(JSON.stringify(s));
+        if(c.skills instanceof Map) c.skills = Array.from(c.skills.entries());
+        return c;
+      }))),
+      buildings: JSON.parse(JSON.stringify(G.buildings)),
+      landmark: JSON.parse(JSON.stringify(G.landmark)),
+      expeditions: JSON.parse(JSON.stringify(G.expeditions)),
+      companions: JSON.parse(JSON.stringify(G.companions || [])),
+      metaFlags: JSON.parse(JSON.stringify(G.metaFlags || {})),
+      researchLevel: G.researchLevel || 0,
+      researchBonus: G.researchBonus || 0,
+      decisions: G.decisions || [],
+      conflicts: G.conflicts || [],
+      factions: JSON.parse(JSON.stringify(G.factions || [])),
+      reputation: G.reputation ? Array.from(G.reputation.entries()) : [],
+      seasons: JSON.parse(JSON.stringify(G.seasons || {current:'spring',dayInSeason:1})),
+      expVisits: JSON.parse(JSON.stringify(G.expVisits || {})),
+      chainDilemmasShown: Array.from(G.chainDilemmasShown || new Set()),
+      investigations: JSON.parse(JSON.stringify(G.investigations || []))
+    };
+    localStorage.setItem('bloom_save_' + slot, JSON.stringify(saveData));
+    if(slot !== 'auto') { addLog('✓ Game saved to slot ' + slot, 'good'); playChime(); }
+    return true;
+  } catch(e) { console.error('Save failed:', e); return false; }
+}
+
+function loadGameState(slot) {
+  slot = slot || 'auto';
+  try {
+    var raw = localStorage.getItem('bloom_save_' + slot);
+    if(!raw) return false;
+    var d = JSON.parse(raw);
+    G.day = d.day; G.bloom = d.bloom; G.clanName = d.clanName;
+    G.resources = d.resources; G.morale = d.morale;
+    G.survivors = d.survivors; G.buildings = d.buildings;
+    G.landmark = d.landmark; G.expeditions = d.expeditions || [];
+    G.companions = d.companions || []; G.metaFlags = d.metaFlags || {};
+    G.researchLevel = d.researchLevel || 0; G.researchBonus = d.researchBonus || 0;
+    G.decisions = d.decisions || []; G.conflicts = d.conflicts || [];
+    G.factions = d.factions || []; G.seasons = d.seasons || {current:'spring',dayInSeason:1};
+    G.expVisits = d.expVisits || {}; G.investigations = d.investigations || [];
+    G.reputation = new Map(d.reputation || []);
+    G.chainDilemmasShown = new Set(d.chainDilemmasShown || []);
+    if(slot !== 'auto') { addLog('✓ Loaded from slot ' + slot, 'good'); playChime(); }
+    return true;
+  } catch(e) { console.error('Load failed:', e); return false; }
+}
+
+function checkAutoSave() {
+  if(G.day % 5 === 0) saveGameState('auto');
+}
+
+// ════════════════════════════════════════════
+// FACTION SYSTEM — 4 CLANS
+// ════════════════════════════════════════════
+
+function initializeFactions() {
+  G.factions = [
+    {
+      id: 'wanderers',
+      name: 'The Wandering Path',
+      icon: '🐺',
+      shortDesc: 'Noble nomads who follow migration routes and live as our ancestors did.',
+      ideology: 'nomadic',
+      leaderName: 'Cael — Wolf Brother',
+      greeting: '"The path remembers your feet."',
+      insult: '"You carry the ghost of the old world in your hands."',
+      tradition: 'Twice yearly, they host solstice feasts and invite every known clan.',
+      defectorFlavour: 'Restless, proud, incapable of sitting still. Brings invaluable wilderness knowledge.',
+      inspiredFlavour: 'Curious what "staying" might feel like. Has never tried.',
+      disposition: 0,
+      tradeGoods: ['food', 'medicine'],
+      tradeWants: ['scrap', 'water'],
+      minBloom: 30,
+      bloomDrainPerTrade: 0,
+      contactDay: 12 + Math.floor(Math.random() * 8),
+      encountered: false,
+      defectorSent: false
+    },
+    {
+      id: 'settlers',
+      name: 'New Foundation',
+      icon: '🌾',
+      shortDesc: 'Settled farmers who grow exceptional food — and very interesting herbs.',
+      ideology: 'settled',
+      leaderName: 'Fern — The Cultivator',
+      greeting: '"Pull up a chair. Stay. Stay forever."',
+      insult: '"Oh. You\'re leaving. Already."',
+      tradition: 'The Long Sit — disputes resolved by sitting in silence until someone apologises.',
+      defectorFlavour: 'Homesick constantly. Brilliant cook. Deeply reluctant to go on expeditions, yet somehow always ends up on them.',
+      inspiredFlavour: 'Came seeking meaning beyond the garden wall. Keeps trying to grow herbs in every corner of camp.',
+      disposition: 10,
+      tradeGoods: ['food', 'compost', 'medicine'],
+      tradeWants: ['scrap', 'water'],
+      minBloom: 0,
+      bloomDrainPerTrade: 0,
+      specialTrade: true,
+      contactDay: 20 + Math.floor(Math.random() * 10),
+      encountered: false,
+      defectorSent: false
+    },
+    {
+      id: 'bloom_children',
+      name: 'Children of the Bloom',
+      icon: '🌸',
+      shortDesc: 'Religious fanatics who worship The Bloom — and know more about the Switch-Off than anyone.',
+      ideology: 'harmony',
+      leaderName: 'Iris — The First Voice',
+      greeting: '"The Bloom sees you. Do you see it?"',
+      insult: '"Your hands stink of the Before."',
+      tradition: 'The Listening — silence in tree roots at dawn, awaiting messages from The Bloom.',
+      defectorFlavour: 'Intense, cryptic, occasionally speaks in riddles. Surprisingly useful in the wilderness.',
+      inspiredFlavour: 'Came looking for signs. Found something more interesting — your community.',
+      disposition: 0,
+      tradeGoods: ['medicine', 'compost'],
+      tradeWants: ['food', 'water'],
+      minBloom: 40,
+      bloomDrainPerTrade: 0,
+      loreUnlock: true,
+      loreShared: 0,
+      contactDay: 18 + Math.floor(Math.random() * 12),
+      encountered: false,
+      defectorSent: false
+    },
+    {
+      id: 'reclaimed',
+      name: 'The Reclaimed',
+      icon: '⚙️',
+      shortDesc: 'Large, organized, quietly smug. Rebuilding civilization — sustainably this time, they promise.',
+      ideology: 'industry',
+      leaderName: 'Quinn — The Director',
+      greeting: '"Welcome to the future. Again."',
+      insult: '"Living in a tree is charming. It is also temporary."',
+      tradition: 'The Audit — every 30 days each member\'s contribution is assessed. They insist this is motivating.',
+      defectorFlavour: 'Efficient, slightly burned out. Excellent builder. Occasionally says "optimize" by accident.',
+      inspiredFlavour: 'Started wondering if efficiency was actually the point. Came to find out.',
+      disposition: 5,
+      tradeGoods: ['scrap', 'medicine'],
+      tradeWants: ['food', 'compost'],
+      minBloom: 0,
+      bloomDrainPerTrade: 2,
+      contactDay: 28 + Math.floor(Math.random() * 12),
+      encountered: false,
+      defectorSent: false
+    }
+  ];
+  G.reputation = new Map();
+  G.factions.forEach(function(f){ G.reputation.set(f.id, f.disposition); });
+}
+
+function changeFactionReputation(factionId, amount) {
+  var cur = G.reputation.get(factionId) || 0;
+  G.reputation.set(factionId, Math.max(-100, Math.min(100, cur + amount)));
+}
+
+function getFactionRep(factionId) { return G.reputation.get(factionId) || 0; }
+
+function getFaction(factionId) {
+  return (G.factions || []).find(function(f){ return f.id === factionId; });
+}
+
+// ── FACTION ENCOUNTER (first contact dilemma) ──
+function checkFactionEncounters() {
+  (G.factions || []).forEach(function(faction) {
+    if(!faction.encountered && G.day >= faction.contactDay) {
+      faction.encountered = true;
+      triggerFactionEncounter(faction);
+    }
+  });
+}
+
+function triggerFactionEncounter(faction) {
+  var choiceC = {text:'Maintain distance — be polite but guarded', effect:function(){ changeFactionReputation(faction.id,-5); addLog('↔ '+ faction.name +' noted your caution.','warn'); }};
+  pendingDilemma = {
+    id: 'encounter_' + faction.id,
+    title: faction.icon + ' First Contact: ' + faction.name,
+    text: 'A group approaches under a flag of truce. ' + faction.shortDesc + ' Their leader speaks: ' + faction.greeting,
+    opinions: [],
+    choices: [
+      {text:'Welcome them warmly — offer food and hospitality', effect:function(){
+        changeFactionReputation(faction.id, 25);
+        G.resources.food = Math.max(0, G.resources.food - 3);
+        addLog('✓ '+faction.name+' appreciate your warmth. (+25 reputation)','good');
+      }},
+      {text:'Be friendly but measured — cautious optimism', effect:function(){
+        changeFactionReputation(faction.id, 10);
+        addLog('↔ A polite first meeting with '+faction.name+'. (+10 reputation)','good');
+      }},
+      choiceC
+    ]
+  };
+  showDilemma(pendingDilemma);
+}
+
+// ── WEEKLY TRADE CHECK ──
+function checkTradeOpportunities() {
+  if(G.day % 7 !== 0) return;
+  var available = (G.factions || []).filter(function(f){
+    if(!f.encountered) return false;
+    var rep = getFactionRep(f.id);
+    if(rep < -30) return false;
+    if(f.minBloom > 0 && G.bloom < f.minBloom) return false;
+    return true;
+  });
+  if(available.length === 0) return;
+  if(Math.random() > 0.4) return;
+  var faction = available[Math.floor(Math.random() * available.length)];
+  var offering = faction.tradeGoods[Math.floor(Math.random() * faction.tradeGoods.length)];
+  var wanting = faction.tradeWants[Math.floor(Math.random() * faction.tradeWants.length)];
+  var rep = getFactionRep(faction.id);
+  var generosity = Math.max(0.6, 1 + rep / 200);
+  var offerAmt = Math.floor((2 + Math.random() * 4) * generosity);
+  var wantAmt = Math.floor(2 + Math.random() * 3);
+  pendingDilemma = {
+    id: 'trade_' + faction.id,
+    title: faction.icon + ' Trade: ' + faction.name,
+    text: faction.name + ' traders arrive offering ' + offerAmt + ' ' + offering + ' in exchange for ' + wantAmt + ' ' + wanting + '. ' + (faction.bloomDrainPerTrade > 0 ? '⚠️ Trading with them nudges your community toward Industry.' : ''),
+    opinions: [],
+    choices: [
+      {text:'Accept the trade', effect:function(){
+        if(G.resources[wanting] >= wantAmt){
+          G.resources[wanting] -= wantAmt;
+          G.resources[offering] = (G.resources[offering]||0) + offerAmt;
+          if(faction.bloomDrainPerTrade) G.bloom = Math.max(0, G.bloom - faction.bloomDrainPerTrade);
+          changeFactionReputation(faction.id, 3);
+          addLog('🤝 Traded '+wantAmt+' '+wanting+' for '+offerAmt+' '+offering+' with '+faction.name,'good');
+        } else { addLog('✗ Not enough '+wanting+' to trade.','warn'); }
+      }},
+      {text:'Decline politely', effect:function(){
+        addLog('↔ Declined trade with '+faction.name,'neutral');
+      }}
+    ]
+  };
+  showDilemma(pendingDilemma);
+}
+
+// ════════════════════════════════════════════
+// DEFECTOR / RECRUIT SYSTEM
+// ════════════════════════════════════════════
+
+function checkDefectorArrivals() {
+  if(G.day % 15 !== 0) return;
+  var candidates = (G.factions || []).filter(function(f){
+    return f.encountered && !f.defectorSent;
+  });
+  if(candidates.length === 0 || Math.random() > 0.4) return;
+  var faction = candidates[Math.floor(Math.random() * candidates.length)];
+  faction.defectorSent = true;
+  var rep = getFactionRep(faction.id);
+  var inspired = rep > 20;
+  var flavour = inspired ? faction.inspiredFlavour : faction.defectorFlavour;
+  var newName = NAMES[Math.floor(Math.random() * NAMES.length)];
+  while(G.survivors.some(function(s){ return s.name === newName; })){
+    newName = NAMES[Math.floor(Math.random() * NAMES.length)];
+  }
+  pendingDilemma = {
+    id: 'defector_' + faction.id,
+    title: faction.icon + ' ' + (inspired ? 'Inspired Visitor' : 'Seeking Refuge') + ': ' + faction.name,
+    text: (inspired
+      ? newName + ' from ' + faction.name + ' has been watching your community from a distance and wants to join. ' + flavour
+      : newName + ' arrives from ' + faction.name + ', disillusioned and seeking something different. ' + flavour) +
+      '\n\nDo you welcome them?',
+    opinions: [],
+    choices: [
+      {text:'Welcome ' + newName + ' into the community', effect:function(){
+        var s = createSurvivor(newName);
+        s.origin = faction.name;
+        s.originIcon = faction.icon;
+        G.survivors.push(s);
+        changeFactionReputation(faction.id, inspired ? 5 : -10);
+        addLog(faction.icon + ' ' + newName + ' (' + faction.name + ') joins your community.', 'good');
+        G.morale += 5;
+        playChime();
+      }},
+      {text:'Wish them well but decline — resources are too tight', effect:function(){
+        changeFactionReputation(faction.id, inspired ? -5 : 5);
+        addLog('↔ ' + newName + ' was turned away. They understood.', 'neutral');
+      }}
+    ]
+  };
+  showDilemma(pendingDilemma);
+}
+
+// ════════════════════════════════════════════
+// SOLSTICE FEAST — The Wandering Path
+// ════════════════════════════════════════════
+
+function checkSolsticeFeast() {
+  var wanderers = getFaction('wanderers');
+  if(!wanderers || !wanderers.encountered) return;
+  // Summer solstice ~day 15 of summer, Winter solstice ~day 15 of winter
+  var s = G.seasons || {};
+  var isSolstice = (s.current === 'summer' || s.current === 'winter') && s.dayInSeason === 15;
+  if(!isSolstice) return;
+  var seasonLabel = s.current === 'summer' ? 'Summer' : 'Winter';
+  pendingDilemma = {
+    id: 'solstice_' + s.current,
+    title: '🐺 ' + seasonLabel + ' Solstice Feast',
+    text: 'Runners from The Wandering Path arrive with an invitation — their ' + seasonLabel + ' Solstice Feast begins in three days. All known clans are welcome. Attendance is free food, fellowship, and almost certainly some quiet judgment. Do you attend?',
+    opinions: [],
+    choices: [
+      {text:'Attend with as many people as possible — celebrate!', effect:function(){
+        G.resources.food += 12;
+        G.morale = Math.min(100, G.morale + 15);
+        G.survivors.filter(function(s){ return s.alive; }).forEach(function(s){
+          s.health = Math.min(100, s.health + 10);
+        });
+        changeFactionReputation('wanderers', 15);
+        addLog('🎉 The '+seasonLabel+' Solstice Feast was extraordinary. Your people return fed, rested, and inspired.','good');
+      }},
+      {text:'Send a small delegation to represent your clan', effect:function(){
+        G.resources.food += 5;
+        G.morale = Math.min(100, G.morale + 7);
+        changeFactionReputation('wanderers', 7);
+        addLog('🎉 A small delegation attends the feast and returns with full bellies and new stories.','good');
+      }},
+      {text:'Decline — there is too much to do at home', effect:function(){
+        changeFactionReputation('wanderers', -8);
+        addLog('↔ The Wandering Path noted your absence at the feast.','warn');
+      }}
+    ]
+  };
+  showDilemma(pendingDilemma);
+}
+
+// ════════════════════════════════════════════
+// SEASONAL SYSTEM
+// ════════════════════════════════════════════
+
+function advanceSeason() {
+  if(!G.seasons) G.seasons = {current:'spring', dayInSeason:1};
+  G.seasons.dayInSeason++;
+  checkSolsticeFeast();
+  if(G.seasons.dayInSeason > 30) {
+    G.seasons.dayInSeason = 1;
+    var seq = ['spring','summer','autumn','winter'];
+    var idx = seq.indexOf(G.seasons.current);
+    G.seasons.current = seq[(idx + 1) % 4];
+    var msgs = {
+      spring:'🌱 Spring arrives. The canopy swells with new growth.',
+      summer:'☀️ Summer heat. Growth is abundant but water runs fast.',
+      autumn:'🍂 Autumn harvest. The land is generous before the cold.',
+      winter:'❄️ Winter descends. Survival demands more than usual.'
+    };
+    addLog(msgs[G.seasons.current], 'story');
+    if(G.seasons.current==='spring') G.bloom = Math.min(100, G.bloom+3);
+    if(G.seasons.current==='summer'){ G.resources.food=(G.resources.food||0)+5; G.resources.water=Math.max(0,(G.resources.water||0)-3);}
+    if(G.seasons.current==='autumn'){ G.resources.food=(G.resources.food||0)+8; G.resources.compost=(G.resources.compost||0)+3;}
+    if(G.seasons.current==='winter'){
+      G.survivors.forEach(function(s){ if(s.alive) s.health=Math.max(10,s.health-8); });
+    }
+  }
+}
+
+// ════════════════════════════════════════════
+// CONFLICT SYSTEM
+// ════════════════════════════════════════════
+
+function checkForConflicts() {
+  if(!G.conflicts) G.conflicts = [];
+  if(G.conflicts.length >= 2) return;
+  var alive = G.survivors.filter(function(s){ return s.alive; });
+  if(alive.length < 2) return;
+  for(var i=0;i<alive.length;i++){
+    for(var j=i+1;j<alive.length;j++){
+      var sA=alive[i], sB=alive[j];
+      if(G.conflicts.some(function(c){ return c.participants.indexOf(sA.name)>=0 && c.participants.indexOf(sB.name)>=0; })) continue;
+      var rel = getRelationship(sA.name, sB.name);
+      var chance = rel < -40 ? 0.12 : rel < -20 ? 0.06 : rel < 0 ? 0.02 : 0;
+      if(G.morale < 30) chance *= 2;
+      if(G.resources.food < 8) chance *= 1.5;
+      if(sA.traits.indexOf('Reckless')>=0 || sB.traits.indexOf('Reckless')>=0) chance *= 1.5;
+      if(Math.random() < chance){
+        var types = ['resource','ideology','personal','leadership'];
+        var type = types[Math.floor(Math.random()*types.length)];
+        var descs = {
+          resource: sA.name+' and '+sB.name+' disagree about resource distribution.',
+          ideology: sA.name+' and '+sB.name+' clash over the community\'s direction.',
+          personal: sA.name+' feels '+sB.name+' isn\'t contributing fairly.',
+          leadership: sA.name+' and '+sB.name+' dispute who makes key decisions.'
+        };
+        G.conflicts.push({
+          id: Date.now()+Math.random(),
+          participants:[sA.name,sB.name],
+          type:type,
+          description:descs[type],
+          severity:'minor',
+          moraleDrain: 1
+        });
+        addLog('⚡ Conflict: '+descs[type],'warn');
+        return;
+      }
+    }
+  }
+}
+
+// ════════════════════════════════════════════
+// SKILL SYSTEM
+// ════════════════════════════════════════════
+
+function gainExperience(survivorName, skillType, amount) {
+  amount = amount || 1;
+  var survivor = G.survivors.find(function(s){ return s.name===survivorName && s.alive; });
+  if(!survivor || !survivor.skills) return;
+  var cur = survivor.skills[skillType] || 1;
+  if(!survivor._skillExp) survivor._skillExp = {};
+  survivor._skillExp[skillType] = (survivor._skillExp[skillType]||0) + amount;
+  if(survivor._skillExp[skillType] >= cur * 4) {
+    survivor._skillExp[skillType] = 0;
+    survivor.skills[skillType] = cur + 1;
+    addLog('📚 '+survivorName+' improved '+skillType+' to level '+survivor.skills[skillType]+'!','good');
+  }
+}
+
+function getRandomBackground() {
+  var backgrounds = [
+    {id:'engineer',name:'Former Engineer',bonuses:{crafting:2,research:1},description:'Built systems before the world changed.'},
+    {id:'teacher',name:'Former Teacher',bonuses:{leadership:2,diplomacy:1},description:'Guided others through knowledge.'},
+    {id:'farmer',name:'Former Farmer',bonuses:{foraging:2,medicine:1},description:'Worked the land before it bloomed.'},
+    {id:'medic',name:'Field Medic',bonuses:{medicine:2,leadership:1},description:'Healed in times of crisis.'},
+    {id:'trader',name:'Former Trader',bonuses:{diplomacy:2,foraging:1},description:'Connected communities across distances.'},
+    {id:'artist',name:'Creative Soul',bonuses:{research:1,diplomacy:2},description:'Found beauty in a broken world.'}
+  ];
+  return backgrounds[Math.floor(Math.random()*backgrounds.length)];
+}
+
+// ════════════════════════════════════════════
+// MIND OPEN TRAIT — New Foundation special trade
+// ════════════════════════════════════════════
+
+function checkHerbTrade() {
+  var settlers = getFaction('settlers');
+  if(!settlers || !settlers.encountered) return;
+  if(G.day % 10 !== 0) return;
+  var hasMindOpen = G.survivors.some(function(s){ return s.alive && s.traits && s.traits.indexOf('Mind Open')>=0; });
+  if(!hasMindOpen) return;
+  if(Math.random() > 0.35) return;
+  var trader = G.survivors.find(function(s){ return s.alive && s.traits && s.traits.indexOf('Mind Open')>=0; });
+  pendingDilemma = {
+    id: 'herb_trade',
+    title: '🌾 New Foundation: Cultivator\'s Blend',
+    text: 'New Foundation offers a special consignment of their most "interesting" medicinals — available only because '+trader.name+' has an open mind. Effects are unpredictable. Could be transcendent. Could be a very long nap.',
+    opinions: [],
+    choices: [
+      {text:'Accept the herbs (2 medicine, effects unknown)', effect:function(){
+        G.resources.medicine = Math.max(0, (G.resources.medicine||0) - 2);
+        var roll = Math.random();
+        if(roll > 0.45){
+          G.resources.food += Math.floor(Math.random()*8)+3;
+          G.morale = Math.min(100, G.morale+12);
+          addLog('🌿 The Cultivator\'s Blend... something clicked. Productivity surges. No one can fully explain it.','bloom');
+        } else {
+          G.morale = Math.max(10, G.morale-8);
+          G.survivors.filter(function(s){ return s.alive; }).forEach(function(s){ s.health=Math.max(5,s.health-5); });
+          addLog('🌿 The herbs hit differently today. Everyone is lying on their backs staring at the canopy. Nothing is getting done.','warn');
+        }
+        changeFactionReputation('settlers',3);
+      }},
+      {text:'Politely decline — too risky', effect:function(){
+        addLog('↔ Declined the Cultivator\'s Blend this time.','neutral');
+      }}
+    ]
+  };
+  showDilemma(pendingDilemma);
+}
+
+// ════════════════════════════════════════════
+// CHILDREN OF THE BLOOM — lore unlock
+// ════════════════════════════════════════════
+
+function checkBloomLore() {
+  var children = getFaction('bloom_children');
+  if(!children || !children.encountered) return;
+  if(G.bloom < 50) return;
+  if(children.loreShared >= 3) return;
+  if(G.day % 20 !== 0) return;
+  if(Math.random() > 0.4) return;
+  var loreFragments = [
+    {title:'Fragment I: The Frequency',text:'The First Voice speaks in hushed tones: "The Switch-Off was not a failure. It was a signal. The Bloom broadcasts on a frequency the old machines could not receive. When all the noise stopped — it could finally be heard." She taps the bark of the nearest tree. "Every tree is a receiver. Your settlement is not an accident. You were called here."'},
+    {title:'Fragment II: Project Meridian',text:'"We have seen the Meridian sites," Iris says. "Twelve nodes, placed at precise intervals across the continent. Not built — grown. Before the first city was built, something planted them. The researchers of the Before found the resonance pattern and called it Project Meridian, thinking they discovered it." She pauses. "They didn\'t discover it. They were allowed to find it."'},
+    {title:'Fragment III: The Choice Ahead',text:'The First Voice grows serious: "When your landmark is complete, it will resonate with the network. The Bloom will offer your community a choice — three futures, each seeded long before you were born. One returns to silence. One reaches toward the stars. One simply... continues, and tends. We do not know which is right. We only know all three are offered with love."'}
+  ];
+  var fragment = loreFragments[children.loreShared];
+  children.loreShared++;
+  pendingDilemma = {
+    id: 'bloom_lore_'+children.loreShared,
+    title: '🌸 Children of the Bloom: '+fragment.title,
+    text: fragment.text,
+    opinions: [],
+    choices: [
+      {text:'Listen carefully and ask questions', effect:function(){
+        G.landmark.progress += 10;
+        changeFactionReputation('bloom_children',10);
+        addLog('🌸 The Children share truths that feel like memory. (+10 landmark insight)','bloom');
+      }},
+      {text:'Thank them and reflect in silence', effect:function(){
+        G.bloom = Math.min(100, G.bloom+3);
+        changeFactionReputation('bloom_children',5);
+        addLog('🌸 Something the First Voice said lingers long after she leaves.','bloom');
+      }}
+    ]
+  };
+  showDilemma(pendingDilemma);
+}
+
+
 
 // ── PROCEDURAL AMBIENT MUSIC ──
 // Generates evolving ambient soundscape that shifts with Harmony ↔ Industry balance
@@ -1793,8 +2343,8 @@ function calcDayChanges() {
   // Industry bonus: cheaper building costs (applied in buildStructure)
 
   // Pet effects
-  G.pets.forEach(pet => {
-    const pt = PET_TYPES.find(p=>p.id===pet.type);
+  G.companions.forEach(companion => {
+    const pt = PET_TYPES.find(p=>p.id===companion.type);
     if(!pt) return;
     if(pt.effect.moralePerDay) changes.morale += pt.effect.moralePerDay;
     if(pt.effect.bloomPerDay) changes.bloom += pt.effect.bloomPerDay;
@@ -1805,11 +2355,11 @@ function calcDayChanges() {
   });
 
   // Nursery: chance to rescue a new pet every 5 days (max 4 pets)
-  if(G.buildings.includes('nursery') && G.pets.length < 4 && G.petCooldown <= 0) {
+  if(G.buildings.includes('nursery') && G.companions.length < 4 && G.companionCooldown <= 0) {
     if(Math.random() < 0.3) {
-      const available = PET_TYPES.filter(pt => !G.pets.some(p=>p.type===pt.id));
+      const available = PET_TYPES.filter(pt => !G.companions.some(p=>p.type===pt.id));
       if(available.length > 0) {
-        const newPet = available[Math.floor(Math.random()*available.length)];
+        const newCompanion = available[Math.floor(Math.random()*available.length)];
         const PET_NAME_POOLS = {
           fox:['Luna','Ember','Blaze','Swift','Russet','Fable'],
           owl:['Sage','Dusk','Whisper','Hoot','Athena','Noctis'],
@@ -1821,17 +2371,17 @@ function calcDayChanges() {
           hawk:['Talon','Sky','Gust','Arrow','Cirrus','Zenith'],
           parrot:['TumTum','Timtim','Rio','Kiwi','Mango','Skye']
         };
-        const namePool = PET_NAME_POOLS[newPet.id] || ['Luna','Ash','Ember','Twig','Pebble','Moss','Fable','Dusk'];
+        const namePool = PET_NAME_POOLS[newCompanion.id] || ['Luna','Ash','Ember','Twig','Pebble','Moss','Fable','Dusk'];
         const petName = namePool[Math.floor(Math.random()*namePool.length)];
-        G.pets.push({type:newPet.id, name:petName});
-        addLog(`🐾 A wild ${newPet.name} ${newPet.icon} has been rescued! Named "${petName}". ${newPet.desc}`, 'pet');
+        G.companions.push({type:newCompanion.id, name:petName});
+        addLog(`🐾 A wild ${newCompanion.name} ${newCompanion.icon} has been rescued! Named "${petName}". ${newCompanion.desc}`, 'companion');
         // Show prominent toast for pet arrival
-        showResult(`${newPet.icon} New Companion!`, `A wild ${newPet.name} has wandered into the sanctuary! The survivors have named them "${petName}". ${newPet.desc}`, {morale: 5}, false);
-        G.petCooldown = 5;
+        showResult(`${newCompanion.icon} New Companion!`, `A wild ${newCompanion.name} has wandered into the sanctuary! The survivors have named them "${petName}". ${newCompanion.desc}`, {morale: 5}, false);
+        G.companionCooldown = 5;
       }
     }
   }
-  if(G.petCooldown > 0) G.petCooldown--;
+  if(G.companionCooldown > 0) G.companionCooldown--;
 
   // Track research level (cumulative research milestones)
   const researchThisDay = changes.landmark;
@@ -1889,7 +2439,7 @@ function applyChanges(changes) {
 }
 
 function addLog(msg, category) {
-  // Categories: 'day' (daily summary), 'relationship', 'pet', 'event' (default), 'danger', 'story'
+  // Categories: 'day' (daily summary), 'relationship', 'companion', 'event' (default), 'danger', 'story'
   logEntries.unshift({text: msg, day: G.day, cat: category || 'event'});
   const logEl = document.getElementById('event-log');
   // Use ticker animation for overflow text
@@ -1985,6 +2535,16 @@ function endDay() {
   // Advance day
   G.day++;
 
+  // ── New daily systems ──
+  advanceSeason();
+  checkFactionEncounters();
+  checkTradeOpportunities();
+  checkDefectorArrivals();
+  checkBloomLore();
+  checkHerbTrade();
+  checkForConflicts();
+  checkAutoSave();
+
   // Natural morale recovery
   if(G.morale < 30) G.morale += 2;
 
@@ -2003,7 +2563,7 @@ function endDay() {
 
   // ── If the player already made their Final Choice, trigger the ending ──
   if(G.endingPath) {
-    addLog('The path is chosen. The story of the Bloom Collective reaches its conclusion.', 'story');
+    addLog('The path is chosen. The story of the Radio Silence reaches its conclusion.', 'story');
     setTimeout(() => showEpilogue(), 500);
     return;
   }
@@ -2462,16 +3022,16 @@ function sendExpedition(destId, survivorNames) {
     }
   }
   // Pet bonuses for expeditions
-  const scoutPets = G.pets.filter(p => {
+  const scoutCompanions = G.companions.filter(p => {
     const pt = PET_TYPES.find(t=>t.id===p.type);
     return pt && pt.effect.expSafety;
   });
-  scoutPets.forEach(p => {
+  scoutCompanions.forEach(p => {
     const pt = PET_TYPES.find(t=>t.id===p.type);
     safety += pt.effect.expSafety;
   });
-  if(scoutPets.length > 0) {
-    addLog(`🐾 ${scoutPets.map(p=>p.name).join(' & ')} help scout the route!`);
+  if(scoutCompanions.length > 0) {
+    addLog(`🐾 ${scoutCompanions.map(p=>p.name).join(' & ')} help scout the route!`);
   }
   // Track visit number for alternate event pools
   const visitNum = G.expVisits[destId] || 0;
@@ -2485,7 +3045,7 @@ function sendExpedition(destId, survivorNames) {
     currentEvent: 0,
     safety: safety,
     visitNum: visitNum,
-    journal: [`📍 Day 1: ${survivorNames.join(' and ')} depart${survivorNames.length>1?'':'s'} for ${dest.name}.${scoutPets.length>0?' Their animal companions scout ahead.':''}`],
+    journal: [`📍 Day 1: ${survivorNames.join(' and ')} depart${survivorNames.length>1?'':'s'} for ${dest.name}.${scoutCompanions.length>0?' Their animal companions scout ahead.':''}`],
     pendingChoice: null
   });
 
@@ -4199,14 +4759,14 @@ function drawPetSprite(type, x, y, name) {
 }
 
 function drawPets(treeX, treeBase, trunkW, h) {
-  if(G.pets.length === 0) return;
-  G.pets.forEach((pet, i) => {
+  if(G.companions.length === 0) return;
+  G.companions.forEach((pet, i) => {
     // Position pets near tree base, spread out
-    const angle = (i / Math.max(G.pets.length, 1)) * Math.PI * 0.6 - Math.PI * 0.3;
+    const angle = (i / Math.max(G.companions.length, 1)) * Math.PI * 0.6 - Math.PI * 0.3;
     const radius = trunkW * (2 + i * 0.5);
     const px = treeX + Math.cos(angle) * radius + Math.sin(Date.now() * 0.0004 + i * 2) * 2;
     const py = treeBase - h * 0.08 + Math.sin(Date.now() * 0.0005 + i * 3) * 1.5;
-    drawPetSprite(pet.type, px, py, pet.name);
+    drawPetSprite(companion.type, px, py, companion.name);
   });
 }
 
@@ -4333,6 +4893,10 @@ function updateUI() {
 
   // Day display with balance label
   document.getElementById('day-display').textContent = `Day ${G.day} · ${balanceLabel()}`;
+  
+  // Clan name display
+  const clanEl = document.getElementById('clan-name-display');
+  if(clanEl && G.clanName) clanEl.textContent = G.clanName;
 
   // Panels
   updateCommunityPanel();
@@ -4375,11 +4939,11 @@ function updateCommunityPanel() {
   </div>`;
 
   // Pets section
-  if(G.pets.length > 0) {
+  if(G.companions.length > 0) {
     html += `<div style="font-size:0.75rem;padding:8px;margin-bottom:12px;background:rgba(180,130,80,0.08);border-radius:3px;border:1px solid rgba(180,130,80,0.25)">
       <span style="color:rgba(180,140,80,0.9)">🐾 Companions:</span>
       <div style="margin-top:4px;display:flex;gap:6px;flex-wrap:wrap">
-        ${G.pets.map(p => {
+        ${G.companions.map(p => {
           const pt = PET_TYPES.find(t=>t.id===p.type);
           return `<span title="${pt?pt.desc:''}" style="padding:2px 6px;background:rgba(180,130,80,0.12);border-radius:2px;cursor:help">${pt?pt.icon:'🐾'} ${p.name}</span>`;
         }).join('')}
@@ -4728,7 +5292,7 @@ function updateLogPanel() {
       case 'relationship':
         style += 'background:rgba(196,168,78,0.08);border-left:3px solid var(--gold);';
         break;
-      case 'pet':
+      case 'companion':
         style += 'background:rgba(180,130,80,0.1);border-left:3px solid rgba(180,140,80,0.7);';
         break;
       case 'danger':
@@ -4833,7 +5397,7 @@ function showEpilogue() {
   const alive = G.survivors.filter(s=>s.alive);
   const bloomFinal = G.bloom;
   const resLvl = G.researchLevel||0;
-  const petCount = G.pets.length;
+  const petCount = G.companions.length;
   const path = G.endingPath;
   const flags = G.metaFlags || {};
   const discoveryCount = Object.values(flags).filter(v=>v).length;
@@ -4874,7 +5438,7 @@ function showEpilogue() {
   else if(resLvl >= 5) researchGrade = 'Student';
 
   const balLabel = bloomFinal >= 65 ? '\uD83C\uDF3F Harmony' : bloomFinal >= 35 ? '\u2696\uFE0F Balanced' : '\u2692\uFE0F Industry';
-  document.getElementById('balance-final').textContent = balLabel + ' (' + Math.round(bloomFinal) + ') \u00B7 Day ' + G.day + ' \u00B7 ' + alive.length + ' survivors \u00B7 Research: ' + researchGrade + (petCount>0?' \u00B7 \uD83D\uDC3E '+petCount+' pets':'');
+  document.getElementById('balance-final').textContent = balLabel + ' (' + Math.round(bloomFinal) + ') \u00B7 Day ' + G.day + ' \u00B7 ' + alive.length + ' survivors \u00B7 Research: ' + researchGrade + (petCount>0?' \u00B7 \uD83D\uDC3E '+petCount+' companions':'');
 
   let content = '';
 
@@ -4916,7 +5480,7 @@ function showEpilogue() {
   } else if(alive.length === 0) {
     content += '<p>The platforms stand empty. The garden begins its slow return to wild. The Great Tree absorbs the abandoned structures into its bark, year by year, ring by ring.</p>';
     content += '<p>The Landmark \u2014 ' + Math.round(G.landmark.progress/G.landmark.required*100) + '% complete \u2014 becomes a ruin before it was ever finished.</p>';
-    if(petCount > 0) content += '<p>' + G.pets.map(function(p){return p.name}).join(' and ') + ' linger longest, patrolling empty platforms before venturing into the wild.</p>';
+    if(petCount > 0) content += '<p>' + G.companions.map(function(p){return p.name}).join(' and ') + ' linger longest, patrolling empty platforms before venturing into the wild.</p>';
     content += '<p>A hundred years from now, a traveler will pause beneath its branches and feel something \u2014 a warmth, a sense that someone tried very hard here. The Bloom remembers.</p>';
 
   } else if(G.morale <= 0) {
@@ -4931,20 +5495,20 @@ function showEpilogue() {
   // ═══ Companions ═══
   if(petCount > 0 && alive.length > 0) {
     content += '<div class="ep-section">\uD83D\uDC3E The Companions</div>';
-    G.pets.forEach(function(pet) {
-      const pt = PET_TYPES.find(function(t){return t.id===pet.type});
+    G.companions.forEach(function(companion) {
+      const pt = PET_TYPES.find(function(t){return t.id===companion.type});
       const petFates = {
-        fox: pet.name + ' the Fox scouts the perimeter at dawn \u2014 an unbreakable habit.',
-        owl: pet.name + ' the Owl roosts in the library rafters, hooting as researchers work.',
-        cat: pet.name + ' the Cat claims the warmest spot each evening, settling arguments by existing.',
-        dog: pet.name + ' the Dog greets every returning expedition, tail never still.',
-        rabbit: pet.name + ' the Rabbit turned the garden into a warren \u2014 the gardeners pretend to mind.',
-        crow: pet.name + ' the Crow still brings trinkets to the workshop in neat rows.',
-        deer: pet.name + ' the Deer leads foragers each morning to the best growth.',
-        hawk: pet.name + ' the Hawk circles at dusk, a silhouette against the painted sky.',
-        parrot: pet.name + ' the Parrot learned every song the bands ever played \u2014 and invented a few of their own, squawking melodies from the highest branch at sunrise.'
+        fox: companion.name + ' the Fox scouts the perimeter at dawn \u2014 an unbreakable habit.',
+        owl: companion.name + ' the Owl roosts in the library rafters, hooting as researchers work.',
+        cat: companion.name + ' the Cat claims the warmest spot each evening, settling arguments by existing.',
+        dog: companion.name + ' the Dog greets every returning expedition, tail never still.',
+        rabbit: companion.name + ' the Rabbit turned the garden into a warren \u2014 the gardeners pretend to mind.',
+        crow: companion.name + ' the Crow still brings trinkets to the workshop in neat rows.',
+        deer: companion.name + ' the Deer leads foragers each morning to the best growth.',
+        hawk: companion.name + ' the Hawk circles at dusk, a silhouette against the painted sky.',
+        parrot: companion.name + ' the Parrot learned every song the bands ever played \u2014 and invented a few of their own, squawking melodies from the highest branch at sunrise.'
       };
-      content += '<div class="ep-survivor">' + pt.icon + ' ' + (petFates[pet.type]||pet.name+' lived on.') + '</div>';
+      content += '<div class="ep-survivor">' + pt.icon + ' ' + (petFates[companion.type]||pet.name+' lived on.') + '</div>';
     });
   }
 
@@ -5021,7 +5585,7 @@ function showEpilogue() {
   content += '<div style="margin-top:14px;padding:10px;background:rgba(107,143,94,0.1);border:1px solid var(--border);border-radius:4px">';
   content += '<div style="font-size:0.9rem;margin-bottom:6px;color:var(--bloom-glow)">' + grade + '</div>';
   content += '<div style="font-size:0.75rem;color:var(--text-dim);line-height:1.6">';
-  content += 'Days: ' + G.day + ' \u00B7 Decisions: ' + G.decisions.length + ' \u00B7 Buildings: ' + G.buildings.length + ' \u00B7 Pets: ' + petCount + '<br>';
+  content += 'Days: ' + G.day + ' \u00B7 Decisions: ' + G.decisions.length + ' \u00B7 Buildings: ' + G.buildings.length + ' \u00B7 Companions: ' + petCount + '<br>';
   content += 'Landmark: ' + Math.round(G.landmark.progress) + '/' + G.landmark.required + ' (' + Math.round(G.landmark.progress/G.landmark.required*100) + '%) \u00B7 Research: ' + researchGrade + ' (' + Math.round(resLvl) + ')<br>';
   content += 'Harmony choices: ' + puristChoices + ' \u00B7 Industry choices: ' + pragmatistChoices + ' \u00B7 Meridian: ' + discoveryCount + '/4';
   content += '</div></div>';
@@ -5033,13 +5597,26 @@ function showEpilogue() {
 // INIT
 // ════════════════════════════════════════════
 
-function startGame() {
+function showClanNaming() {
   playClick();
   initAudio();
-  initState();
-
   document.getElementById('title-screen').classList.remove('active');
+  document.getElementById('clan-screen').classList.add('active');
+  setTimeout(() => document.getElementById('clan-name-input').focus(), 200);
+}
+
+function confirmClanName() {
+  playClick();
+  const input = document.getElementById('clan-name-input').value.trim();
+  initState();
+  G.clanName = input || 'The Collective';
+  document.getElementById('clan-screen').classList.remove('active');
   document.getElementById('tutorial-screen').classList.add('active');
+}
+
+function startGame() {
+  // Legacy — kept for safety, routes through clan naming
+  showClanNaming();
 }
 
 function closeTutorial() {
@@ -5049,7 +5626,7 @@ function closeTutorial() {
   initCanvas();
 
   // Initial log
-  addLog('☀️ Dawn breaks over the Great Tree. A new day for the Bloom Collective.', 'day');
+  addLog('☀️ Dawn breaks over the Great Tree. A new day for the Radio Silence.', 'day');
 
   // Snapshot initial relationship levels so we don't spam "now Neutral" on day 1
   prevRelLevels = {};
