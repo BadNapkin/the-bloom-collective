@@ -1275,7 +1275,7 @@ function initializeFactions() {
       tradeWants: ['scrap', 'water'],
       minBloom: 30,
       bloomDrainPerTrade: 0,
-      contactDay: 12 + Math.floor(Math.random() * 8),
+      contactDay: 4 + Math.floor(Math.random() * 4),
       encountered: false,
       defectorSent: false
     },
@@ -1297,7 +1297,7 @@ function initializeFactions() {
       minBloom: 0,
       bloomDrainPerTrade: 0,
       specialTrade: true,
-      contactDay: 20 + Math.floor(Math.random() * 10),
+      contactDay: 8 + Math.floor(Math.random() * 4),
       encountered: false,
       defectorSent: false
     },
@@ -1320,7 +1320,7 @@ function initializeFactions() {
       bloomDrainPerTrade: 0,
       loreUnlock: true,
       loreShared: 0,
-      contactDay: 18 + Math.floor(Math.random() * 12),
+      contactDay: 10 + Math.floor(Math.random() * 5),
       encountered: false,
       defectorSent: false
     },
@@ -1341,7 +1341,7 @@ function initializeFactions() {
       tradeWants: ['food', 'compost'],
       minBloom: 0,
       bloomDrainPerTrade: 2,
-      contactDay: 28 + Math.floor(Math.random() * 12),
+      contactDay: 14 + Math.floor(Math.random() * 6),
       encountered: false,
       defectorSent: false
     }
@@ -1481,6 +1481,66 @@ function checkDefectorArrivals() {
     ]
   };
   showDilemma(pendingDilemma);
+}
+
+
+// ── EXPEDITION FACTION ENCOUNTERS ──
+// Called when an expedition returns — chance of meeting a faction in the field
+function checkExpeditionFactionEncounter(expeditionType) {
+  var unmet = (G.factions || []).filter(function(f){ return !f.encountered; });
+  if(unmet.length === 0) return;
+  // Higher chance in wildlands/ruins, lower elsewhere
+  var chance = (expeditionType === 'wildlands' || expeditionType === 'ruins') ? 0.45 : 0.25;
+  if(Math.random() > chance) return;
+  var faction = unmet[Math.floor(Math.random() * unmet.length)];
+  faction.encountered = true;
+  // Expedition flavour intro before the main encounter
+  var locationFlavour = {
+    wildlands: 'Your scouts encounter a group sheltering in the treeline — ',
+    ruins: 'Among the old buildings, your expedition finds signs of recent habitation — ',
+    echoes: 'At the edge of the Echo Lands, a small party watches your approach — ',
+    shore: 'Along the shoreline, smoke from a camp catches your scouts\' eyes — '
+  };
+  var intro = (locationFlavour[expeditionType] || 'While out, your scouts encounter a group — ');
+  pendingDilemma = {
+    id: 'exp_encounter_' + faction.id,
+    title: faction.icon + ' Encountered: ' + faction.name,
+    text: intro + faction.shortDesc + '\n\nTheir leader steps forward: ' + faction.greeting,
+    opinions: [],
+    choices: [
+      {text:'Approach openly — introduce your community', effect:function(){
+        changeFactionReputation(faction.id, 20);
+        addLog('🗺 Your expedition made first contact with '+faction.name+' in the field. (+20 rep)','good');
+      }},
+      {text:'Friendly but cautious — exchange names, nothing more', effect:function(){
+        changeFactionReputation(faction.id, 8);
+        addLog('🗺 A brief, cordial meeting with '+faction.name+' out in the field.','good');
+      }},
+      {text:'Signal peace but move on — no time to linger', effect:function(){
+        changeFactionReputation(faction.id, -3);
+        addLog('🗺 '+faction.name+' noted your haste. A chance missed.','warn');
+      }}
+    ]
+  };
+  showDilemma(pendingDilemma);
+}
+
+
+// ── FACTION RUMOURS — early hints before first contact ──
+function seedFactionRumours() {
+  var rumourDays = {wanderers:2, settlers:3, bloom_children:5, reclaimed:7};
+  (G.factions||[]).forEach(function(f){
+    if(!f.rumourShown && !f.encountered && G.day === rumourDays[f.id]) {
+      f.rumourShown = true;
+      var msgs = {
+        wanderers: '🐺 Scouts report distant campfires following the old migration trails. Someone is out there, moving with purpose.',
+        settlers: '🌾 Your foragers found freshly tended crop rows near the eastern ridge — someone is farming out there.',
+        bloom_children: '🌸 Strange symbols carved into a tree. Spirals and flowers. Recent. Someone leaves offerings in the forest.',
+        reclaimed: '⚙️ Smoke from a large settlement to the north. Organised. Structured. More people than you expected to find.'
+      };
+      if(msgs[f.id]) addLog(msgs[f.id], 'story');
+    }
+  });
 }
 
 // ════════════════════════════════════════════
@@ -2537,7 +2597,7 @@ function endDay() {
 
   // ── New daily systems ──
   advanceSeason();
-  checkFactionEncounters();
+  seedFactionRumours();
   checkTradeOpportunities();
   checkDefectorArrivals();
   checkBloomLore();
@@ -2583,7 +2643,13 @@ function endDay() {
   }
 
   // Check for pending investigation prompts first (takes priority)
-  if(G.pendingInvestigation) {
+  // ── Faction first-contact: always shown, cannot be skipped ──
+  const newEncounter = (G.factions||[]).find(function(f){ return !f.encountered && G.day >= f.contactDay; });
+  if(newEncounter) {
+    newEncounter.encountered = true;
+    triggerFactionEncounter(newEncounter);
+  }
+  else if(G.pendingInvestigation) {
     showInvestigationPrompt();
   }
   // Final Choice takes priority when conditions are met
@@ -3119,6 +3185,9 @@ function progressExpeditions() {
         if(lastEntry && !lastEntry.startsWith('→')) haulText += '\n"' + lastEntry.replace(/^Day \d+: /, '') + '"';
       }
       showResult(haulTitle, haulText, haul, injured);
+
+      // Chance to encounter an unmet faction during the expedition
+      checkExpeditionFactionEncounter(exp.type);
 
       return false; // remove expedition
     }
